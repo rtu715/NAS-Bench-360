@@ -9,10 +9,10 @@ import torch.nn as nn
 import torch.nn.funtional as F
 
 class BasicBlock(nn.Module):
-	'''
-	first applies batch norm and relu before applying convolution
-	we can change the order of operations if needed
-	'''
+    '''
+    first applies batch norm and relu before applying convolution
+    we can change the order of operations if needed
+    '''
 
     def __init__(self, in_planes, out_planes, stride, dropRate=0.0):
         super(BasicBlock, self).__init__()
@@ -54,9 +54,9 @@ class NetworkBlock(nn.Module):
 
 
 class Backbone(nn.Module):
-	'''
-	wide resnet 50
-	'''
+    '''
+    wide resnet 50
+    '''
     def __init__(self, depth, num_classes, widen_factor=1, dropRate=0.0):
         super(Backbone, self).__init__()
         nChannels = [16, 16*widen_factor, 32*widen_factor, 64*widen_factor]

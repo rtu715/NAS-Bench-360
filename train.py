@@ -70,9 +70,9 @@ def main():
 
     if args.augment:
         transform_train = transforms.Compose([
-        	transforms.ToTensor(),
-        	transforms.Lambda(lambda x: F.pad(x.unsqueeze(0),
-        						(4,4,4,4),mode='reflect').squeeze()),
+            transforms.ToTensor(),
+            transforms.Lambda(lambda x: F.pad(x.unsqueeze(0),
+                                (4,4,4,4),mode='reflect').squeeze()),
             transforms.ToPILImage(),
             transforms.RandomCrop(32),
             transforms.RandomHorizontalFlip(),
