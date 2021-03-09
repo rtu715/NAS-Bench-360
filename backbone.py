@@ -6,7 +6,7 @@ Implementation of Wide Resnet as NAS backbone architecture
 import math 
 import torch
 import torch.nn as nn
-import torch.nn.funtional as F
+import torch.nn.functional as F
 
 class BasicBlock(nn.Module):
     '''
