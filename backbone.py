@@ -1,6 +1,6 @@
 """
 Reference: https://github.com/xternalz/WideResNet-pytorch/blob/master/wideresnet.py
-Implementation of Wide Resnet-50 as NAS backbone architecture
+Implementation of Wide Resnet as NAS backbone architecture
 """
 
 import math 
@@ -53,9 +53,12 @@ class NetworkBlock(nn.Module):
         return self.layer(x)
 
 
-class WideResNet(nn.Module):
+class Backbone(nn.Module):
+	'''
+	wide resnet 50
+	'''
     def __init__(self, depth, num_classes, widen_factor=1, dropRate=0.0):
-        super(WideResNet, self).__init__()
+        super(Backbone, self).__init__()
         nChannels = [16, 16*widen_factor, 32*widen_factor, 64*widen_factor]
         assert((depth - 4) % 6 == 0)
         n = (depth - 4) / 6
