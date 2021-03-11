@@ -111,8 +111,7 @@ def main():
         os.makedirs(args.save_dir)
 
     #model = torch.nn.DataParallel(resnet.__dict__[args.arch]())
-    model = Backbone(args.layers, args.data == 'cifar100' and 10 or 100,
-                            args.widen_factor, dropRate=args.droprate)
+    model = Backbone(args.layers, int(args.data[5:]), args.widen_factor, dropRate=args.droprate)
     origpar = sum(param.numel() for param in model.parameters())
     print('Original weight count:', origpar)
     torch.cuda.set_device(args.device)
