@@ -2,7 +2,8 @@
 Reference: https://github.com/xternalz/WideResNet-pytorch/blob/master/wideresnet.py
 Implementation of Wide Resnet as NAS backbone architecture
 
-Parameter count (for default 28 layers): 36.5M
+Parameter count 28-10: 36.5M
+Parameter count for 40-4: 8.9M
 """
 
 import math 

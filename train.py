@@ -21,6 +21,10 @@ from torch.autograd import Variable
 
 from backbone import Backbone
 
+from xd.chrysalis import Chrysalis
+from xd.darts import Supernet
+from xd.nas import MixedOptimizer
+
 # used for logging to TensorBoard
 from tensorboard_logger import configure, log_value
 
@@ -55,6 +59,14 @@ parser.add_argument('--name', default='WideResNet-28-10', type=str,
                     help='name of experiment')
 parser.add_argument('--tensorboard',
                     help='Log progress to TensorBoard', action='store_true')
+
+
+'''new args from trainer.py'''
+parser.add_argument('--seed', default=0, type=int)
+parser.add_argument('--device', default=0, type=int)
+
+
+
 parser.set_defaults(augment=True)
 
 best_prec1 = 0
@@ -62,6 +74,8 @@ best_prec1 = 0
 def main():
     global args, best_prec1
     args = parser.parse_args()
+    torch.manual_seed(args.seed)
+
     if args.tensorboard: configure("runs/%s"%(args.name))
 
     # Data loading code
@@ -110,6 +124,7 @@ def main():
     # for training on multiple GPUs.
     # Use CUDA_VISIBLE_DEVICES=0,1 to specify which GPUs to use
     # model = torch.nn.DataParallel(model).cuda()
+    torch.cuda.set_device(args.device)
     model = model.cuda()
 
     # optionally resume from a checkpoint
