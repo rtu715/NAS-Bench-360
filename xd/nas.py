@@ -3,7 +3,7 @@ import torch
 from copy import deepcopy
 from torch import autograd, nn, optim
 from torch._six import inf
-from utils import int2tuple
+from .utils import int2tuple
 
 
 class MixedOptimizer(optim.Optimizer):

@@ -13,8 +13,8 @@ from torch_butterfly.combine import diagonal_butterfly
 from torch_butterfly.complex_utils import Real2Complex, Complex2Real
 from torch_butterfly.permutation import FixedPermutation, bitreversal_permutation, perm2butterfly
 from torch_butterfly.special import fft, ifft, fft2d, ifft2d
-from ops import AvgPool, Conv, Diagonal, FNO, Fourier, TensorProduct
-from utils import complex_convert, complex_matmul, int2tuple
+from .ops import AvgPool, Conv, Diagonal, FNO, Fourier, TensorProduct
+from .utils import complex_convert, complex_matmul, int2tuple
 
 
 def complex_norm(X):

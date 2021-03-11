@@ -4,10 +4,10 @@ from operator import itemgetter
 import torch
 from torch import nn
 from torch.nn import functional as F
-from chrysalis import Chrysalis, get_module
-from ops import Conv
-from utils import int2tuple
-from xd import XD
+from .chrysalis import Chrysalis, get_module
+from .ops import Conv
+from .utils import int2tuple
+from .xd import XD
 
 
 OPERATIONS = [
