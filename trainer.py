@@ -223,12 +223,7 @@ def main():
     optimizer = MixedOptimizer(opts)
 
     def weight_sched(epoch):
-
-        if args.arch in ['lenet']:
-            return 0.1 if epoch >= int(0.75 * args.epochs) else 0.5 if epoch >= int(0.5 * args.epochs) else 1.0
-
-        if epoch < 1 and args.arch in ['resnet1202', 'resnet110']:
-            return 0.1
+        #deleted scheduling for different architectures
         return 0.1 ** (epoch >= int(0.5 * args.epochs)) * 0.1 ** (epoch >= int(0.75 * args.epochs))
     
     def arch_sched(epoch):
