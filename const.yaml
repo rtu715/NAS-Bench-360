@@ -1,0 +1,38 @@
+description: xd-nas
+
+data:
+  download_dir: /data
+
+bind_mounts:
+  - host_path: /tmp
+    container_path: /data
+    read_only: false
+
+hyperparameters:
+  # Number of classes in dataset
+  n_classes: 10
+  layers: 40
+  widen_factor: 4
+  droprate: 0.0
+
+  learning_rate: 0.1
+  momentum: 0.9
+  weight_decay: 1e-4
+
+  start_epoch: 0
+
+resources:
+  slots_per_trial: 2
+
+records_per_epoch: 50000
+
+searcher:
+  name: single
+  metric: validation_error
+  max_length:
+    epochs: 200
+
+min_validation_period:
+  epochs: 1
+
+entrypoint: backbone_determined:NASTrial
