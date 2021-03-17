@@ -11,7 +11,7 @@ import torchvision
 from torch import nn
 from torchvision import transforms
 
-from determined.pytorch import DataLoader, PyTorchTrial, PyTorchTrialContext
+from determined.pytorch import DataLoader, PyTorchTrial, PyTorchTrialContext, LRScheduler
 from backbone import Backbone
 
 #Constants about the dataset here (need to modify)
@@ -29,6 +29,7 @@ def accuracy_rate(predictions: torch.Tensor, labels: torch.Tensor) -> float:
     return (  # type: ignore
         float((predictions.argmax(1) == labels.to(torch.long)).sum()) / predictions.shape[0]
     )
+
 
 class AttrDict(dict):
     def __init__(self, *args, **kwargs):
@@ -67,21 +68,28 @@ class NASTrial(PyTorchTrial):
         '''
         self.opt = self.context.wrap_optimizer(
             torch.optim.SGD(
-                self.model.model_weights(),
+                self.model.parameters(),
                 self.hparams.learning_rate,
                 momentum=self.hparams.momentum,
                 weight_decay=self.hparams.weight_decay,
             )
         )
-
+        '''
         self.lr_scheduler = self.context.wrap_lr_scheduler(
-            torch.optim.lr_scheduler.LambdaLR(
+            lr_scheduler=torch.optim.lr_scheduler.LambdaLR(
                 self.opt,
-                #lr_lambda=sched_groups,
+                lr_lambda=[self.weight_sched],
                 last_epoch=self.hparams.start_epoch-1
-            )
+            ),
+               step_mode=LRScheduler.StepMode.STEP_EVERY_EPOCH,
         )
+        '''
 
+    def weight_sched(self, epoch) -> Any:
+        #deleted scheduling for different architectures
+        return 0.1 ** (epoch >= int(0.5 * self.hparams.epochs)) * 0.1 ** (epoch >= int(0.75 * self.hparams.epochs))
+    
+    
 
     '''
     Temporary data loaders, will need new ones for new tasks
@@ -112,10 +120,13 @@ class NASTrial(PyTorchTrial):
     def train_batch(self, batch: TorchData, epoch_idx: int, batch_idx: int
                     ) -> Dict[str, torch.Tensor]:
 
+        '''
         if epoch_idx != self.last_epoch:
             self.train_data.shuffle_val_inds()
         self.last_epoch = epoch_idx
-        x_train, y_train, x_val, y_val = batch
+        '''
+        
+        x_train, y_train = batch
 
         self.model.train()
         output = self.model(x_train)
@@ -130,10 +141,14 @@ class NASTrial(PyTorchTrial):
         }
 
     def evaluate_batch(self, batch: TorchData) -> Dict[str, Any]:
-        input, target = batch
-        logits = self.model(input)
+        """
+        Calculate validation metrics for a batch and return them as a dictionary.
+        This method is not necessary if the user overwrites evaluate_full_dataset().
+        """
+        batch = cast(Tuple[torch.Tensor, torch.Tensor], batch)
+        data, labels = batch
 
-        loss = self.criterion(logits, target)
-        accuracy = accuracy_rate(logits, target)
+        output = self.model(data)
+        accuracy = accuracy_rate(output, labels)
+        return {"validation_accuracy": accuracy, "validation_error": 1.0 - accuracy}
 
-        return {"loss": loss, "accuracy": accuracy}

@@ -19,10 +19,13 @@ hyperparameters:
   momentum: 0.9
   weight_decay: 1e-4
 
-  start_epoch: 0
+  global_batch_size: 128 
+
+  # start_epoch: 0
+  epochs: 200
 
 resources:
-  slots_per_trial: 2
+  slots_per_trial: 1
 
 records_per_epoch: 50000
 
