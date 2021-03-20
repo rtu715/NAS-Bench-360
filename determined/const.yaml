@@ -1,15 +1,21 @@
 description: xd-nas
 
-provider:
-  container_startup_script: |
-      export HOME=/root
-      apt-get update && apt-get install -y curl docker.io
-      apt install amazon-ecr-credential-helper
-      aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 212469337107.dkr.ecr.us-east-1.amazonaws.com
+
+#provider:
+#  container_startup_script: |
+#      export HOME=/root
+#      apt-get update && apt-get install -y curl docker.io
+#      apt install amazon-ecr-credential-helper
+#      aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 212469337107.dkr.ecr.us-east-1.amazonaws.com
+
+#environment:
+#  image: "212469337107.dkr.ecr.us-east-1.amazonaws.com/xd:determined"
 
 environment:
-  image: "212469337107.dkr.ecr.us-east-1.amazonaws.com/xd:determined"
-
+  image: "renbotu/xd-nas:determined"
+  registry_auth:
+    username: renbotu
+    password: 980715tutubo
 
 
 data:
