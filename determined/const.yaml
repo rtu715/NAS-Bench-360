@@ -1,6 +1,5 @@
 description: xd-nas
 
-
 #provider:
 #  container_startup_script: |
 #      export HOME=/root
@@ -29,6 +28,9 @@ bind_mounts:
 hyperparameters:
   # Number of classes in dataset
   n_classes: 10
+  permute: false
+
+  #NN architecture backbone
   layers: 40
   widen_factor: 4
   droprate: 0.0
@@ -55,5 +57,7 @@ searcher:
 
 min_validation_period:
   epochs: 1
+
+max_restarts: 10
 
 entrypoint: backbone_determined:NASTrial
