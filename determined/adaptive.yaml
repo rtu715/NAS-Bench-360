@@ -1,14 +1,4 @@
-description: xd-nas
-
-#provider:
-#  container_startup_script: |
-#      export HOME=/root
-#      apt-get update && apt-get install -y curl docker.io
-#      apt install amazon-ecr-credential-helper
-#      aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 212469337107.dkr.ecr.us-east-1.amazonaws.com
-
-#environment:
-#  image: "212469337107.dkr.ecr.us-east-1.amazonaws.com/xd:determined"
+description: xd-nas-tuning
 
 environment:
   image: "renbotu/xd-nas:determined"
@@ -35,7 +25,11 @@ hyperparameters:
   widen_factor: 4
   droprate: 0.0
 
-  learning_rate: 0.1
+  learning_rate:
+    type: log
+    minval: -5.0
+    maxval: 1.0
+    base: 10.0
   momentum: 0.9
   weight_decay: 1e-4
 
@@ -44,16 +38,18 @@ hyperparameters:
   start_epoch: 0
   epochs: 200
 
-resources:
-  slots_per_trial: 1
+
+
+
 
 records_per_epoch: 50000
 
 searcher:
-  name: single
+  name: adaptive_asha
   metric: validation_error
   max_length:
-    epochs: 200
+    epochs: 32
+  max_trials: 16
 
 min_validation_period:
   epochs: 1
