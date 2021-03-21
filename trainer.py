@@ -22,6 +22,7 @@ from xd.darts import Supernet
 from xd.nas import MixedOptimizer
 
 from backbone import Backbone
+import resnet
 
 class RowColPermute(nn.Module):
 
@@ -35,9 +36,18 @@ class RowColPermute(nn.Module):
 
         return tensor[:,self.rowperm][:,:,self.colperm]
 
-parser = argparse.ArgumentParser(description='WideResNet for CIFAR100 in pytorch')
+model_names = sorted(name for name in resnet.__dict__
+    if name.islower() and not name.startswith("__")
+                     and name.startswith("resnet")
+                     and callable(resnet.__dict__[name]))
 
-parser.add_argument('--data', default='cifar100', type=str)
+
+parser = argparse.ArgumentParser(description='WideResNet for CIFAR100 in pytorch')
+parser.add_argument('--arch', '-a', metavar='ARCH', default='resnet32',
+                    choices=model_names,
+                    help='model architecture: ' + ' | '.join(model_names) +
+                    ' (default: resnet32)')
+parser.add_argument('--data', default='cifar10', type=str)
 parser.add_argument('--device', default=0, type=int)
 parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
                     help='number of data loading workers (default: 4)')
@@ -95,9 +105,9 @@ best_prec1 = 0
 '''new args for wideresnet'''
 parser.add_argument('--droprate', default=0, type=float,
                     help='dropout probability (default: 0.0)')
-parser.add_argument('--layers', default=40, type=int,
+parser.add_argument('--layers', default=16, type=int,
                     help='total number of layers (default: 40)')
-parser.add_argument('--widen-factor', default=4, type=int,
+parser.add_argument('--widen-factor', default=2, type=int,
                     help='widen factor (default: 4)')
 
 
@@ -110,7 +120,8 @@ def main():
     if not os.path.exists(args.save_dir):
         os.makedirs(args.save_dir)
 
-    #model = torch.nn.DataParallel(resnet.__dict__[args.arch]())
+    #model = resnet.__dict__[args.arch](num_classes=int(args.data[5:]))
+
     model = Backbone(args.layers, int(args.data[5:]), args.widen_factor, dropRate=args.droprate)
     origpar = sum(param.numel() for param in model.parameters())
     print('Original weight count:', origpar)
