@@ -4,6 +4,8 @@ https://github.com/determined-ai/determined/tree/master/examples/computer_vision
 '''
 import tempfile
 from typing import Any, Dict, Sequence, Tuple, Union, cast
+from functools import partial
+
 
 import torch
 import torchvision
@@ -68,17 +70,42 @@ class NASTrial(PyTorchTrial):
         self.download_directory = tempfile.mkdtemp()
 
         self.criterion = nn.CrossEntropyLoss().cuda()
-        self.model = self.context.wrap_model(
-            Backbone(
+
+        # Changing our backbone
+        self.backbone = Backbone(
                 self.hparams.layers,
                 self.hparams.n_classes,
                 self.hparams.widen_factor,
                 dropRate=self.hparams.droprate,
             )
-        )
+
+        self.chrysalis, self.original = Chrysalis.metamorphosize(self.backbone), self.backbone
+        self.model = self.context.wrap_model(self.chrysalis)
+
+        arch_kwargs = {'perturb': self.hparams.perturb,
+                       'warm_start': not self.hparams.from_scratch}
+
+        X, _ = next(iter(self.build_training_data_loader()))
+
+        if self.hparams.patch:
+            self.model.patch_conv(X[:1], **arch_kwargs)
+
+        else:
+            self.hparams.arch_lr = 0.0
 
         '''
-        Definition of optimizers, for now only optimize weights and not arch 
+        Definition of optimizers, no Adam implementation
+        '''
+        momentum = partial(torch.optim.SGD, momentum=self.hparams.momentum)
+        opts = [momentum(self.model.model_weights(), lr=self.hparams.learning_rate, weight_decay=self.hparams.weight_decay)]
+
+        if self.hparams.arch_lr:
+            arch_opt = momentum
+            opts.append(arch_opt(self.model.arch_params(), lr=self.hparams.arch_lr, weight_decay=self.hparams.weight_decay))
+
+        optimizer = MixedOptimizer(opts)
+        self.opt = self.context.wrap_optimizer(optimizer)
+
         '''
         self.opt = self.context.wrap_optimizer(
             torch.optim.SGD(
@@ -88,20 +115,27 @@ class NASTrial(PyTorchTrial):
                 weight_decay=self.hparams.weight_decay,
             )
         )
+        '''
+
+        sched_groups = [self.weight_sched if g['params'][0] in set(self.model.model_weights()) else self.arch_sched for g in
+                        optimizer.param_groups]
 
         self.lr_scheduler = self.context.wrap_lr_scheduler(
             lr_scheduler=torch.optim.lr_scheduler.LambdaLR(
                 self.opt,
-                lr_lambda=[self.weight_sched],
+                lr_lambda=sched_groups,
                 last_epoch=self.hparams.start_epoch-1
             ),
             step_mode=LRScheduler.StepMode.STEP_EVERY_EPOCH,
         )
 
-
     def weight_sched(self, epoch) -> Any:
         # deleted scheduling for different architectures
         return 0.1 ** (epoch >= int(0.5 * self.hparams.epochs)) * 0.1 ** (epoch >= int(0.75 * self.hparams.epochs))
+
+    def arch_sched(self, epoch) -> Any:
+        return 0.0 if epoch < self.hparams.warmup_epochs or epoch > self.hparams.epochs-self.hparams.cooldown_epochs else self.weight_sched(epoch)
+
 
     '''
     Temporary data loaders, will need new ones for new tasks
