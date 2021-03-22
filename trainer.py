@@ -43,7 +43,7 @@ model_names = sorted(name for name in resnet.__dict__
 
 
 parser = argparse.ArgumentParser(description='WideResNet for CIFAR100 in pytorch')
-parser.add_argument('--arch', '-a', metavar='ARCH', default='resnet32',
+parser.add_argument('--arch', '-a', metavar='ARCH', default='resnet56',
                     choices=model_names,
                     help='model architecture: ' + ' | '.join(model_names) +
                     ' (default: resnet32)')
@@ -92,8 +92,8 @@ parser.add_argument('--kmatrix-depth', default=1, type=int)
 parser.add_argument('--max-kernel-size', default=5, type=int)
 parser.add_argument('--warmup-epochs', default=0, type=int)
 parser.add_argument('--cooldown-epochs', default=0, type=int)
-parser.add_argument('--global-biasing', default='additive', type=str)
-parser.add_argument('--channel-gating', default='complete', type=str)
+parser.add_argument('--global-biasing', default=False, type=bool)
+parser.add_argument('--channel-gating', default=False, type=bool)
 parser.add_argument('--op-decay', action='store_true')
 parser.add_argument('--permute', action='store_true')
 parser.add_argument('--offline', type=str, default='')
@@ -105,9 +105,9 @@ best_prec1 = 0
 '''new args for wideresnet'''
 parser.add_argument('--droprate', default=0, type=float,
                     help='dropout probability (default: 0.0)')
-parser.add_argument('--layers', default=16, type=int,
+parser.add_argument('--layers', default=40, type=int,
                     help='total number of layers (default: 40)')
-parser.add_argument('--widen-factor', default=2, type=int,
+parser.add_argument('--widen-factor', default=4, type=int,
                     help='widen factor (default: 4)')
 
 
@@ -279,7 +279,7 @@ def main():
 
         writer.add_scalar('hyper/lr', weight_sched(epoch) * args.lr, epoch)
         writer.add_scalar('hyper/arch', arch_sched(epoch) * args.arch_lr, epoch)
-        metrics(epoch)
+        #metrics(epoch)
         model.set_arch_requires_grad(arch_sched(epoch) * args.arch_lr > 0.0)
 
         # train for one epoch
@@ -328,7 +328,7 @@ def main():
         }, is_best, filename=os.path.join(args.save_dir, 'model.th'))
 
     model.save_arch(os.path.join(args.save_dir, 'arch.th'))
-    metrics(args.epochs)
+    #metrics(args.epochs)
     writer.flush()
     with open(os.path.join(args.save_dir, 'results.json'), 'w') as f:
         json.dump({'final validation accuracy': prec1,
