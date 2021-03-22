@@ -105,7 +105,7 @@ best_prec1 = 0
 '''new args for wideresnet'''
 parser.add_argument('--droprate', default=0, type=float,
                     help='dropout probability (default: 0.0)')
-parser.add_argument('--layers', default=40, type=int,
+parser.add_argument('--layers', default=16, type=int,
                     help='total number of layers (default: 40)')
 parser.add_argument('--widen-factor', default=4, type=int,
                     help='widen factor (default: 4)')

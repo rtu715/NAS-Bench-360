@@ -80,7 +80,6 @@ class NASTrial(PyTorchTrial):
             )
 
         self.chrysalis, self.original = Chrysalis.metamorphosize(self.backbone), self.backbone
-        self.model = self.context.wrap_model(self.chrysalis)
 
         arch_kwargs = {'perturb': self.hparams.perturb,
                        'warm_start': not self.hparams.from_scratch}
@@ -88,11 +87,14 @@ class NASTrial(PyTorchTrial):
         X, _ = next(iter(self.build_training_data_loader()))
 
         if self.hparams.patch:
-            self.model.patch_conv(X[:1], **arch_kwargs)
+            self.chrysalis.patch_conv(X[:1], **arch_kwargs)
 
         else:
             self.hparams.arch_lr = 0.0
 
+
+        self.model = self.context.wrap_model(self.chrysalis)
+        
         '''
         Definition of optimizers, no Adam implementation
         '''

@@ -32,7 +32,7 @@ hyperparameters:
 
   #NN architecture backbone
   layers: 40
-  widen_factor: 4
+  widen_factor: 2
   droprate: 0.0
 
   learning_rate: 0.1

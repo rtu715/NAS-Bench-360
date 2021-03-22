@@ -22,7 +22,7 @@ hyperparameters:
 
   #NN architecture backbone
   layers: 40
-  widen_factor: 4
+  widen_factor: 2
   droprate: 0.0
 
   learning_rate:
@@ -32,6 +32,7 @@ hyperparameters:
     base: 10.0
   momentum: 0.9
   weight_decay: 1e-4
+  arch_lr: 0.1
 
   global_batch_size: 128 
 
@@ -39,6 +40,12 @@ hyperparameters:
   epochs: 200
 
 
+  patch: true
+  perturb: 0.0
+  from_scratch: false
+
+  warmup_epochs: 0
+  cooldown_epochs: 0
 
 
 
@@ -48,7 +55,7 @@ searcher:
   name: adaptive_asha
   metric: validation_error
   max_length:
-    epochs: 32
+    epochs: 64
   max_trials: 16
 
 min_validation_period:
