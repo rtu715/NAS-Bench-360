@@ -1,0 +1,80 @@
+checkpoint_storage:
+  type: s3
+  bucket: det-xd-us-east-1-212469337107
+  save_experiment_best: 0
+  save_trial_best: 1
+  save_trial_latest: 1
+
+db:
+  user: postgres
+  password: "postgres"
+  host: "xd-database-125p336g90l3p.cluster-cvfjmrkgliev.us-east-1.rds.amazonaws.com"
+  port: 5432
+  name: determined
+  ssl_mode: verify-ca
+  ssl_root_cert: /etc/determined/etc/db_ssl_root_cert.pem
+
+enable_cors: false
+
+resource_manager:
+  type: agent
+  default_cpu_resource_pool: cpu-pool
+  default_gpu_resource_pool: gpu-pool
+  scheduler:
+    type: fair_share
+resource_pools:
+  - pool_name: cpu-pool
+    max_cpu_containers_per_agent: 100
+    provider:
+      master_cert_name:
+      iam_instance_profile_arn: arn:aws:iam::212469337107:instance-profile/xd-AgentInstanceProfile-1AH03MU1NYEI3
+      image_id: ami-0080b638f1339ccd5
+      agent_docker_image: determinedai/determined-agent:0.14.5
+      instance_name: determined-agent-xd
+      instance_type: t2.xlarge
+      log_group: /determined/xd
+      log_stream: determined-agent
+      master_url: http://local-ipv4:8080
+      max_idle_agent_period: 10m
+      max_agent_starting_period: 20m
+      min_instances: 0
+      max_instances: 5
+      spot: false
+      spot_max_price: ""
+      network_interface:
+        public_ip: true
+        security_group_id: sg-0ee4543bbe186999e
+        subnet_id:
+      type: aws
+      root_volume_size: 200
+      ssh_key_name: aws_key
+      tag_key: det-xd
+      tag_value: det-agent-xd
+
+  - pool_name: gpu-pool
+    max_cpu_containers_per_agent: 0
+    provider:
+      master_cert_name:
+      iam_instance_profile_arn: arn:aws:iam::212469337107:instance-profile/xd-AgentInstanceProfile-1AH03MU1NYEI3
+      image_id: ami-0080b638f1339ccd5
+      agent_docker_image: determinedai/determined-agent:0.14.5
+      instance_name: determined-agent-xd
+      instance_type: p3.2xlarge
+      log_group: /determined/xd
+      log_stream: determined-agent
+      master_url: http://local-ipv4:8080
+      max_idle_agent_period: 10m
+      max_agent_starting_period: 20m
+      min_instances: 0
+      max_instances: 5
+      spot: false
+      spot_max_price: ""
+      network_interface:
+        public_ip: true
+        security_group_id: sg-0ee4543bbe186999e
+        subnet_id:
+      type: aws
+      root_volume_size: 200
+      ssh_key_name: aws_key
+      tag_key: det-xd
+      tag_value: det-agent-xd
