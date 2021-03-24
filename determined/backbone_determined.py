@@ -81,8 +81,12 @@ class NASTrial(PyTorchTrial):
 
         self.chrysalis, self.original = Chrysalis.metamorphosize(self.backbone), self.backbone
 
-        arch_kwargs = {'perturb': self.hparams.perturb,
-                       'warm_start': not self.hparams.from_scratch}
+        arch_kwargs = {'kmatrix_depth':self.hparams.kmatrix_depth,
+                        'max_kernel_size': self.hparams.max_kernel_size,
+                        'base': 2,
+                        'global_biasing': False,
+                        'channel_gating': False,
+                        'warm_start': True}
 
         X, _ = next(iter(self.build_training_data_loader()))
 
@@ -102,8 +106,8 @@ class NASTrial(PyTorchTrial):
         opts = [momentum(self.model.model_weights(), lr=self.hparams.learning_rate, weight_decay=self.hparams.weight_decay)]
 
         if self.hparams.arch_lr:
-            arch_opt = momentum
-            opts.append(arch_opt(self.model.arch_params(), lr=self.hparams.arch_lr, weight_decay=self.hparams.weight_decay))
+            arch_opt = torch.optim.Adam if self.hparams.arch_adam else momentum
+            opts.append(arch_opt(self.model.arch_params(), lr=self.hparams.arch_lr, weight_decay=0.0 if self.hparams.arch_adam else self.hparams.weight_decay))
 
         optimizer = MixedOptimizer(opts)
         self.opt = self.context.wrap_optimizer(optimizer)
@@ -124,7 +128,7 @@ class NASTrial(PyTorchTrial):
 
         self.lr_scheduler = self.context.wrap_lr_scheduler(
             lr_scheduler=torch.optim.lr_scheduler.LambdaLR(
-                self.opt,
+                optimizer,
                 lr_lambda=sched_groups,
                 last_epoch=self.hparams.start_epoch-1
             ),

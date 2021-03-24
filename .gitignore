@@ -2,3 +2,5 @@ data
 __pycache__
 */__pycache__
 */__pycache__/*
+runs
+save_temp
