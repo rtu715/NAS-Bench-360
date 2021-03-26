@@ -11,7 +11,7 @@ description: xd-nas
 #  image: "212469337107.dkr.ecr.us-east-1.amazonaws.com/xd:determined"
 
 environment:
-  image: "renbotu/xd-nas:determined"
+  image: "renbotu/xd-nas:determined1.8"
   registry_auth:
     username: renbotu
     password: 980715tutubo
@@ -35,10 +35,10 @@ hyperparameters:
   widen_factor: 2
   droprate: 0.0
 
-  learning_rate: 0.1
+  learning_rate: 1e-4
   momentum: 0.9
   weight_decay: 1e-4
-  arch_lr: 0.1
+  arch_lr: 1e-4
   arch_adam: true
 
   global_batch_size: 128 

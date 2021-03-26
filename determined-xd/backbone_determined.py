@@ -148,8 +148,12 @@ class NASTrial(PyTorchTrial):
     '''
 
     def build_training_data_loader(self) -> Any:
-        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                         std=[0.229, 0.224, 0.225])
+
+        CIFAR_MEAN = [0.49139968, 0.48215827, 0.44653124]
+        CIFAR_STD = [0.24703233, 0.24348505, 0.26158768]
+        
+        normalize = transforms.Normalize(CIFAR_MEAN,
+                                         CIFAR_STD)
 
         if self.hparams.permute:
             permute = RowColPermute(32, 32)
@@ -157,7 +161,7 @@ class NASTrial(PyTorchTrial):
 
         else:
             transform = transforms.Compose(
-                [transforms.RandomHorizontalFlip(), transforms.RandomCrop(32, 4), transforms.ToTensor(), normalize]
+                [transforms.RandomCrop(32, padding=4), transforms.RandomHorizontalFlip(), transforms.ToTensor(), normalize]
             )
 
         trainset = torchvision.datasets.CIFAR10(
@@ -167,9 +171,12 @@ class NASTrial(PyTorchTrial):
         return DataLoader(trainset, batch_size=self.context.get_per_slot_batch_size())
 
     def build_validation_data_loader(self) -> Any:
-        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                         std=[0.229, 0.224, 0.225])
 
+        CIFAR_MEAN = [0.49139968, 0.48215827, 0.44653124]
+        CIFAR_STD = [0.24703233, 0.24348505, 0.26158768]
+        
+        normalize = transforms.Normalize(CIFAR_MEAN,
+                                         CIFAR_STD)
         if self.hparams.permute:
             permute = RowColPermute(32, 32)
             transform = transforms.Compose([transforms.ToTensor(), permute, normalize])

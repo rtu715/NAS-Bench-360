@@ -81,7 +81,7 @@ parser.add_argument('--save-every', dest='save_every',
                     type=int, default=10)
 parser.add_argument('--seed', default=0, type=int)
 
-parser.add_argument('--arch-lr', default=0.1, type=float)
+parser.add_argument('--arch-lr', default=0.0001, type=float)
 parser.add_argument('--arch-adam', action='store_true')
 parser.add_argument('--patch-conv', action='store_true')
 parser.add_argument('--patch-pool', action='store_true')
@@ -90,7 +90,7 @@ parser.add_argument('--base', default=2, type=int)
 parser.add_argument('--perturb', default=0.0, type=float)
 parser.add_argument('--kmatrix-depth', default=1, type=int)
 parser.add_argument('--max-kernel-size', default=5, type=int)
-parser.add_argument('--warmup-epochs', default=0, type=int)
+parser.add_argument('--warmup-epochs', default=50, type=int)
 parser.add_argument('--cooldown-epochs', default=0, type=int)
 parser.add_argument('--global-biasing', default=False, type=bool)
 parser.add_argument('--channel-gating', default=False, type=bool)
@@ -105,7 +105,7 @@ best_prec1 = 0
 '''new args for wideresnet'''
 parser.add_argument('--droprate', default=0, type=float,
                     help='dropout probability (default: 0.0)')
-parser.add_argument('--layers', default=16, type=int,
+parser.add_argument('--layers', default=40, type=int,
                     help='total number of layers (default: 40)')
 parser.add_argument('--widen-factor', default=4, type=int,
                     help='widen factor (default: 4)')

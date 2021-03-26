@@ -1,7 +1,7 @@
 description: xd-nas-tuning
 
 environment:
-  image: "renbotu/xd-nas:determined"
+  image: "renbotu/xd-nas:determined1.8"
   registry_auth:
     username: renbotu
     password: 980715tutubo
@@ -25,15 +25,15 @@ hyperparameters:
   widen_factor: 2
   droprate: 0.0
 
-  learning_rate:
+  arch_lr:
     type: log
     minval: -5.0
-    maxval: 1.0
+    maxval: 0.0
     base: 10.0
   momentum: 0.9
   weight_decay: 1e-4
-  arch_lr: 0.1
-
+  learning_rate: 1e-4
+  arch_adam: true
   global_batch_size: 128 
 
   start_epoch: 0
@@ -41,10 +41,11 @@ hyperparameters:
 
 
   patch: true
-  perturb: 0.0
   from_scratch: false
+  kmatrix_depth: 1
+  max_kernel_size: 5
 
-  warmup_epochs: 0
+  warmup_epochs: 50
   cooldown_epochs: 0
 
 
