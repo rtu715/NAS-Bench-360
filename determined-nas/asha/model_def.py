@@ -8,7 +8,7 @@ good architecture in this search space for CIFAR-10.
 
 from collections import namedtuple
 from typing import Any, Dict
-from attrdict import AttrDict
+#from attrdict import AttrDict
 
 import torch
 import torchvision.datasets as dset
@@ -27,6 +27,11 @@ import utils
 
 
 Genotype = namedtuple("Genotype", "normal normal_concat reduce reduce_concat")
+
+class AttrDict(dict):
+    def __init__(self, *args, **kwargs):
+        super(AttrDict, self).__init__(*args, **kwargs)
+        self.__dict__ = self
 
 
 def apply_constraints(hparams, num_params):

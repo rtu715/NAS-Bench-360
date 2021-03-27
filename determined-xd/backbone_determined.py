@@ -13,7 +13,8 @@ from torch import nn
 from torchvision import transforms
 
 from determined.pytorch import DataLoader, PyTorchTrial, PyTorchTrialContext, LRScheduler
-from backbone import Backbone
+from backbone_pt import Backbone_pt
+from backbone_grid import Backbone_Grid
 
 from xd.chrysalis import Chrysalis
 from xd.darts import Supernet

@@ -56,18 +56,18 @@ class NetworkBlock(nn.Module):
         return self.layer(x)
 
 
-class Backbone(nn.Module):
+class Backbone_Pt(nn.Module):
     '''
     wide resnet 50
     '''
-    def __init__(self, depth, num_classes, widen_factor=1, dropRate=0.0):
+    def __init__(self, depth, num_classes, widen_factor=1, dropRate=0.0, in_channels=3):
         super(Backbone, self).__init__()
         nChannels = [16, 16*widen_factor, 32*widen_factor, 64*widen_factor]
         assert((depth - 4) % 6 == 0)
         n = (depth - 4) / 6
         block = BasicBlock
         # 1st conv before any network block
-        self.conv1 = nn.Conv2d(3, nChannels[0], kernel_size=3, stride=1,
+        self.conv1 = nn.Conv2d(in_channels, nChannels[0], kernel_size=3, stride=1,
                                padding=1, bias=False)
         # 1st block
         self.block1 = NetworkBlock(n, nChannels[0], nChannels[1], block, 1, dropRate)
