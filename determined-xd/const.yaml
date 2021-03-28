@@ -19,7 +19,10 @@ environment:
 
 data:
   download_dir: /data
+  #type: s3
+  #bucket: pde-xd
 
+  
 bind_mounts:
   - host_path: /tmp
     container_path: /data

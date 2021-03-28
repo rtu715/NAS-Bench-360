@@ -6,6 +6,8 @@ import tempfile
 from typing import Any, Dict, Sequence, Tuple, Union, cast
 from functools import partial
 
+import boto3
+import os 
 
 import torch
 import torchvision
@@ -15,6 +17,7 @@ from torchvision import transforms
 from determined.pytorch import DataLoader, PyTorchTrial, PyTorchTrialContext, LRScheduler
 from backbone_pt import Backbone_pt
 from backbone_grid import Backbone_Grid
+from utils import LpLoss
 
 from xd.chrysalis import Chrysalis
 from xd.darts import Supernet
@@ -28,6 +31,7 @@ NUM_CLASSES = 10
 TorchData = Union[Dict[str, torch.Tensor], Sequence[torch.Tensor], torch.Tensor]
 
 
+
 def accuracy_rate(predictions: torch.Tensor, labels: torch.Tensor) -> float:
     """Return the accuracy rate based on dense predictions and sparse labels."""
     assert len(predictions) == len(labels), "Predictions and labels must have the same length."
@@ -39,13 +43,14 @@ def accuracy_rate(predictions: torch.Tensor, labels: torch.Tensor) -> float:
 
 
 class AttrDict(dict):
+    '''Auxillary class for hyperparams'''
     def __init__(self, *args, **kwargs):
         super(AttrDict, self).__init__(*args, **kwargs)
         self.__dict__ = self
 
 
 class RowColPermute(nn.Module):
-
+    '''Auxillary class for image permutation'''
     def __init__(self, row, col):
         super().__init__()
         self.rowperm = torch.randperm(row) if type(row) == int else row
@@ -56,6 +61,7 @@ class RowColPermute(nn.Module):
 
 
 class NASTrial(PyTorchTrial):
+    '''The Main Class'''
     def __init__(self, trial_context: PyTorchTrialContext) -> None:
         self.context = trial_context
         # self.data_config = trial_context.get_data_config()
@@ -68,9 +74,13 @@ class NASTrial(PyTorchTrial):
         # )
 
         # Create a unique download directory for each rank so they don't overwrite each other.
-        self.download_directory = tempfile.mkdtemp()
+        #self.download_directory = tempfile.mkdtemp()
+        sel.download_directory = self.download_data_from_s3()
 
-        self.criterion = nn.CrossEntropyLoss().cuda()
+        
+        # Define loss function, pde is lploss
+        self.criterion = LpLoss(size_average=False)
+        #self.criterion = nn.CrossEntropyLoss().cuda()
 
         # Changing our backbone
         self.backbone = Backbone(
@@ -193,6 +203,31 @@ class NASTrial(PyTorchTrial):
 
         return DataLoader(valset, batch_size=self.context.get_per_slot_batch_size())
 
+
+    '''
+    Dataloaders for PDE
+    '''
+    
+    def download_data_from_s3(self):
+        '''Download pde data from s3 to store in temp directory'''
+        s3_bucket = self.context.get_data_config()["bucket"]
+        download_directory = f"/tmp/data-rank{self.context.distributed.get_rank()}"
+        data_files = ["piececonst_r421_N1024_smooth1.mat", "piececonst_r421_N1024_smooth2.mat"]
+
+        s3 = boto3.client("s3")
+        os.makedirs(download_directory, exist_ok=True)
+
+        for data_file in data_files:
+            filepath = os.path.join(download_directory, data_file)
+            if not os.path.exists(filepath):
+                s3.download_file(s3_bucket, data_file, filepath)
+    
+        return download_directory
+
+
+    
+    
+    
     '''
     Train and Evaluate Methods
     '''
