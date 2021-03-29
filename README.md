@@ -1,19 +1,17 @@
 # xd-nas
 tentatively nas-bench-360
 
-Run command: 
+Run command within determined-xd: 
 ```
-python trainer.py
+det experiment create {}.yaml . 
 ```
 
-Current backbone: Wide ResNet
-Parameter count for Wide ResNet-40-4: 8.9M
-
-Vanilla WRN-40-4: 
-Performance on CIFAR10: 95.7% accuracy 
+Current backbone for Vision: Wide ResNet
+Parameter count for Wide ResNet-40-4: 26M parameters with XD, 8.9M before
+Accuracy on CIFAR10: 95% for XD, 95% vanilla WRN
 
 
-Performance on CIFAR100: 80.1% accuracy 
+Current backbone for PDE: Net2D
 
 
 

@@ -37,6 +37,8 @@ class SimpleBlock2d(nn.Module):
         self.bn1 = torch.nn.BatchNorm2d(self.width)
         self.bn2 = torch.nn.BatchNorm2d(self.width)
         self.bn3 = torch.nn.BatchNorm2d(self.width)
+        self.fc1 = nn.Linear(self.width, 128)
+        self.fc2 = nn.Linear(128, 1)
 
     def forward(self, x):
         batchsize = x.shape[0]
@@ -71,7 +73,7 @@ class SimpleBlock2d(nn.Module):
 
 class Backbone_Grid(nn.Module):
     def __init__(self, modes, width, s=5):
-        super(Net2d, self).__init__()
+        super(Backbone_Grid, self).__init__()
 
         """
         A wrapper function
