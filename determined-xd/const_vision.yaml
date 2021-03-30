@@ -1,4 +1,4 @@
-description: xd-nas
+description: xd-vision
 
 #provider:
 #  container_startup_script: |
@@ -73,4 +73,4 @@ min_validation_period:
 
 max_restarts: 10
 
-entrypoint: backbone_determined:NASTrial
+entrypoint: model_vision:XDTrial

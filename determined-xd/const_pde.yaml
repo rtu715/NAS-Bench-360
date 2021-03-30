@@ -1,4 +1,4 @@
-description: xd-nas
+description: xd-pde
 
 #provider:
 #  container_startup_script: |
@@ -27,8 +27,9 @@ hyperparameters:
   learning_rate: 0.001
   momentum: 0.9
   weight_decay: 1e-4
-  arch_lr: 0.001
-  arch_adam: true
+  arch_lr: 0.1
+  arch_momentum: 0.5
+  arch_adam: false
 
   global_batch_size: 20
 
@@ -59,4 +60,4 @@ min_validation_period:
 
 max_restarts: 10
 
-entrypoint: backbone_determined:NASTrial
+entrypoint: model_pde:XDTrial

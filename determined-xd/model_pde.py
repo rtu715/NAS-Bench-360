@@ -1,7 +1,4 @@
-'''
-Determined model def example:
-https://github.com/determined-ai/determined/tree/master/examples/computer_vision/cifar10_pytorch
-'''
+
 import tempfile
 from typing import Any, Dict, Sequence, Tuple, Union, cast
 from functools import partial, reduce
@@ -17,7 +14,6 @@ from torch import nn
 from torchvision import transforms
 
 from determined.pytorch import DataLoader, PyTorchTrial, PyTorchTrialContext, LRScheduler
-from backbone_pt import Backbone_Pt
 from backbone_grid import Backbone_Grid
 from utils import LpLoss, MatReader, UnitGaussianNormalizer
 
@@ -25,23 +21,8 @@ from xd.chrysalis import Chrysalis
 from xd.darts import Supernet
 from xd.nas import MixedOptimizer
 
-# Constants about the dataset here (need to modify)
-IMAGE_SIZE = 32
-NUM_CHANNELS = 3
-NUM_CLASSES = 10
 
 TorchData = Union[Dict[str, torch.Tensor], Sequence[torch.Tensor], torch.Tensor]
-
-
-
-def accuracy_rate(predictions: torch.Tensor, labels: torch.Tensor) -> float:
-    """Return the accuracy rate based on dense predictions and sparse labels."""
-    assert len(predictions) == len(labels), "Predictions and labels must have the same length."
-    assert len(labels.shape) == 1, "Labels must be a column vector."
-
-    return (  # type: ignore
-            float((predictions.argmax(1) == labels.to(torch.long)).sum()) / predictions.shape[0]
-    )
 
 
 class AttrDict(dict):
@@ -51,18 +32,7 @@ class AttrDict(dict):
         self.__dict__ = self
 
 
-class RowColPermute(nn.Module):
-    '''Auxillary class for image permutation'''
-    def __init__(self, row, col):
-        super().__init__()
-        self.rowperm = torch.randperm(row) if type(row) == int else row
-        self.colperm = torch.randperm(col) if type(col) == int else col
-
-    def forward(self, tensor):
-        return tensor[:, self.rowperm][:, :, self.colperm]
-
-
-class NASTrial(PyTorchTrial):
+class XDTrial(PyTorchTrial):
     '''The Main Class'''
     def __init__(self, trial_context: PyTorchTrialContext) -> None:
         self.context = trial_context
@@ -142,7 +112,7 @@ class NASTrial(PyTorchTrial):
         opts = [momentum(self.model.model_weights(), lr=self.hparams.learning_rate, weight_decay=self.hparams.weight_decay)]
 
         if self.hparams.arch_lr:
-            arch_opt = torch.optim.Adam if self.hparams.arch_adam else momentum
+            arch_opt = torch.optim.Adam if self.hparams.arch_adam else partial(torch.optim.SGD, momentum=self.hparams.arch_momentum)
             opts.append(arch_opt(self.model.arch_params(), lr=self.hparams.arch_lr, weight_decay=0.0 if self.hparams.arch_adam else self.hparams.weight_decay))
 
         optimizer = MixedOptimizer(opts)

@@ -1,4 +1,4 @@
-description: xd-nas-tuning
+description: xd-vision-tuning
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -64,4 +64,4 @@ min_validation_period:
 
 max_restarts: 10
 
-entrypoint: backbone_determined:NASTrial
+entrypoint: model_vision:XDTrial
