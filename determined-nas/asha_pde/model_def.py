@@ -30,6 +30,7 @@ from utils import LpLoss, MatReader, UnitGaussianNormalizer
 
 import utils
 
+torch.backends.cudnn.enabled = False
 
 Genotype = namedtuple("Genotype", "normal normal_concat reduce reduce_concat")
 
@@ -226,9 +227,9 @@ class DARTSCNNTrial(PyTorchTrial):
         # Forward pass
         self.y_normalizer.cuda()
         logits, logits_aux = self.model(input)
-        logits = self.y_normalizer.decode(logits)
         target = self.y_normalizer.decode(target)
-
+        logits = self.y_normalizer.decode(logits)
+        
         loss = self.criterion(logits.view(batch_size, -1), target.view(batch_size, -1))
         if self.context.get_hparam("auxiliary"):
             loss_aux = self.criterion(logits_aux, target)
@@ -262,12 +263,12 @@ class DARTSCNNTrial(PyTorchTrial):
                 num_batches += 1
                 logits, _ = self.model(input)
                 logits = self.y_normalizer.decode(logits)
-
+                
                 loss = self.criterion(logits.view(batch_size, -1), target.view(batch_size, -1)).item()
                 loss_avg += loss
 
         results = {
-            "loss": loss_avg.item() / ntest,
+            "validation_error": loss_avg / ntest,
         }
 
         return results

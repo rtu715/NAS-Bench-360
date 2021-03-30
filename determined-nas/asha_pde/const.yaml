@@ -5,6 +5,11 @@ data:
   type: s3
   bucket: pde-xd
 
+records_per_epoch: 1000
+
+resources:
+  slots_per_trial: 1
+
 min_validation_period:
   epochs: 1
 
@@ -20,9 +25,9 @@ hyperparameters:
     cutout: true
     cutout_length: 16
     drop_path_prob: 0.2
-    global_batch_size: 96
+    global_batch_size: 5
     init_channels: 36
-    layers: 20
+    layers: 6
     learning_rate: 0.025
     momentum: 0.9
     normal_node1_edge1: 1

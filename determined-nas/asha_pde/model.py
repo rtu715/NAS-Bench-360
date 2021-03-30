@@ -117,16 +117,17 @@ class NetworkPDE(nn.Module):
 
         C_curr = width
         self.stem = nn.Sequential(
-            nn.Linear(3, C_curr), nn.BatchNorm2d(C_curr)
+            nn.Linear(3, C_curr)
         )
 
         C_prev_prev, C_prev, C_curr = C_curr, C_curr, C
         self.cells = nn.ModuleList()
         reduction_prev = False
+        reduction = False
         for i in range(layers):
             if i in [layers // 3, 2 * layers // 3]:
                 C_curr *= 2
-                reduction = True
+                #reduction = True
             else:
                 reduction = False
             cell = Cell(
@@ -140,19 +141,22 @@ class NetworkPDE(nn.Module):
 
         if auxiliary:
             self.auxiliary_head = AuxiliaryHeadCIFAR(C_to_auxiliary, num_classes)
-        self.global_pooling = nn.AdaptiveAvgPool2d(1)
+        #self.global_pooling = nn.AdaptiveAvgPool2d(1)
         self.classifier = nn.Linear(C_prev, num_classes)
 
     def forward(self, input):
         logits_aux = None
-        s0 = s1 = self.stem(input)
+        s0 = s1 = self.stem(input).permute(0, 3, 1, 2)
+
         for i, cell in enumerate(self.cells):
             s0, s1 = s1, cell(s0, s1, self.drop_path_prob)
             if i == 2 * self._layers // 3:
                 if self._auxiliary and self.training:
                     logits_aux = self.auxiliary_head(s1)
-        out = self.global_pooling(s1)
-        logits = self.classifier(out.contiguous().view(out.size(0), -1))
+        #out = self.global_pooling(s1)
+        out = s1
+        out = out.permute(0, 2, 3, 1)
+        logits = self.classifier(out.contiguous())
         return logits.squeeze(), logits_aux
 
 
