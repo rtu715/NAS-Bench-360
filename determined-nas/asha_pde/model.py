@@ -146,7 +146,7 @@ class NetworkPDE(nn.Module):
 
     def forward(self, input):
         logits_aux = None
-        s0 = s1 = self.stem(input).permute(0, 3, 1, 2)
+        s0 = s1 = self.stem(input).permute(0, 3, 1, 2).contiguous()
 
         for i, cell in enumerate(self.cells):
             s0, s1 = s1, cell(s0, s1, self.drop_path_prob)
@@ -155,8 +155,8 @@ class NetworkPDE(nn.Module):
                     logits_aux = self.auxiliary_head(s1)
         #out = self.global_pooling(s1)
         out = s1
-        out = out.permute(0, 2, 3, 1)
-        logits = self.classifier(out.contiguous())
+        out = out.permute(0, 2, 3, 1).contiguous()
+        logits = self.classifier(out)
         return logits.squeeze(), logits_aux
 
 

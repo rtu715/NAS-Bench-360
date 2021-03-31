@@ -30,7 +30,7 @@ from utils import LpLoss, MatReader, UnitGaussianNormalizer
 
 import utils
 
-torch.backends.cudnn.enabled = False
+#torch.backends.cudnn.enabled = False
 
 Genotype = namedtuple("Genotype", "normal normal_concat reduce reduce_concat")
 

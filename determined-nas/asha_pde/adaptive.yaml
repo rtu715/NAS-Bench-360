@@ -5,17 +5,22 @@ data:
   type: s3
   bucket: pde-xd
 
+records_per_epoch: 1000
+
 min_validation_period:
   epochs: 1
 
 hyperparameters:
+  width: 32
+  sub: 5
+
   learning_rate: 0.025
   momentum: 0.9
-  weight_decay: 3e-4
-  train_epochs: 300
-  global_batch_size: 96
+  weight_decay: 1e-4
+  train_epochs: 500
+  global_batch_size: 5
   init_channels: 36
-  layers: 20
+  layers: 6
   auxiliary: false
   auxiliary_weight: 0.4
   cutout: true
@@ -138,7 +143,7 @@ searcher:
   name: adaptive_asha
   metric: validation_error
   max_length:
-    epochs: 250
+    epochs: 50
   max_trials: 10000
   mode: aggressive
   # A maximum of 4 rungs corresponds to a minimum training length of 1/divisor^(max_rungs - 1) = 1/64 * max_length 
