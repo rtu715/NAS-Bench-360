@@ -122,8 +122,9 @@ class Network(nn.Module):
         reduction = False
         for i in range(layers):
             if i in [layers // 3, 2 * layers // 3]:
-                C_curr *= 2
+                #C_curr *= 2
                 #reduction = True
+                pass
             else:
                 reduction = False
             cell = Cell(
@@ -176,7 +177,7 @@ class Network(nn.Module):
         #out = self.global_pooling(s1)
         out = s1
         logits = self.classifier(out.permute(0, 2, 3, 1).contiguous())
-        return logits.sqeeze()
+        return logits.squeeze()
 
     def _loss(self, input, target):
         logits = self(input)

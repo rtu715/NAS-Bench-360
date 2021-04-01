@@ -54,6 +54,7 @@ class GAEASearchTrial(PyTorchTrial):
                 self.hparams.layers,
                 self.criterion,
                 self.hparams.nodes,
+                self.hparams.multiplier,
                 width = self.hparams.width,
                 k=self.hparams.shuffle_factor,
             )
