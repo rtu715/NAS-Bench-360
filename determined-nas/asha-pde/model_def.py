@@ -11,7 +11,6 @@ from typing import Any, Dict
 #from attrdict import AttrDict
 import boto3
 import os
-import numpy as np
 
 
 import torch
@@ -78,7 +77,6 @@ class DARTSCNNTrial(PyTorchTrial):
         self.criterion = LpLoss(size_average=False)
         # The last epoch is only used for logging.
         self._last_epoch = -1
-        self.results = {"loss": float("inf"), "top1_accuracy": 0, "top5_accuracy": 0}
 
         self.download_directory = self.download_data_from_s3()
         self.grid, self.s = utils.create_grid(self.hparams["sub"])
