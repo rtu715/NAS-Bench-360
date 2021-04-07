@@ -61,7 +61,7 @@ class Backbone_Pt(nn.Module):
     wide resnet 50
     '''
     def __init__(self, depth, num_classes, widen_factor=1, dropRate=0.0, in_channels=3):
-        super(Backbone, self).__init__()
+        super(Backbone_Pt, self).__init__()
         nChannels = [16, 16*widen_factor, 32*widen_factor, 64*widen_factor]
         assert((depth - 4) % 6 == 0)
         n = (depth - 4) / 6

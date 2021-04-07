@@ -126,8 +126,9 @@ class NetworkPDE(nn.Module):
         reduction = False
         for i in range(layers):
             if i in [layers // 3, 2 * layers // 3]:
-                C_curr *= 2
+                #C_curr *= 2
                 #reduction = True
+                pass
             else:
                 reduction = False
             cell = Cell(

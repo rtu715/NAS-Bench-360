@@ -13,16 +13,14 @@ from torchvision import transforms
 
 from determined.pytorch import DataLoader, PyTorchTrial, PyTorchTrialContext, LRScheduler
 from backbone_pt import Backbone_Pt
-from backbone_grid import Backbone_Grid
 
 from xd.chrysalis import Chrysalis
 from xd.darts import Supernet
 from xd.nas import MixedOptimizer
 
+import utils_pt
+
 # Constants about the dataset here (need to modify)
-IMAGE_SIZE = 32
-NUM_CHANNELS = 3
-NUM_CLASSES = 10
 
 TorchData = Union[Dict[str, torch.Tensor], Sequence[torch.Tensor], torch.Tensor]
 
@@ -68,6 +66,10 @@ class XDTrial(PyTorchTrial):
 
         # Create a unique download directory for each rank so they don't overwrite each other.
         self.download_directory = tempfile.mkdtemp()
+        
+        if self.hparams.task == 'spherical':
+            path = '/workspace/tasks/spherical/s2_mnist.gz'
+            self.train_data, self.test_data = utils_pt.load_data(path, self.context.get_per_slot_batch_size())
 
         self.criterion = nn.CrossEntropyLoss().cuda()
 
@@ -77,6 +79,7 @@ class XDTrial(PyTorchTrial):
             self.hparams.n_classes,
             self.hparams.widen_factor,
             dropRate=self.hparams.droprate,
+            in_channels=1 if self.hparams.task=='spherical' else 3,
         )
 
         self.chrysalis, self.original = Chrysalis.metamorphosize(self.backbone), self.backbone
@@ -99,7 +102,7 @@ class XDTrial(PyTorchTrial):
         self.model = self.context.wrap_model(self.chrysalis)
 
         '''
-        Definition of optimizers, no Adam implementation
+        Definition of optimizer 
         '''
         momentum = partial(torch.optim.SGD, momentum=self.hparams.momentum)
         opts = [
@@ -113,16 +116,6 @@ class XDTrial(PyTorchTrial):
         optimizer = MixedOptimizer(opts)
         self.opt = self.context.wrap_optimizer(optimizer)
 
-        '''
-        self.opt = self.context.wrap_optimizer(
-            torch.optim.SGD(
-                self.model.parameters(),
-                self.hparams.learning_rate,
-                momentum=self.hparams.momentum,
-                weight_decay=self.hparams.weight_decay,
-            )
-        )
-        '''
 
         sched_groups = [self.weight_sched if g['params'][0] in set(self.model.model_weights()) else self.arch_sched for
                         g in
@@ -151,48 +144,62 @@ class XDTrial(PyTorchTrial):
 
     def build_training_data_loader(self) -> Any:
 
-        CIFAR_MEAN = [0.49139968, 0.48215827, 0.44653124]
-        CIFAR_STD = [0.24703233, 0.24348505, 0.26158768]
+        if self.hparams.task == 'cifar':
+            CIFAR_MEAN = [0.49139968, 0.48215827, 0.44653124]
+            CIFAR_STD = [0.24703233, 0.24348505, 0.26158768]
 
-        normalize = transforms.Normalize(CIFAR_MEAN,
-                                         CIFAR_STD)
+            normalize = transforms.Normalize(CIFAR_MEAN,
+                                             CIFAR_STD)
 
-        if self.hparams.permute:
-            permute = RowColPermute(32, 32)
-            transform = transforms.Compose([transforms.ToTensor(), permute, normalize])
+            if self.hparams.permute:
+                permute = RowColPermute(32, 32)
+                transform = transforms.Compose([transforms.ToTensor(), permute, normalize])
+
+            else:
+                transform = transforms.Compose(
+                    [transforms.RandomCrop(32, padding=4), transforms.RandomHorizontalFlip(), transforms.ToTensor(),
+                     normalize]
+                )
+
+            trainset = torchvision.datasets.CIFAR10(
+                root=self.download_directory, train=True, download=True, transform=transform
+            )
+        
+        elif self.hparams.task == 'spherical':
+            trainset = self.train_data
 
         else:
-            transform = transforms.Compose(
-                [transforms.RandomCrop(32, padding=4), transforms.RandomHorizontalFlip(), transforms.ToTensor(),
-                 normalize]
-            )
-
-        trainset = torchvision.datasets.CIFAR10(
-            root=self.download_directory, train=True, download=True, transform=transform
-        )
+            pass
 
         return DataLoader(trainset, batch_size=self.context.get_per_slot_batch_size())
 
     def build_validation_data_loader(self) -> Any:
 
-        CIFAR_MEAN = [0.49139968, 0.48215827, 0.44653124]
-        CIFAR_STD = [0.24703233, 0.24348505, 0.26158768]
+        if self.hparams.task == 'cifar':
+            CIFAR_MEAN = [0.49139968, 0.48215827, 0.44653124]
+            CIFAR_STD = [0.24703233, 0.24348505, 0.26158768]
 
-        normalize = transforms.Normalize(CIFAR_MEAN,
-                                         CIFAR_STD)
-        if self.hparams.permute:
-            permute = RowColPermute(32, 32)
-            transform = transforms.Compose([transforms.ToTensor(), permute, normalize])
+            normalize = transforms.Normalize(CIFAR_MEAN,
+                                             CIFAR_STD)
+            if self.hparams.permute:
+                permute = RowColPermute(32, 32)
+                transform = transforms.Compose([transforms.ToTensor(), permute, normalize])
+
+            else:
+                transform = transforms.Compose(
+                    [transforms.ToTensor(), normalize]
+                )
+
+            valset = torchvision.datasets.CIFAR10(
+                root=self.download_directory, train=False, download=True, transform=transform
+            )
+        
+        elif self.hparams.task == 'spherical':
+            valset = self.test_data
 
         else:
-            transform = transforms.Compose(
-                [transforms.ToTensor(), normalize]
-            )
-
-        valset = torchvision.datasets.CIFAR10(
-            root=self.download_directory, train=False, download=True, transform=transform
-        )
-
+            pass
+        
         return DataLoader(valset, batch_size=self.context.get_per_slot_batch_size())
 
     '''

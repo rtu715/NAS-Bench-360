@@ -29,7 +29,9 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-  # Number of classes in dataset
+  task: spherical
+      
+  #Number of classes in dataset
   n_classes: 10
   permute: false
 

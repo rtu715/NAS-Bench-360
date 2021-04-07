@@ -16,6 +16,9 @@ environment:
     username: renbotu
     password: 980715tutubo
 
+  #for hpz
+  environment_variables:
+    - CUDA_VISIBLE_DEVICES=1
 
 data:
   download_dir: /data

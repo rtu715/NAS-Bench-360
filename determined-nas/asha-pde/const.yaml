@@ -26,7 +26,7 @@ hyperparameters:
     cutout_length: 16
     drop_path_prob: 0.2
     global_batch_size: 5
-    init_channels: 36
+    init_channels: 32
     layers: 6
     learning_rate: 0.025
     momentum: 0.9

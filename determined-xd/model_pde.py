@@ -14,7 +14,9 @@ from torch import nn
 from torchvision import transforms
 
 from determined.pytorch import DataLoader, PyTorchTrial, PyTorchTrialContext, LRScheduler
-from backbone_grid import Backbone_Grid
+
+#from backbone_grid_pde import Backbone_Grid
+from backbone_grid_unet import Backbone_Grid, Tiny_Backbone_Grid
 from utils import LpLoss, MatReader, UnitGaussianNormalizer
 
 from xd.chrysalis import Chrysalis
@@ -46,8 +48,8 @@ class XDTrial(PyTorchTrial):
         # )
 
         # Create a unique download directory for each rank so they don't overwrite each other.
-        #self.download_directory = tempfile.mkdtemp()
-        self.download_directory = self.download_data_from_s3()
+        self.download_directory = '/tmp/data-rank0/'
+        #self.download_directory = self.download_data_from_s3()
 
         
         # Define loss function, pde is lploss
@@ -66,8 +68,8 @@ class XDTrial(PyTorchTrial):
         h = int(((421 - 1)/self.r) + 1)
         s = h
         self.s = s
-        self.backbone = Backbone_Grid(12, 32, s) 
-
+        #self.backbone = Backbone_Grid(12, 32, 5) 
+        self.backbone = Backbone_Grid(3, 8, 1)
         self.chrysalis, self.original = Chrysalis.metamorphosize(self.backbone), self.backbone
         
         '''
@@ -300,7 +302,7 @@ class XDTrial(PyTorchTrial):
         #loss = self.criterion(output, y_train)
         output = self.y_normalizer.decode(output)
         y_train = self.y_normalizer.decode(y_train)
-        loss = self.criterion(output.view(batch_size, -1), y_train.view(batch_size, -1))
+        loss = self.criterion(output.reshape(batch_size, -1), y_train.reshape(batch_size, -1))
         
         self.context.backward(loss)
         self.context.step_optimizer(self.opt)
@@ -322,7 +324,7 @@ class XDTrial(PyTorchTrial):
         output = self.y_normalizer.decode(output)
 
         #accuracy = accuracy_rate(output, labels)
-        rel_err = self.criterion(output.view(batch_size, -1), labels.view(batch_size, -1))
+        rel_err = self.criterion(output.reshape(batch_size, -1), labels.reshape(batch_size, -1))
         rel_err = rel_err / batch_size
 
         #return {"validation_accuracy": accuracy, "validation_error": 1.0 - accuracy}
