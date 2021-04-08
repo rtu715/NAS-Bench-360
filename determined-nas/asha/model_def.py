@@ -5,9 +5,9 @@ This model is from the CNN NAS search space considered in:
 We will use the adaptive searcher in Determined to find a
 good architecture in this search space for CIFAR-10.  
 """
-
+import tempfile
 from collections import namedtuple
-from typing import Any, Dict
+from typing import Any, Dict, Sequence, Tuple, Union, cast
 #from attrdict import AttrDict
 
 import torch
@@ -25,6 +25,7 @@ import determined as det
 from model import NetworkCIFAR as Network
 import utils
 
+TorchData = Union[Dict[str, torch.Tensor], Sequence[torch.Tensor], torch.Tensor]
 
 Genotype = namedtuple("Genotype", "normal normal_concat reduce reduce_concat")
 
@@ -73,15 +74,29 @@ class DARTSCNNTrial(PyTorchTrial):
         self._last_epoch = -1
         self.results = {"loss": float("inf"), "top1_accuracy": 0, "top5_accuracy": 0}
 
+        # Create a unique download directory for each rank so they don't overwrite each other.
+        self.download_directory = tempfile.mkdtemp()
+
+        if self.hparams.task == 'spherical':
+            path = '/workspace/tasks/spherical/s2_mnist.gz'
+            self.train_data, self.test_data = utils.load_spherical_data(path, self.context.get_per_slot_batch_size())
+
+        if self.hparams.task == 'sEMG':
+            self.download_directory = '/workspace/tasks/MyoArmbandDataset/PyTorchImplementation/sEMG'
+
+        n_classes = 7 if self.hparams.task == 'sEMG' else 10
+        in_channels=3 if self.hparams.task== 'cifar' else 1
+
         # Define the model
         genotype = self.get_genotype_from_hps()
         self.model = self.context.wrap_model(
             Network(
                 self.hparams["init_channels"],
-                10,  # num_classes
+                n_classes,
                 self.hparams["layers"],
                 self.hparams["auxiliary"],
                 genotype,
+                in_channels,
             )
         )
         print("param size = {} MB".format(utils.count_parameters_in_MB(self.model)))
@@ -115,52 +130,35 @@ class DARTSCNNTrial(PyTorchTrial):
         )
 
     def build_training_data_loader(self) -> DataLoader:
-        train_transform, valid_transform = utils._data_transforms_cifar10(
-            AttrDict(self.hparams)
-        )
-        train_data = dset.CIFAR10(
-            root="{}/data-rank{}".format(
-                self.data_config["data_download_dir"],
-                self.context.distributed.get_rank(),
-            ),
-            train=True,
-            download=True,
-            transform=train_transform,
-        )
+        if self.hparams.task == 'cifar':
+            trainset = utils.load_cifar_train_data(self.download_directory, self.hparams.permute)
 
-        train_queue = DataLoader(
-            train_data,
-            batch_size=self.context.get_per_slot_batch_size(),
-            shuffle=True,
-            pin_memory=True,
-            num_workers=2,
-        )
+        elif self.hparams.task == 'spherical':
+            trainset = self.train_data
 
-        return train_queue
+        elif self.hparams.task == 'sEMG':
+            trainset = utils.load_sEMG_train_data(self.download_directory)
+
+        else:
+            pass
+
+        return DataLoader(trainset, batch_size=self.context.get_per_slot_batch_size())
 
     def build_validation_data_loader(self) -> DataLoader:
-        train_transform, valid_transform = utils._data_transforms_cifar10(
-            AttrDict(self.hparams)
-        )
-        valid_data = dset.CIFAR10(
-            root="{}/data-rank{}".format(
-                self.data_config["data_download_dir"],
-                self.context.distributed.get_rank(),
-            ),
-            train=False,
-            download=True,
-            transform=valid_transform,
-        )
 
-        valid_queue = DataLoader(
-            valid_data,
-            batch_size=self.context.get_per_slot_batch_size(),
-            shuffle=False,
-            pin_memory=True,
-            num_workers=2,
-        )
+        if self.hparams.task == 'cifar':
+            valset = utils.load_cifar_val_data(self.download_directory, self.hparams.permute)
 
-        return valid_queue
+        elif self.hparams.task == 'spherical':
+            valset = self.test_data
+
+        elif self.hparams.task == 'sEMG':
+            valset = utils.load_sEMG_val_data(self.download_directory)
+
+        else:
+            pass
+
+        return DataLoader(valset, batch_size=self.context.get_per_slot_batch_size())
 
     def get_genotype_from_hps(self):
         # This function creates an architecture definition

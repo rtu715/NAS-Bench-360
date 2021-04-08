@@ -6,6 +6,9 @@ import tempfile
 from typing import Any, Dict, Sequence, Tuple, Union, cast
 from functools import partial
 
+import boto3
+import os
+
 import torch
 from torch import nn
 
@@ -52,6 +55,7 @@ class XDTrial(PyTorchTrial):
         # )
 
         # Create a unique download directory for each rank so they don't overwrite each other.
+        ''' Only used for local testing
         self.download_directory = tempfile.mkdtemp()
         
         if self.hparams.task == 'spherical':
@@ -60,6 +64,8 @@ class XDTrial(PyTorchTrial):
 
         if self.hparams.task == 'sEMG':
             self.download_directory = '/workspace/tasks/MyoArmbandDataset/PyTorchImplementation/sEMG'
+        '''
+        self.download_directory = self.download_data_from_s3()
 
 
         self.criterion = nn.CrossEntropyLoss().cuda()
@@ -134,6 +140,34 @@ class XDTrial(PyTorchTrial):
     '''
     Temporary data loaders, will need new ones for new tasks
     '''
+
+    def download_data_from_s3(self):
+        '''Download data from s3 to store in temp directory'''
+
+        s3_bucket = self.context.get_data_config()["bucket"]
+        download_directory = f"/tmp/data-rank{self.context.distributed.get_rank()}"
+        s3 = boto3.client("s3")
+        os.makedirs(download_directory, exist_ok=True)
+
+        if self.hparams.task == 'spherical':
+            data_files = ["s2_mnist.gz"]
+            for data_file in data_files:
+                filepath = os.path.join(download_directory, data_file)
+                if not os.path.exists(filepath):
+                    s3.download_file(s3_bucket, data_file, filepath)
+
+            self.train_data, self.test_data = utils_pt.load_spherical_data(download_directory,
+                                                                           self.context.get_per_slot_batch_size())
+
+        if self.hparams.task == 'sEMG':
+            data_files = ["saved_evaluation_dataset_test0.npy", "saved_evaluation_dataset_test1.npy",
+                          "saved_evaluation_dataset_training.npy"]
+            for data_file in data_files:
+                filepath = os.path.join(download_directory, data_file)
+                if not os.path.exists(filepath):
+                    s3.download_file(s3_bucket, data_file, filepath)
+
+        return download_directory
 
     def build_training_data_loader(self) -> Any:
 

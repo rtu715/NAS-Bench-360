@@ -19,8 +19,8 @@ environment:
 
 data:
   download_dir: /data
-  #type: s3
-  #bucket: pde-xd
+  type: s3
+  bucket: pde-xd
 
   
 bind_mounts:
@@ -29,7 +29,7 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-  task: sEMG
+  task: spherical
       
   #Number of classes in dataset
   permute: false

@@ -48,21 +48,14 @@ class XDTrial(PyTorchTrial):
         # )
 
         # Create a unique download directory for each rank so they don't overwrite each other.
-        self.download_directory = '/tmp/data-rank0/'
-        #self.download_directory = self.download_data_from_s3()
+        #self.download_directory = '/tmp/data-rank0/'
+        self.download_directory = self.download_data_from_s3()
 
         
         # Define loss function, pde is lploss
         self.criterion = LpLoss(size_average=False)
-        #self.criterion = nn.CrossEntropyLoss().cuda()
 
         # Changing our backbone
-        #self.backbone = Backbone_pt(
-                #self.hparams.layers,
-                #self.hparams.n_classes,
-                #self.hparams.widen_factor,
-                #dropRate=self.hparams.droprate,
-           #)
 
         self.r = 5
         h = int(((421 - 1)/self.r) + 1)

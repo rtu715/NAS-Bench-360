@@ -7,6 +7,8 @@ min_validation_period:
   batches: 500
 
 hyperparameters:
+    task: cifar
+
     auxiliary: true
     auxiliary_weight: 0.4
     clip_gradients_l2_norm: 5

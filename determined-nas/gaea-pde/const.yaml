@@ -22,9 +22,9 @@ hyperparameters:
     scheduler_epochs: 50
     weight_decay: 3e-4
     arch_learning_rate: 0.1
-    init_channels: 32
+    init_channels: 16
     layers: 4
-    nodes: 1
+    nodes: 4
     multiplier: 1
 
     width: 32

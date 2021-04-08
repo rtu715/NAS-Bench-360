@@ -41,6 +41,9 @@ def load_spherical_data(path, batch_size):
 
     return train_dataset, test_dataset
 
+'''
+CIFAR related
+'''
 
 class RowColPermute(nn.Module):
 
@@ -53,9 +56,6 @@ class RowColPermute(nn.Module):
         return tensor[:, self.rowperm][:, :, self.colperm]
 
 
-'''
-CIFAR related
-'''
 
 
 def load_cifar_train_data(path, permute):
