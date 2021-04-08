@@ -7,9 +7,7 @@ from typing import Any, Dict, Sequence, Tuple, Union, cast
 from functools import partial
 
 import torch
-import torchvision
 from torch import nn
-from torchvision import transforms
 
 from determined.pytorch import DataLoader, PyTorchTrial, PyTorchTrialContext, LRScheduler
 from backbone_pt import Backbone_Pt
@@ -41,17 +39,6 @@ class AttrDict(dict):
         self.__dict__ = self
 
 
-class RowColPermute(nn.Module):
-
-    def __init__(self, row, col):
-        super().__init__()
-        self.rowperm = torch.randperm(row) if type(row) == int else row
-        self.colperm = torch.randperm(col) if type(col) == int else col
-
-    def forward(self, tensor):
-        return tensor[:, self.rowperm][:, :, self.colperm]
-
-
 class XDTrial(PyTorchTrial):
     def __init__(self, trial_context: PyTorchTrialContext) -> None:
         self.context = trial_context
@@ -69,14 +56,20 @@ class XDTrial(PyTorchTrial):
         
         if self.hparams.task == 'spherical':
             path = '/workspace/tasks/spherical/s2_mnist.gz'
-            self.train_data, self.test_data = utils_pt.load_data(path, self.context.get_per_slot_batch_size())
+            self.train_data, self.test_data = utils_pt.load_spherical_data(path, self.context.get_per_slot_batch_size())
+
+        if self.hparams.task == 'sEMG':
+            self.download_directory = '/workspace/tasks/MyoArmbandDataset/PyTorchImplementation/sEMG'
+
 
         self.criterion = nn.CrossEntropyLoss().cuda()
+
+        n_classes = 7 if self.hparams.task == 'sEMG' else 10
 
         # Changing our backbone
         self.backbone = Backbone_Pt(
             self.hparams.layers,
-            self.hparams.n_classes,
+            n_classes,
             self.hparams.widen_factor,
             dropRate=self.hparams.droprate,
             in_channels=1 if self.hparams.task=='spherical' else 3,
@@ -145,28 +138,13 @@ class XDTrial(PyTorchTrial):
     def build_training_data_loader(self) -> Any:
 
         if self.hparams.task == 'cifar':
-            CIFAR_MEAN = [0.49139968, 0.48215827, 0.44653124]
-            CIFAR_STD = [0.24703233, 0.24348505, 0.26158768]
-
-            normalize = transforms.Normalize(CIFAR_MEAN,
-                                             CIFAR_STD)
-
-            if self.hparams.permute:
-                permute = RowColPermute(32, 32)
-                transform = transforms.Compose([transforms.ToTensor(), permute, normalize])
-
-            else:
-                transform = transforms.Compose(
-                    [transforms.RandomCrop(32, padding=4), transforms.RandomHorizontalFlip(), transforms.ToTensor(),
-                     normalize]
-                )
-
-            trainset = torchvision.datasets.CIFAR10(
-                root=self.download_directory, train=True, download=True, transform=transform
-            )
+            trainset = utils_pt.load_cifar_train_data(self.download_directory, self.hparams.permute)
         
         elif self.hparams.task == 'spherical':
             trainset = self.train_data
+
+        elif self.hparams.task == 'sEMG':
+            trainset = utils_pt.load_sEMG_train_data(self.download_directory)
 
         else:
             pass
@@ -176,26 +154,13 @@ class XDTrial(PyTorchTrial):
     def build_validation_data_loader(self) -> Any:
 
         if self.hparams.task == 'cifar':
-            CIFAR_MEAN = [0.49139968, 0.48215827, 0.44653124]
-            CIFAR_STD = [0.24703233, 0.24348505, 0.26158768]
+            valset = utils_pt.load_cifar_val_data(self.download_directory, self.hparams.permute)
 
-            normalize = transforms.Normalize(CIFAR_MEAN,
-                                             CIFAR_STD)
-            if self.hparams.permute:
-                permute = RowColPermute(32, 32)
-                transform = transforms.Compose([transforms.ToTensor(), permute, normalize])
-
-            else:
-                transform = transforms.Compose(
-                    [transforms.ToTensor(), normalize]
-                )
-
-            valset = torchvision.datasets.CIFAR10(
-                root=self.download_directory, train=False, download=True, transform=transform
-            )
-        
         elif self.hparams.task == 'spherical':
             valset = self.test_data
+
+        elif self.hparams.task == 'sEMG':
+            valset = utils_pt.load_sEMG_val_data(self.download_directory)
 
         else:
             pass

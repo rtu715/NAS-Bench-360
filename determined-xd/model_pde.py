@@ -17,7 +17,7 @@ from determined.pytorch import DataLoader, PyTorchTrial, PyTorchTrialContext, LR
 
 #from backbone_grid_pde import Backbone_Grid
 from backbone_grid_unet import Backbone_Grid, Tiny_Backbone_Grid
-from utils import LpLoss, MatReader, UnitGaussianNormalizer
+from utils_grid import LpLoss, MatReader, UnitGaussianNormalizer
 
 from xd.chrysalis import Chrysalis
 from xd.darts import Supernet

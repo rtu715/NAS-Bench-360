@@ -209,7 +209,7 @@ class Chrysalis(nn.Sequential):
         named_modules = self.named_modules() if named_modules is None else named_modules
         named_modules = [(n, m) for n, m in named_modules if
                          hasattr(m, 'kernel_size') and type(m.kernel_size) == tuple and type(m) == Conv(
-                             len(m.kernel_size))]
+                             len(m.kernel_size)) and m.kernel_size[0] != 1]
         module_io = self.collect_io(sample_input, (m for _, m in named_modules), *args)
 
         for name, module in named_modules:
