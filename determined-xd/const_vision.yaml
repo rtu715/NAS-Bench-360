@@ -29,7 +29,7 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-  task: spherical
+  task: sEMG
       
   #Number of classes in dataset
   permute: false

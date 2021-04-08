@@ -72,7 +72,7 @@ class XDTrial(PyTorchTrial):
             n_classes,
             self.hparams.widen_factor,
             dropRate=self.hparams.droprate,
-            in_channels=1 if self.hparams.task=='spherical' else 3,
+            in_channels=3 if self.hparams.task=='cifar' else 1,
         )
 
         self.chrysalis, self.original = Chrysalis.metamorphosize(self.backbone), self.backbone
