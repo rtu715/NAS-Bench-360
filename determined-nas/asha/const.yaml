@@ -1,10 +1,25 @@
 description: darts_cnn_nas
 
+environment:
+  image: "renbotu/xd-nas:determined1.8"
+  registry_auth:
+    username: renbotu
+    password: 980715tutubo
+
+
 data:
-  data_download_dir: /data
+  download_dir: /data
+  type: s3
+  bucket: pde-xd
+
+
+bind_mounts:
+  - host_path: /tmp
+    container_path: /data
+    read_only: false
 
 min_validation_period:
-  batches: 500
+  batches: 100
 
 hyperparameters:
     task: sEMG
@@ -57,10 +72,8 @@ hyperparameters:
     weight_decay: 0.0003
 scheduling_unit: 100
 
-bind_mounts:
-    - host_path: /tmp
-      container_path: /data
-      read_only: false
+records_per_epoch: 50000
+
 
 searcher:
   name: single
@@ -68,6 +81,6 @@ searcher:
   smaller_is_better: false
   # 50k examples in train, 96 examples per batch, 100 batches per step -> 300 epochs ~ 1562 steps
   max_length:
-    batches: 312400
+    epochs: 200
 
 entrypoint: model_def:DARTSCNNTrial

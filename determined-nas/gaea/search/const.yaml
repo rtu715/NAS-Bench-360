@@ -1,7 +1,17 @@
 description: gaea_search
 
+environment:
+  image: "renbotu/xd-nas:determined1.8"
+  registry_auth:
+    username: renbotu
+    password: 980715tutubo
+
+
 data:
   download_dir: /data
+  type: s3
+  bucket: pde-xd
+
 
 bind_mounts:
   - host_path: /tmp
@@ -37,7 +47,7 @@ searcher:
   metric: top1_accuracy 
   smaller_is_better: false 
   max_length: 
-    epochs: 50
+    epochs: 200
 
 optimizations:
   aggregation_frequency:  1
