@@ -18,6 +18,7 @@ from backbone_pt import Backbone_Pt
 from xd.chrysalis import Chrysalis
 from xd.darts import Supernet
 from xd.nas import MixedOptimizer
+from xd.ops import Conv
 
 import utils_pt
 
@@ -82,6 +83,10 @@ class XDTrial(PyTorchTrial):
         )
 
         self.chrysalis, self.original = Chrysalis.metamorphosize(self.backbone), self.backbone
+        self.patch_modules = [(n,m) for n, m in self.chrysalis.named_modules() if
+                hasattr(m, 'kernel_size') and type(m.kernel_size) == tuple and type(m) == Conv(len(m.kernel_size)) and m.kernel_size[0]!=1]
+
+        print(self.patch_modules)
 
         arch_kwargs = {'kmatrix_depth': self.hparams.kmatrix_depth,
                        'max_kernel_size': self.hparams.max_kernel_size,
@@ -93,7 +98,7 @@ class XDTrial(PyTorchTrial):
         X, _ = next(iter(self.build_training_data_loader()))
 
         if self.hparams.patch:
-            self.chrysalis.patch_conv(X[:1], **arch_kwargs)
+            self.chrysalis.patch_conv(X[:1], named_modules=self.patch_modules, **arch_kwargs)
 
         else:
             self.hparams.arch_lr = 0.0

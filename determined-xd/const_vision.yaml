@@ -50,7 +50,7 @@ hyperparameters:
   start_epoch: 0
   epochs: 200
 
-  patch: true
+  patch: false
   from_scratch: false
   kmatrix_depth: 1
   max_kernel_size: 1

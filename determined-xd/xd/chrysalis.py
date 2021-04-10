@@ -211,7 +211,6 @@ class Chrysalis(nn.Sequential):
                          hasattr(m, 'kernel_size') and type(m.kernel_size) == tuple and type(m) == Conv(
                              len(m.kernel_size))]
         module_io = self.collect_io(sample_input, (m for _, m in named_modules), *args)
-
         for name, module in named_modules:
             ks = module.kernel_size
             arch_init = 'conv_' + 'x'.join(str(k) for k in ks)

@@ -22,6 +22,7 @@ from utils_grid import LpLoss, MatReader, UnitGaussianNormalizer
 from xd.chrysalis import Chrysalis
 from xd.darts import Supernet
 from xd.nas import MixedOptimizer
+from xd.ops import Conv
 
 
 TorchData = Union[Dict[str, torch.Tensor], Sequence[torch.Tensor], torch.Tensor]
@@ -62,9 +63,13 @@ class XDTrial(PyTorchTrial):
         s = h
         self.s = s
         #self.backbone = Backbone_Grid(12, 32, 5) 
-        self.backbone = Backbone_Grid(3, 8, 1)
+        self.backbone = Backbone_Grid(3, 32, 1)
         self.chrysalis, self.original = Chrysalis.metamorphosize(self.backbone), self.backbone
         
+        self.patch_modules = [(n,m) for n, m in self.chrysalis.named_modules() if
+                hasattr(m, 'kernel_size') and type(m.kernel_size) == tuple and type(m) == Conv(len(m.kernel_size)) and m.kernel_size[0]!=1]
+
+        print(self.patch_modules)
         '''
         arch_kwargs = {'kmatrix_depth':self.hparams.kmatrix_depth,
                         'max_kernel_size': self.hparams.max_kernel_size,
@@ -85,14 +90,14 @@ class XDTrial(PyTorchTrial):
         #X, _ = next(iter(self.build_training_data_loader()))
         X = torch.zeros([self.context.get_per_slot_batch_size(), s, s, 3])
 
-        named_modules = []
-        for name, layer in self.chrysalis.named_modules():
-            if isinstance(layer, torch.nn.Conv2d):
-                named_modules.append((name, layer))
+        #named_modules = []
+        #for name, layer in self.chrysalis.named_modules():
+            #if isinstance(layer, torch.nn.Conv2d):
+                #named_modules.append((name, layer))
 
         if self.hparams.patch:
             #self.chrysalis.patch_conv(X[:1], **arch_kwargs)
-            self.chrysalis.patch_conv(X[:1], named_modules=named_modules, **arch_kwargs)
+            self.chrysalis.patch_conv(X[:1], named_modules=self.patch_modules, **arch_kwargs)
         
         else:
             self.hparams.arch_lr = 0.0
