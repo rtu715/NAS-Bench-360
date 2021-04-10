@@ -46,7 +46,6 @@ class AttrDict(dict):
 class XDTrial(PyTorchTrial):
     def __init__(self, trial_context: PyTorchTrialContext) -> None:
         self.context = trial_context
-        # self.data_config = trial_context.get_data_config()
         self.hparams = AttrDict(trial_context.get_hparams())
         self.last_epoch = 0
 
@@ -67,7 +66,6 @@ class XDTrial(PyTorchTrial):
             self.download_directory = '/workspace/tasks/MyoArmbandDataset/PyTorchImplementation/sEMG'
         '''
         self.download_directory = self.download_data_from_s3()
-
 
         self.criterion = nn.CrossEntropyLoss().cuda()
 

@@ -11,7 +11,8 @@ from typing import Any, Dict, Sequence, Tuple, Union, cast
 #from attrdict import AttrDict
 
 import torch
-import torchvision.datasets as dset
+import boto3
+import os
 
 from determined.pytorch import (
     DataLoader,
@@ -22,7 +23,7 @@ from determined.pytorch import (
 
 import determined as det
 
-from model import NetworkCIFAR as Network
+from model import NetworkPoint as Network
 import utils
 
 TorchData = Union[Dict[str, torch.Tensor], Sequence[torch.Tensor], torch.Tensor]
@@ -84,8 +85,10 @@ class DARTSCNNTrial(PyTorchTrial):
         if self.hparams['task'] == 'sEMG':
             self.download_directory = '/workspace/tasks/MyoArmbandDataset/PyTorchImplementation/sEMG'
 
+        #self.download_directory = self.download_data_from_s3()
+
         n_classes = 7 if self.hparams['task'] == 'sEMG' else 10
-        in_channels=3 if self.hparams['task'] == 'cifar' else 1
+        in_channels = 3 if self.hparams['task'] == 'cifar' else 1
 
         # Define the model
         genotype = self.get_genotype_from_hps()
@@ -128,6 +131,34 @@ class DARTSCNNTrial(PyTorchTrial):
         self.wrapped_scheduler = self.context.wrap_lr_scheduler(
             self.scheduler, step_mode=step_mode
         )
+
+    def download_data_from_s3(self):
+        '''Download data from s3 to store in temp directory'''
+
+        s3_bucket = self.context.get_data_config()["bucket"]
+        download_directory = f"/tmp/data-rank{self.context.distributed.get_rank()}"
+        s3 = boto3.client("s3")
+        os.makedirs(download_directory, exist_ok=True)
+
+        if self.hparams.task == 'spherical':
+            data_files = ["s2_mnist.gz"]
+            for data_file in data_files:
+                filepath = os.path.join(download_directory, data_file)
+                if not os.path.exists(filepath):
+                    s3.download_file(s3_bucket, data_file, filepath)
+
+            self.train_data, self.test_data = utils.load_spherical_data(download_directory,
+                                                                           self.context.get_per_slot_batch_size())
+
+        if self.hparams.task == 'sEMG':
+            data_files = ["saved_evaluation_dataset_test0.npy", "saved_evaluation_dataset_test1.npy",
+                          "saved_evaluation_dataset_training.npy"]
+            for data_file in data_files:
+                filepath = os.path.join(download_directory, data_file)
+                if not os.path.exists(filepath):
+                    s3.download_file(s3_bucket, data_file, filepath)
+
+        return download_directory
 
     def build_training_data_loader(self) -> DataLoader:
         if self.hparams['task'] == 'cifar':

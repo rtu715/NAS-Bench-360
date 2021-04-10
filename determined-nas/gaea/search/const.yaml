@@ -9,8 +9,9 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-    # Number of classes in dataset
-    n_classes: 10
+    task: sEMG
+
+
     # Channel shuffle factor.  1 / shuffle_factor channels are activated at a given time.
     shuffle_factor: 4
     global_batch_size: 256

@@ -1,10 +1,11 @@
 from typing import Any, Dict, Union, Sequence
+import boto3
 import os
+import tempfile
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torchvision.datasets as dset
 from torch.optim.lr_scheduler import CosineAnnealingLR
 
 from determined.pytorch import (
@@ -18,7 +19,9 @@ from determined.pytorch import (
 from data import BilevelDataset
 from model_search import Network
 from optimizer import EG
-from utils import AttrDict, data_transforms_cifar10, accuracy
+
+import utils
+
 
 TorchData = Union[Dict[str, torch.Tensor], Sequence[torch.Tensor], torch.Tensor]
 
@@ -35,24 +38,35 @@ class GAEASearchTrial(PyTorchTrial):
     def __init__(self, trial_context: PyTorchTrialContext) -> None:
         self.context = trial_context
         self.data_config = trial_context.get_data_config()
-        self.hparams = AttrDict(trial_context.get_hparams())
+        self.hparams = utils.AttrDict(trial_context.get_hparams())
         self.last_epoch = 0
 
-        self.data_dir = os.path.join(
-            self.data_config["download_dir"],
-            f"data-rank{self.context.distributed.get_rank()}",
-        )
+
+        self.download_directory = tempfile.mkdtemp()
+
+        if self.hparams.task == 'spherical':
+            path = '/workspace/tasks/spherical/s2_mnist.gz'
+            self.train_data, self.test_data = utils.load_spherical_data(path, self.context.get_per_slot_batch_size())
+
+        if self.hparams.task == 'sEMG':
+            self.download_directory = '/workspace/tasks/MyoArmbandDataset/PyTorchImplementation/sEMG'
+
+        #self.download_directory = self.download_data_from_s3()
+
+        n_classes = 7 if self.hparams['task'] == 'sEMG' else 10
+        in_channels = 3 if self.hparams['task'] == 'cifar' else 1
 
         # Initialize the models.
         criterion = nn.CrossEntropyLoss()
         self.model = self.context.wrap_model(
             Network(
                 self.hparams.init_channels,
-                self.hparams.n_classes,
+                n_classes,
                 self.hparams.layers,
                 criterion,
                 self.hparams.nodes,
                 k=self.hparams.shuffle_factor,
+                in_challes = in_channels,
             )
         )
 
@@ -82,39 +96,67 @@ class GAEASearchTrial(PyTorchTrial):
             step_mode=LRScheduler.StepMode.STEP_EVERY_EPOCH,
         )
 
+    def download_data_from_s3(self):
+        '''Download data from s3 to store in temp directory'''
+
+        s3_bucket = self.context.get_data_config()["bucket"]
+        download_directory = f"/tmp/data-rank{self.context.distributed.get_rank()}"
+        s3 = boto3.client("s3")
+        os.makedirs(download_directory, exist_ok=True)
+
+        if self.hparams.task == 'spherical':
+            data_files = ["s2_mnist.gz"]
+            for data_file in data_files:
+                filepath = os.path.join(download_directory, data_file)
+                if not os.path.exists(filepath):
+                    s3.download_file(s3_bucket, data_file, filepath)
+
+            self.train_data, self.test_data = utils.load_spherical_data(download_directory,
+                                                                           self.context.get_per_slot_batch_size())
+
+        if self.hparams.task == 'sEMG':
+            data_files = ["saved_evaluation_dataset_test0.npy", "saved_evaluation_dataset_test1.npy",
+                          "saved_evaluation_dataset_training.npy"]
+            for data_file in data_files:
+                filepath = os.path.join(download_directory, data_file)
+                if not os.path.exists(filepath):
+                    s3.download_file(s3_bucket, data_file, filepath)
+
+        return download_directory
+
     def build_training_data_loader(self) -> DataLoader:
-        """
-        For bi-level NAS, we'll need each instance from the dataloader to have one image
-        for training shared-weights and another for updating architecture parameters.
-        """
-        train_transform, _ = data_transforms_cifar10()
-        train_data = dset.CIFAR10(
-            root=self.data_dir, train=True, download=True, transform=train_transform
-        )
-        bilevel_data = BilevelDataset(train_data)
+        if self.hparams['task'] == 'cifar':
+            trainset = utils.load_cifar_train_data(self.download_directory, self.hparams['permute'])
 
-        self.train_data = bilevel_data
+        elif self.hparams['task'] == 'spherical':
+            trainset = self.train_data
 
-        train_queue = DataLoader(
-            bilevel_data,
-            batch_size=self.context.get_per_slot_batch_size(),
-            shuffle=True,
-            num_workers=2,
-        )
-        return train_queue
+        elif self.hparams['task'] == 'sEMG':
+            trainset = utils.load_sEMG_train_data(self.download_directory)
+
+        else:
+            pass
+
+        bilevel = BilevelDataset(trainset)
+
+
+        return DataLoader(bilevel, batch_size=self.context.get_per_slot_batch_size())
 
     def build_validation_data_loader(self) -> DataLoader:
-        _, valid_transform = data_transforms_cifar10()
-        valid_data = dset.CIFAR10(
-            root=self.data_dir, train=False, download=True, transform=valid_transform
-        )
-        valid_queue = DataLoader(
-            valid_data,
-            batch_size=self.context.get_per_slot_batch_size(),
-            shuffle=False,
-            num_workers=2,
-        )
-        return valid_queue
+
+        if self.hparams['task'] == 'cifar':
+            valset = utils.load_cifar_val_data(self.download_directory, self.hparams['permute'])
+
+        elif self.hparams['task'] == 'spherical':
+            valset = self.test_data
+
+        elif self.hparams['task'] == 'sEMG':
+            valset = utils.load_sEMG_val_data(self.download_directory)
+
+        else:
+            pass
+
+        return DataLoader(valset, batch_size=self.context.get_per_slot_batch_size())
 
     def train_batch(
         self, batch: TorchData, epoch_idx: int, batch_idx: int
@@ -151,7 +193,7 @@ class GAEASearchTrial(PyTorchTrial):
         input, target = batch
         logits = self.model(input)
         loss = self.model._loss(input, target)
-        top1, top5 = accuracy(logits, target, topk=(1, 5))
+        top1, top5 = utils.accuracy(logits, target, topk=(1, 5))
 
         return {"loss": loss, "top1_accuracy": top1, "top5_accuracy": top5}
 

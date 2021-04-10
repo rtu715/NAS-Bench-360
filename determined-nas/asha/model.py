@@ -108,9 +108,9 @@ class AuxiliaryHeadImageNet(nn.Module):
         return x
 
 
-class NetworkCIFAR(nn.Module):
+class NetworkPoint(nn.Module):
     def __init__(self, C, num_classes, layers, auxiliary, genotype, in_channels):
-        super(NetworkCIFAR, self).__init__()
+        super(NetworkPoint, self).__init__()
         self._layers = layers
         self._auxiliary = auxiliary
         self.drop_path_prob = 0
