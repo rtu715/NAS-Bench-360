@@ -39,7 +39,7 @@ hyperparameters:
   widen_factor: 2
   droprate: 0.0
 
-  learning_rate: 1e-4
+  learning_rate: 0.1
   momentum: 0.9
   weight_decay: 1e-4
   arch_lr: 1e-4
@@ -61,7 +61,8 @@ hyperparameters:
 resources:
   slots_per_trial: 1
 
-records_per_epoch: 50000
+records_per_epoch: 60000
+# 50000 if cifar, 60000 if spherical
 
 searcher:
   name: single

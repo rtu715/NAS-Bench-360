@@ -7,17 +7,18 @@ min_validation_period:
   batches: 500
 
 hyperparameters:
-    task: cifar
+    task: sEMG
+    permute: false
 
-    auxiliary: true
+    auxiliary: false
     auxiliary_weight: 0.4
     clip_gradients_l2_norm: 5
-    cutout: true
+    cutout: false
     cutout_length: 16
     drop_path_prob: 0.2
     global_batch_size: 96
-    init_channels: 36
-    layers: 20
+    init_channels: 16
+    layers: 10
     learning_rate: 0.025
     momentum: 0.9
     normal_node1_edge1: 1

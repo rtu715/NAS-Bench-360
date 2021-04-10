@@ -77,15 +77,15 @@ class DARTSCNNTrial(PyTorchTrial):
         # Create a unique download directory for each rank so they don't overwrite each other.
         self.download_directory = tempfile.mkdtemp()
 
-        if self.hparams.task == 'spherical':
+        if self.hparams['task'] == 'spherical':
             path = '/workspace/tasks/spherical/s2_mnist.gz'
             self.train_data, self.test_data = utils.load_spherical_data(path, self.context.get_per_slot_batch_size())
 
-        if self.hparams.task == 'sEMG':
+        if self.hparams['task'] == 'sEMG':
             self.download_directory = '/workspace/tasks/MyoArmbandDataset/PyTorchImplementation/sEMG'
 
-        n_classes = 7 if self.hparams.task == 'sEMG' else 10
-        in_channels=3 if self.hparams.task== 'cifar' else 1
+        n_classes = 7 if self.hparams['task'] == 'sEMG' else 10
+        in_channels=3 if self.hparams['task'] == 'cifar' else 1
 
         # Define the model
         genotype = self.get_genotype_from_hps()
@@ -130,13 +130,13 @@ class DARTSCNNTrial(PyTorchTrial):
         )
 
     def build_training_data_loader(self) -> DataLoader:
-        if self.hparams.task == 'cifar':
-            trainset = utils.load_cifar_train_data(self.download_directory, self.hparams.permute)
+        if self.hparams['task'] == 'cifar':
+            trainset = utils.load_cifar_train_data(self.download_directory, self.hparams['permute'])
 
-        elif self.hparams.task == 'spherical':
+        elif self.hparams['task'] == 'spherical':
             trainset = self.train_data
 
-        elif self.hparams.task == 'sEMG':
+        elif self.hparams['task'] == 'sEMG':
             trainset = utils.load_sEMG_train_data(self.download_directory)
 
         else:
@@ -146,13 +146,13 @@ class DARTSCNNTrial(PyTorchTrial):
 
     def build_validation_data_loader(self) -> DataLoader:
 
-        if self.hparams.task == 'cifar':
-            valset = utils.load_cifar_val_data(self.download_directory, self.hparams.permute)
+        if self.hparams['task'] == 'cifar':
+            valset = utils.load_cifar_val_data(self.download_directory, self.hparams['permute'])
 
-        elif self.hparams.task == 'spherical':
+        elif self.hparams['task'] == 'spherical':
             valset = self.test_data
 
-        elif self.hparams.task == 'sEMG':
+        elif self.hparams['task'] == 'sEMG':
             valset = utils.load_sEMG_val_data(self.download_directory)
 
         else:
