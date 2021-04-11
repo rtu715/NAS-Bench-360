@@ -84,7 +84,6 @@ class XDTrial(PyTorchTrial):
         self.patch_modules = [(n,m) for n, m in self.chrysalis.named_modules() if
                 hasattr(m, 'kernel_size') and type(m.kernel_size) == tuple and type(m) == Conv(len(m.kernel_size)) and m.kernel_size[0]!=1]
 
-        print(self.patch_modules)
 
         arch_kwargs = {'kmatrix_depth': self.hparams.kmatrix_depth,
                        'max_kernel_size': self.hparams.max_kernel_size,

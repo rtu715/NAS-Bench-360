@@ -31,7 +31,7 @@ hyperparameters:
   arch_momentum: 0.5
   arch_adam: false
 
-  global_batch_size: 20
+  global_batch_size: 10
 
   start_epoch: 0
   epochs: 500

@@ -37,11 +37,11 @@ class GenotypeCallback(PyTorchCallback):
 class GAEASearchTrial(PyTorchTrial):
     def __init__(self, trial_context: PyTorchTrialContext) -> None:
         self.context = trial_context
-        self.data_config = trial_context.get_data_config()
+        #self.data_config = trial_context.get_data_config()
         self.hparams = utils.AttrDict(trial_context.get_hparams())
         self.last_epoch = 0
 
-
+        '''
         self.download_directory = tempfile.mkdtemp()
 
         if self.hparams.task == 'spherical':
@@ -50,8 +50,8 @@ class GAEASearchTrial(PyTorchTrial):
 
         if self.hparams.task == 'sEMG':
             self.download_directory = '/workspace/tasks/MyoArmbandDataset/PyTorchImplementation/sEMG'
-
-        #self.download_directory = self.download_data_from_s3()
+        '''
+        self.download_directory = self.download_data_from_s3()
 
         n_classes = 7 if self.hparams['task'] == 'sEMG' else 10
         in_channels = 3 if self.hparams['task'] == 'cifar' else 1
@@ -66,7 +66,7 @@ class GAEASearchTrial(PyTorchTrial):
                 criterion,
                 self.hparams.nodes,
                 k=self.hparams.shuffle_factor,
-                in_challes = in_channels,
+                in_channels = in_channels,
             )
         )
 
@@ -161,8 +161,8 @@ class GAEASearchTrial(PyTorchTrial):
     def train_batch(
         self, batch: TorchData, epoch_idx: int, batch_idx: int
     ) -> Dict[str, torch.Tensor]:
-        if epoch_idx != self.last_epoch:
-            self.train_data.shuffle_val_inds()
+        #if epoch_idx != self.last_epoch:
+            #self.train_data.shuffle_val_inds()
         self.last_epoch = epoch_idx
         x_train, y_train, x_val, y_val = batch
 

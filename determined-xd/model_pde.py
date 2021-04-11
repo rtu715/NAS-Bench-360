@@ -17,6 +17,8 @@ from determined.pytorch import DataLoader, PyTorchTrial, PyTorchTrialContext, LR
 
 #from backbone_grid_pde import Backbone_Grid
 from backbone_grid_unet import Backbone_Grid, Tiny_Backbone_Grid
+from backbone_grid_wrn import Backbone
+
 from utils_grid import LpLoss, MatReader, UnitGaussianNormalizer
 
 from xd.chrysalis import Chrysalis
@@ -63,7 +65,9 @@ class XDTrial(PyTorchTrial):
         s = h
         self.s = s
         #self.backbone = Backbone_Grid(12, 32, 5) 
-        self.backbone = Backbone_Grid(3, 32, 1)
+        #self.backbone = Backbone_Grid(3, 32, 1)
+        self.backbone = Backbone(8, 1, 4, 0.0)
+
         self.chrysalis, self.original = Chrysalis.metamorphosize(self.backbone), self.backbone
         
         self.patch_modules = [(n,m) for n, m in self.chrysalis.named_modules() if

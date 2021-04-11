@@ -61,7 +61,9 @@ spherical MNIST related
 
 def load_spherical_data(path, batch_size):
 
-    with gzip.open(path, 'rb') as f:
+
+    data_file = os.path.join(path, 's2_mnist.gz')
+    with gzip.open(data_file, 'rb') as f:
         dataset = pickle.load(f)
 
     train_data = torch.from_numpy(
