@@ -73,15 +73,17 @@ class Backbone(nn.Module):
         # 1st block
         self.block1 = NetworkBlock(n, nChannels[0], nChannels[1], block, 1, dropRate)
         # 2nd block
-        self.block2 = NetworkBlock(n, nChannels[1], nChannels[2], block, 1, dropRate)
+        self.block2 = NetworkBlock(n, nChannels[1], nChannels[2], block, 2, dropRate)
         # 3rd block
-        self.block3 = NetworkBlock(n, nChannels[2], nChannels[3], block, 1, dropRate)
+        self.block3 = NetworkBlock(n, nChannels[2], nChannels[3], block, 2, dropRate)
         # global average pooling and classifier
         #self.bn1 = nn.BatchNorm2d(nChannels[3])
         self.relu = nn.ReLU(inplace=True)
         self.fc = nn.Linear(nChannels[3], num_classes)
         self.out_conv = nn.Conv2d(nChannels[3], num_classes, kernel_size=1)
         self.nChannels = nChannels[3]
+
+        self.restore_fc = nn.Linear(nChannels[3]*2*2, 85*85)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -98,11 +100,16 @@ class Backbone(nn.Module):
         out = self.block2(out)
         out = self.block3(out)
         out = self.relu(out)
-        #out = F.avg_pool2d(out, 8)
+        out = F.avg_pool2d(out, 8)
+        out = out.reshape((out.shape[0], -1))
         #out = out.permute(0, 2, 3, 1).contiguous() 
         #out = out.view(-1, self.nChannels)
-        return self.out_conv(out).squeeze()
-
+        print(out.shape)
+        out = self.restore_fc(out)
+        out = out.reshape((out.shape[0], 85, 85))
+        print(out.shape)
+        #return self.out_conv(out).squeeze()
+        return out
 
 
 
