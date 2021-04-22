@@ -138,13 +138,14 @@ def load_cifar_train_data(path, permute, val_split=0.2):
         return all_trainset, None
     
     n_train = int((1-val_split) * len(all_trainset))
-    trainset = all_trainset[:n_train]
-    valset = all_trainset[n_train:]
-
+    train_ind = torch.arange(n_train)
+    val_ind = torch.arange(n_train, len(all_trainset))
+    trainset = data_utils.Subset(all_trainset, train_ind)
+    valset = data_utils.Subset(all_trainset, val_ind)
 
     return trainset, valset
 
-def load_cifar_test_data(path, permute):
+def load_cifar_test_data(path, permute=False):
     CIFAR_MEAN = [0.49139968, 0.48215827, 0.44653124]
     CIFAR_STD = [0.24703233, 0.24348505, 0.26158768]
 

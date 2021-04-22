@@ -19,8 +19,8 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-    task: spherical
-
+    task: cifar
+    permute: false
 
     # Channel shuffle factor.  1 / shuffle_factor channels are activated at a given time.
     shuffle_factor: 4

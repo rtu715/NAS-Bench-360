@@ -122,7 +122,7 @@ class GAEASearchTrial(PyTorchTrial):
                     s3.download_file(s3_bucket, data_file, filepath)
 
         #instantiate test loader
-        self.build_test_data_loader()
+        self.build_test_data_loader(download_directory)
 
         return download_directory
 
@@ -147,7 +147,7 @@ class GAEASearchTrial(PyTorchTrial):
     def build_validation_data_loader(self) -> DataLoader:
 
         if self.hparams['task'] == 'cifar':
-            _, valset = utils.load_cifar_val_data(self.download_directory, self.hparams['permute'])
+            _, valset = utils.load_cifar_train_data(self.download_directory, self.hparams['permute'])
 
         elif self.hparams['task'] == 'spherical':
             valset = self.val_data
@@ -160,16 +160,16 @@ class GAEASearchTrial(PyTorchTrial):
 
         return DataLoader(valset, batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=2)
 
-    def build_test_data_loader(self):
+    def build_test_data_loader(self, download_directory):
         
         if self.hparams['task'] == 'cifar':
-            testset = utils.load_cifar_test_data(self.download_directory, self.hparams['permute'])
+            testset = utils.load_cifar_test_data(download_directory, self.hparams['permute'])
 
         elif self.hparams['task'] == 'spherical':
             testset = self.test_data
 
         elif self.hparams['task'] == 'sEMG':
-            testset = utils.load_sEMG_test_data(self.download_directory)
+            testset = utils.load_sEMG_test_data(download_directory)
 
         else:
             pass
@@ -208,6 +208,7 @@ class GAEASearchTrial(PyTorchTrial):
             "arch_loss": arch_loss,
         }
 
+    '''
     def evaluate_batch(self, batch: TorchData) -> Dict[str, Any]:
         input, target = batch
         logits = self.model(input)
@@ -222,6 +223,56 @@ class GAEASearchTrial(PyTorchTrial):
 
         return {"loss": loss, "top1_accuracy": top1, "top5_accuracy": top5, "test_loss": test_loss,
                 "top1_accuracy_test": test_top1, "top5_accuracy_test": test_top5}
+    '''
+    def evaluate_full_dataset(
+        self, data_loader: torch.utils.data.DataLoader
+    ) -> Dict[str, Any]:
+        acc_top1 = 0
+        acc_top5 = 0
+        loss_avg = 0
+        num_batches = 0
+        with torch.no_grad():
+            for batch in data_loader:
+                batch = self.context.to_device(batch)
+                input, target = batch
+                num_batches += 1
+                logits = self.model(input)
+                loss = self.model._loss(input, target)
+                top1, top5 = utils.accuracy(logits, target, topk=(1, 5))
+                acc_top1 += top1
+                acc_top5 += top5
+                loss_avg += loss
+        results = {
+            "loss": loss_avg.item() / num_batches,
+            "top1_accuracy": acc_top1.item() / num_batches,
+            "top5_accuracy": acc_top5.item() / num_batches,
+        }
+
+
+        acc_top1 = 0
+        acc_top5 = 0
+        loss_avg = 0
+        num_batches = 0
+        with torch.no_grad():
+            for batch in self.test_loader:
+                batch = self.context.to_device(batch)
+                input, target = batch
+                num_batches += 1
+                logits = self.model(input)
+                loss = self.model._loss(input, target)
+                top1, top5 = utils.accuracy(logits, target, topk=(1, 5))
+                acc_top1 += top1
+                acc_top5 += top5
+                loss_avg += loss
+        results2 = {
+            "test_loss": loss_avg.item() / num_batches,
+            "test_top1_accuracy": acc_top1.item() / num_batches,
+            "test_top5_accuracy": acc_top5.item() / num_batches,
+        }
+
+        results.update(results2)
+
+        return results
 
     def build_callbacks(self):
         return {"genotype": GenotypeCallback(self.context)}
