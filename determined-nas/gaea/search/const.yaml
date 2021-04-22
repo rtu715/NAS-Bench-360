@@ -30,16 +30,16 @@ hyperparameters:
     min_learning_rate: 0
     scheduler_epochs: 50
     weight_decay: 3e-4
-    arch_learning_rate: 0.1
+    arch_learning_rate: 0.01
     init_channels: 16
-    layers: 10
+    layers: 8
     nodes: 4
 
 resources:
   slots_per_trial: 1
 
 min_validation_period: 
-  batches: 100
+  batches: 900
 
 records_per_epoch: 30000
 searcher:
@@ -47,7 +47,7 @@ searcher:
   metric: top1_accuracy 
   smaller_is_better: false 
   max_length: 
-    epochs: 200
+    epochs: 50
 
 optimizations:
   aggregation_frequency:  1

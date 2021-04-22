@@ -1,68 +1,24 @@
-import os
-import numpy as np
-import torch
-
 import gzip
+import os
 import pickle
+import torch
 from torch import nn
 
 import torch.utils.data as data_utils
+import numpy as np
 
 import torchvision
 from torchvision import transforms
-
-class AttrDict(dict):
-    def __init__(self, *args, **kwargs):
-        super(AttrDict, self).__init__(*args, **kwargs)
-        self.__dict__ = self
-
-
-def data_transforms_imagenet():
-    IMAGENET_MEAN = [0.485, 0.456, 0.406]
-    IMAGENET_STD = [0.229, 0.224, 0.225]
-    train_transform = transforms.Compose(
-        [
-            transforms.RandomResizedCrop(224),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD),
-        ]
-    )
-    valid_transform = transforms.Compose(
-        [
-            transforms.Resize(256),
-            transforms.CenterCrop(224),
-            transforms.ToTensor(),
-            transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD),
-        ]
-    )
-    return train_transform, valid_transform
-
-
-
-def accuracy(output, target, topk=(1,)):
-    maxk = max(topk)
-    batch_size = target.size(0)
-
-    _, pred = output.topk(maxk, 1, True, True)
-    pred = pred.t()
-    correct = pred.eq(target.contiguous().view(1, -1).expand_as(pred))
-
-    res = []
-    for k in topk:
-        correct_k = correct[:k].contiguous().view(-1).float().sum(0)
-        res.append(correct_k.mul_(100.0 / batch_size))
-    return res
-
 
 '''
 spherical MNIST related
 '''
 
-def load_spherical_data(path, val_split=0.16):
+def load_spherical_data(path='/workspace/tasks/spherical', batch_size=32):
 
 
     data_file = os.path.join(path, 's2_mnist.gz')
+
     with gzip.open(data_file, 'rb') as f:
         dataset = pickle.load(f)
 
@@ -71,17 +27,11 @@ def load_spherical_data(path, val_split=0.16):
     train_labels = torch.from_numpy(
         dataset["train"]["labels"].astype(np.int64))
 
+    # TODO normalize dataset
+    # mean = train_data.mean()
+    # stdv = train_data.std()
 
-    all_train_dataset = data_utils.TensorDataset(train_data, train_labels)
-    print(len(all_train_dataset))
-    if val_split == 0.0:
-        val_dataset = None
-        train_dataset = all_train_dataset
-    else:
-        ntrain = int((1-val_split) * len(all_train_dataset))
-        train_dataset = data_utils.TensorDataset(train_data[:ntrain], train_labels[:ntrain])
-        val_dataset = data_utils.TensorDataset(train_data[ntrain:], train_labels[ntrain:])
-        
+    train_dataset = data_utils.TensorDataset(train_data, train_labels)
     #train_loader = data_utils.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
     test_data = torch.from_numpy(
@@ -92,7 +42,7 @@ def load_spherical_data(path, val_split=0.16):
     test_dataset = data_utils.TensorDataset(test_data, test_labels)
     #test_loader = data_utils.DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
 
-    return train_dataset, val_dataset, test_dataset
+    return train_dataset, test_dataset
 
 '''
 CIFAR related
@@ -111,8 +61,7 @@ class RowColPermute(nn.Module):
 
 
 
-def load_cifar_train_data(path, permute, val_split=0.2):
-    #We could include cutout in transforms
+def load_cifar_train_data(path, permute):
     CIFAR_MEAN = [0.49139968, 0.48215827, 0.44653124]
     CIFAR_STD = [0.24703233, 0.24348505, 0.26158768]
 
@@ -129,22 +78,12 @@ def load_cifar_train_data(path, permute, val_split=0.2):
              normalize]
         )
 
-
-    all_trainset = torchvision.datasets.CIFAR10(
+    trainset = torchvision.datasets.CIFAR10(
         root=path, train=True, download=True, transform=transform
     )
+    return trainset
 
-    if val_split==0.0:
-        return all_trainset, None
-    
-    n_train = int((1-val_split) * len(all_trainset))
-    trainset = all_trainset[:n_train]
-    valset = all_trainset[n_train:]
-
-
-    return trainset, valset
-
-def load_cifar_test_data(path, permute):
+def load_cifar_val_data(path, permute):
     CIFAR_MEAN = [0.49139968, 0.48215827, 0.44653124]
     CIFAR_STD = [0.24703233, 0.24348505, 0.26158768]
 
@@ -159,11 +98,11 @@ def load_cifar_test_data(path, permute):
             [transforms.ToTensor(), normalize]
         )
 
-    testset = torchvision.datasets.CIFAR10(
+    valset = torchvision.datasets.CIFAR10(
         root=path, train=False, download=True, transform=transform
     )
 
-    return testset
+    return valset
 
 
 
@@ -188,29 +127,7 @@ def scramble(examples, labels, second_labels=[]):
             new_examples.append(examples[i])
         return new_examples, new_labels
 
-def load_sEMG_train_data(path):
-    datasets_training = np.load(os.path.join(path, "saved_pre_training_dataset_spectrogram.npy"),
-            encoding="bytes", allow_pickle=True)
-    examples_training, labels_training = datasets_training
-
-    for j in range(19):
-        print("CURRENT DATASET : ", j)
-        examples_personne_training = []
-        labels_gesture_personne_training = []
-
-        for k in range(len(examples_training[j])):
-            examples_personne_training.extend(examples_training[j][k])
-            labels_gesture_personne_training.extend(labels_training[j][k])
-
-    examples_personne_scrambled, labels_gesture_personne_scrambled = scramble(examples_personne_training,
-                                                                                  labels_gesture_personne_training)
-    train = data_utils.TensorDataset(torch.from_numpy(np.array(examples_personne_scrambled, dtype=np.float32)),
-                              torch.from_numpy(np.array(labels_gesture_personne_scrambled, dtype=np.int64)))
-
-
-    return train
-
-def load_sEMG_val_data(path):
+def load_sEMG_train_data(path='/workspace/tasks/MyoArmbandDataset/PyTorchImplementation/sEMG'):
     datasets_training = np.load(os.path.join(path, "saved_evaluation_dataset_training.npy"),
                                 encoding="bytes", allow_pickle=True)
     examples_training, labels_training = datasets_training
@@ -228,13 +145,13 @@ def load_sEMG_val_data(path):
 
     examples_personne_scrambled, labels_gesture_personne_scrambled = scramble(examples_personne_training,
                                                                                   labels_gesture_personne_training)
-    val = data_utils.TensorDataset(torch.from_numpy(np.array(examples_personne_scrambled, dtype=np.float32)),
+    train = data_utils.TensorDataset(torch.from_numpy(np.array(examples_personne_scrambled, dtype=np.float32)),
                               torch.from_numpy(np.array(labels_gesture_personne_scrambled, dtype=np.int64)))
 
 
-    return val
+    return train
 
-def load_sEMG_test_data(path):
+def load_sEMG_val_data(path='/workspace/tasks/MyoArmbandDataset/PyTorchImplementation/sEMG'):
 
     datasets_test0 = np.load(os.path.join(path, "saved_evaluation_dataset_test0.npy"),
                              encoding="bytes", allow_pickle=True)
@@ -263,7 +180,10 @@ def load_sEMG_test_data(path):
     X_test = np.concatenate((X_test_0, X_test_1))
     Y_test = np.concatenate((Y_test_0, Y_test_1))
 
-    test = data_utils.TensorDataset(torch.from_numpy(X_test),
+    val = data_utils.TensorDataset(torch.from_numpy(X_test),
                   torch.from_numpy(Y_test))
 
-    return test
+    return val
+
+
+

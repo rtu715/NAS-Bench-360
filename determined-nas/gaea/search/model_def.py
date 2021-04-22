@@ -111,22 +111,24 @@ class GAEASearchTrial(PyTorchTrial):
                 if not os.path.exists(filepath):
                     s3.download_file(s3_bucket, data_file, filepath)
 
-            self.train_data, self.test_data = utils.load_spherical_data(download_directory,
-                                                                           self.context.get_per_slot_batch_size())
+            self.train_data, self.val_data, self.test_data = utils.load_spherical_data(download_directory)
 
         if self.hparams.task == 'sEMG':
             data_files = ["saved_evaluation_dataset_test0.npy", "saved_evaluation_dataset_test1.npy",
-                          "saved_evaluation_dataset_training.npy"]
+                          "saved_evaluation_dataset_training.npy", "saved_pre_training_dataset_spectrogram.npy"]
             for data_file in data_files:
                 filepath = os.path.join(download_directory, data_file)
                 if not os.path.exists(filepath):
                     s3.download_file(s3_bucket, data_file, filepath)
 
+        #instantiate test loader
+        self.build_test_data_loader()
+
         return download_directory
 
     def build_training_data_loader(self) -> DataLoader:
         if self.hparams['task'] == 'cifar':
-            trainset = utils.load_cifar_train_data(self.download_directory, self.hparams['permute'])
+            trainset, _ = utils.load_cifar_train_data(self.download_directory, self.hparams['permute'])
 
         elif self.hparams['task'] == 'spherical':
             trainset = self.train_data
@@ -140,15 +142,15 @@ class GAEASearchTrial(PyTorchTrial):
         bilevel = BilevelDataset(trainset)
 
 
-        return DataLoader(bilevel, batch_size=self.context.get_per_slot_batch_size())
+        return DataLoader(bilevel, batch_size=self.context.get_per_slot_batch_size(), shuffle=True, num_workers=2)
 
     def build_validation_data_loader(self) -> DataLoader:
 
         if self.hparams['task'] == 'cifar':
-            valset = utils.load_cifar_val_data(self.download_directory, self.hparams['permute'])
+            _, valset = utils.load_cifar_val_data(self.download_directory, self.hparams['permute'])
 
         elif self.hparams['task'] == 'spherical':
-            valset = self.test_data
+            valset = self.val_data
 
         elif self.hparams['task'] == 'sEMG':
             valset = utils.load_sEMG_val_data(self.download_directory)
@@ -156,13 +158,30 @@ class GAEASearchTrial(PyTorchTrial):
         else:
             pass
 
-        return DataLoader(valset, batch_size=self.context.get_per_slot_batch_size())
+        return DataLoader(valset, batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=2)
+
+    def build_test_data_loader(self):
+        
+        if self.hparams['task'] == 'cifar':
+            testset = utils.load_cifar_test_data(self.download_directory, self.hparams['permute'])
+
+        elif self.hparams['task'] == 'spherical':
+            testset = self.test_data
+
+        elif self.hparams['task'] == 'sEMG':
+            testset = utils.load_sEMG_test_data(self.download_directory)
+
+        else:
+            pass
+
+        self.test_loader = torch.utils.data.DataLoader(testset, batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=2)
+        return 
 
     def train_batch(
         self, batch: TorchData, epoch_idx: int, batch_idx: int
     ) -> Dict[str, torch.Tensor]:
-        #if epoch_idx != self.last_epoch:
-            #self.train_data.shuffle_val_inds()
+        if epoch_idx != self.last_epoch:
+            self.train_data.shuffle_val_inds()
         self.last_epoch = epoch_idx
         x_train, y_train, x_val, y_val = batch
 
@@ -195,7 +214,14 @@ class GAEASearchTrial(PyTorchTrial):
         loss = self.model._loss(input, target)
         top1, top5 = utils.accuracy(logits, target, topk=(1, 5))
 
-        return {"loss": loss, "top1_accuracy": top1, "top5_accuracy": top5}
+        test_input, test_target = next(iter(self.test_loader))
+        test_input, test_target = test_input.cuda(), test_target.cuda()
+        test_logits = self.model(test_input)
+        test_loss = self.model._loss(test_input, test_target)
+        test_top1, test_top5 = utils.accuracy(test_logits, test_target, topk=(1, 5))
+
+        return {"loss": loss, "top1_accuracy": top1, "top5_accuracy": top5, "test_loss": test_loss,
+                "top1_accuracy_test": test_top1, "top5_accuracy_test": test_top5}
 
     def build_callbacks(self):
         return {"genotype": GenotypeCallback(self.context)}
