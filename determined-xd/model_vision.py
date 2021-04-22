@@ -66,6 +66,8 @@ class XDTrial(PyTorchTrial):
             self.download_directory = '/workspace/tasks/MyoArmbandDataset/PyTorchImplementation/sEMG'
         '''
         self.download_directory = self.download_data_from_s3()
+        self.results = {"loss": float("inf"), "top1_accuracy": 0, "top5_accuracy": 0, "test_loss": float("inf"),
+                        "test_top1_accuracy": 0, "test_top5_accuracy": 0}
 
         self.criterion = nn.CrossEntropyLoss().cuda()
 
@@ -158,28 +160,29 @@ class XDTrial(PyTorchTrial):
                 if not os.path.exists(filepath):
                     s3.download_file(s3_bucket, data_file, filepath)
 
-            self.train_data, self.test_data = utils_pt.load_spherical_data(download_directory,
-                                                                           self.context.get_per_slot_batch_size())
+            self.train_data, self.val_data, self.test_data = utils_pt.load_spherical_data(download_directory)
 
         if self.hparams.task == 'sEMG':
             data_files = ["saved_evaluation_dataset_test0.npy", "saved_evaluation_dataset_test1.npy",
-                          "saved_evaluation_dataset_training.npy"]
+                          "saved_evaluation_dataset_training.npy", "saved_pre_training_dataset_spectrogram.npy"]
             for data_file in data_files:
                 filepath = os.path.join(download_directory, data_file)
                 if not os.path.exists(filepath):
                     s3.download_file(s3_bucket, data_file, filepath)
 
+        #instantiate test loader
+        self.build_test_data_loader(download_directory)
+
         return download_directory
 
-    def build_training_data_loader(self) -> Any:
+    def build_training_data_loader(self) -> DataLoader:
+        if self.hparams['task'] == 'cifar':
+            trainset, _ = utils_pt.load_cifar_train_data(self.download_directory, self.hparams['permute'])
 
-        if self.hparams.task == 'cifar':
-            trainset = utils_pt.load_cifar_train_data(self.download_directory, self.hparams.permute)
-        
-        elif self.hparams.task == 'spherical':
+        elif self.hparams['task'] == 'spherical':
             trainset = self.train_data
 
-        elif self.hparams.task == 'sEMG':
+        elif self.hparams['task'] == 'sEMG':
             trainset = utils_pt.load_sEMG_train_data(self.download_directory)
 
         else:
@@ -187,22 +190,40 @@ class XDTrial(PyTorchTrial):
 
         return DataLoader(trainset, batch_size=self.context.get_per_slot_batch_size())
 
-    def build_validation_data_loader(self) -> Any:
+    def build_validation_data_loader(self) -> DataLoader:
 
-        if self.hparams.task == 'cifar':
-            valset = utils_pt.load_cifar_val_data(self.download_directory, self.hparams.permute)
 
-        elif self.hparams.task == 'spherical':
-            valset = self.test_data
+        if self.hparams['task'] == 'cifar':
+            _, valset = utils_pt.load_cifar_train_data(self.download_directory, self.hparams['permute'])
 
-        elif self.hparams.task == 'sEMG':
+        elif self.hparams['task'] == 'spherical':
+            valset = self.val_data
+
+        elif self.hparams['task'] == 'sEMG':
             valset = utils_pt.load_sEMG_val_data(self.download_directory)
 
         else:
             pass
-        
+
         return DataLoader(valset, batch_size=self.context.get_per_slot_batch_size())
 
+    def build_test_data_loader(self, download_directory):
+
+        if self.hparams['task'] == 'cifar':
+            testset = utils_pt.load_cifar_test_data(download_directory, self.hparams['permute'])
+
+        elif self.hparams['task'] == 'spherical':
+            testset = self.test_data
+
+        elif self.hparams['task'] == 'sEMG':
+            testset = utils_pt.load_sEMG_test_data(download_directory)
+
+        else:
+            pass
+
+        self.test_loader = torch.utils.data.DataLoader(testset, batch_size=self.context.get_per_slot_batch_size(),
+                                                       shuffle=False, num_workers=2)
+        return
     '''
     Train and Evaluate Methods
     '''
@@ -227,7 +248,7 @@ class XDTrial(PyTorchTrial):
         return {
             'loss': loss,
         }
-
+    '''
     def evaluate_batch(self, batch: TorchData) -> Dict[str, Any]:
         """
         Calculate validation metrics for a batch and return them as a dictionary.
@@ -239,3 +260,56 @@ class XDTrial(PyTorchTrial):
         output = self.model(data)
         accuracy = accuracy_rate(output, labels)
         return {"validation_accuracy": accuracy, "validation_error": 1.0 - accuracy}
+    '''
+    def evaluate_full_dataset(
+        self, data_loader: torch.utils.data.DataLoader
+    ) -> Dict[str, Any]:
+        acc_top1 = 0
+        acc_top5 = 0
+        loss_avg = 0
+        num_batches = 0
+        with torch.no_grad():
+            for batch in data_loader:
+                batch = self.context.to_device(batch)
+                input, target = batch
+                num_batches += 1
+                logits, _ = self.model(input)
+                loss = self.criterion(logits, target)
+                top1, top5 = utils_pt.accuracy(logits, target, topk=(1, 5))
+                acc_top1 += top1
+                acc_top5 += top5
+                loss_avg += loss
+        results = {
+            "loss": loss_avg.item() / num_batches,
+            "top1_accuracy": acc_top1.item() / num_batches,
+            "top5_accuracy": acc_top5.item() / num_batches,
+        }
+
+        test_acc_top1 = 0
+        test_acc_top5 = 0
+        test_loss_avg = 0
+        num_batches = 0
+        with torch.no_grad():
+            for batch in self.test_loader:
+                batch = self.context.to_device(batch)
+                input, target = batch
+                num_batches += 1
+                logits, _ = self.model(input)
+                loss = self.criterion(logits, target)
+                top1, top5 = utils_pt.accuracy(logits, target, topk=(1, 5))
+                test_acc_top1 += top1
+                test_acc_top5 += top5
+                test_loss_avg += loss
+
+        results2 = {
+            "test_loss": test_loss_avg.item() / num_batches,
+            "test_top1_accuracy": test_acc_top1.item() / num_batches,
+            "test_top5_accuracy": test_acc_top5.item() / num_batches,
+        }
+
+        results.update(results2)
+
+        if results["top1_accuracy"] > self.results["top1_accuracy"]:
+            self.results = results
+
+        return self.results
