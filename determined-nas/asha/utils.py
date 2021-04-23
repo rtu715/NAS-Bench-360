@@ -274,28 +274,29 @@ def load_sEMG_train_data(path):
     return train
 
 def load_sEMG_val_data(path):
-    datasets_training = np.load(os.path.join(path, "saved_evaluation_dataset_training.npy"),
+    datasets_val = np.load(os.path.join(path, "saved_evaluation_dataset_training.npy"),
                                 encoding="bytes", allow_pickle=True)
-    examples_training, labels_training = datasets_training
+    examples_val, labels_val = datasets_val
     #examples_training = examples_training.reshape(-1, *examples_training.shape[2:])
     #labels_training = labels_training.reshape(-1, *labels_training.shape[2:])
 
     for j in range(17):
         print("CURRENT DATASET : ", j)
-        examples_personne_training = []
-        labels_gesture_personne_training = []
+        examples_personne_val = []
+        labels_gesture_personne_val = []
 
-        for k in range(len(examples_training[j])):
-            examples_personne_training.extend(examples_training[j][k])
-            labels_gesture_personne_training.extend(labels_training[j][k])
+        for k in range(len(examples_val[j])):
+            examples_personne_val.extend(examples_val[j][k])
+            labels_gesture_personne_val.extend(labels_val[j][k])
 
-    examples_personne_scrambled, labels_gesture_personne_scrambled = scramble(examples_personne_training,
-                                                                                  labels_gesture_personne_training)
+    examples_personne_scrambled, labels_gesture_personne_scrambled = scramble(examples_personne_val,
+                                                                                  labels_gesture_personne_val)
     val = data_utils.TensorDataset(torch.from_numpy(np.array(examples_personne_scrambled, dtype=np.float32)),
                               torch.from_numpy(np.array(labels_gesture_personne_scrambled, dtype=np.int64)))
 
 
     return val
+
 
 def load_sEMG_test_data(path):
 

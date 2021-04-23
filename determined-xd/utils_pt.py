@@ -162,16 +162,16 @@ def load_sEMG_train_data(path):
     datasets_training = np.load(os.path.join(path, "saved_pre_training_dataset_spectrogram.npy"),
             encoding="bytes", allow_pickle=True)
     examples_training, labels_training = datasets_training
+    examples_personne_training = []
+    labels_gesture_personne_training = []
 
     for j in range(19):
         print("CURRENT DATASET : ", j)
-        examples_personne_training = []
-        labels_gesture_personne_training = []
 
         for k in range(len(examples_training[j])):
             examples_personne_training.extend(examples_training[j][k])
             labels_gesture_personne_training.extend(labels_training[j][k])
-
+    print('train sEMG shape ', np.shape(examples_personne_training))
     examples_personne_scrambled, labels_gesture_personne_scrambled = scramble(examples_personne_training,
                                                                                   labels_gesture_personne_training)
     train = data_utils.TensorDataset(torch.from_numpy(np.array(examples_personne_scrambled, dtype=np.float32)),
@@ -181,23 +181,23 @@ def load_sEMG_train_data(path):
     return train
 
 def load_sEMG_val_data(path):
-    datasets_training = np.load(os.path.join(path, "saved_evaluation_dataset_training.npy"),
+    datasets_val = np.load(os.path.join(path, "saved_evaluation_dataset_training.npy"),
                                 encoding="bytes", allow_pickle=True)
-    examples_training, labels_training = datasets_training
+    examples_val, labels_val = datasets_val
     #examples_training = examples_training.reshape(-1, *examples_training.shape[2:])
     #labels_training = labels_training.reshape(-1, *labels_training.shape[2:])
-
+    examples_personne_val = []
+    labels_gesture_personne_val = []
     for j in range(17):
         print("CURRENT DATASET : ", j)
-        examples_personne_training = []
-        labels_gesture_personne_training = []
 
-        for k in range(len(examples_training[j])):
-            examples_personne_training.extend(examples_training[j][k])
-            labels_gesture_personne_training.extend(labels_training[j][k])
 
-    examples_personne_scrambled, labels_gesture_personne_scrambled = scramble(examples_personne_training,
-                                                                                  labels_gesture_personne_training)
+        for k in range(len(examples_val[j])):
+            examples_personne_val.extend(examples_val[j][k])
+            labels_gesture_personne_val.extend(labels_val[j][k])
+    print('val sEMG shape', np.shape(examples_personne_val))
+    examples_personne_scrambled, labels_gesture_personne_scrambled = scramble(examples_personne_val,
+                                                                                  labels_gesture_personne_val)
     val = data_utils.TensorDataset(torch.from_numpy(np.array(examples_personne_scrambled, dtype=np.float32)),
                               torch.from_numpy(np.array(labels_gesture_personne_scrambled, dtype=np.int64)))
 
@@ -216,14 +216,15 @@ def load_sEMG_test_data(path):
 
     #x_val = np.concatenate((examples_test0.reshape(-1), examples_test1.reshape(-1)))
     #y_val = np.concatenate((labels_test0.reshape(-1), labels_test1.reshape(-1)))
-
+    X_test_0, Y_test_0 = [], []
+    X_test_1, Y_test_1 = [], []
     for j in range(17):
-        X_test_0, Y_test_0 = [], []
+
         for k in range(len(examples_test0)):
             X_test_0.extend(examples_test0[j][k])
             Y_test_0.extend(labels_test0[j][k])
 
-        X_test_1, Y_test_1 = [], []
+
         for k in range(len(examples_test1)):
             X_test_1.extend(examples_test1[j][k])
             Y_test_1.extend(labels_test1[j][k])
@@ -232,8 +233,40 @@ def load_sEMG_test_data(path):
     X_test_1, Y_test_1 = np.array(X_test_1, dtype=np.float32), np.array(Y_test_1, dtype=np.int64)
     X_test = np.concatenate((X_test_0, X_test_1))
     Y_test = np.concatenate((Y_test_0, Y_test_1))
-
+    print('test sEMG shape ', np.shape(X_test))
     test = data_utils.TensorDataset(torch.from_numpy(X_test),
                   torch.from_numpy(Y_test))
 
     return test
+
+def load_sEMG_data(path):
+    '''merge all sEMG data and apply 80/10/10 partition'''
+    '''
+    datasets_1 = np.load(os.path.join(path, "saved_pre_training_dataset_spectrogram.npy"),
+            encoding="bytes", allow_pickle=True)
+    examples_1, labels_1 = datasets_1
+
+    datasets_2 = np.load(os.path.join(path, "saved_evaluation_dataset_training.npy"),
+                                encoding="bytes", allow_pickle=True)
+    examples_2, labels_2 = datasets_2
+
+    datasets_3 = np.load(os.path.join(path, "saved_evaluation_dataset_test0.npy"),
+                             encoding="bytes", allow_pickle=True)
+    examples_3, labels_3 = datasets_3
+
+    datasets_4 = np.load(os.path.join(path, "saved_evaluation_dataset_test1.npy"),
+                             encoding="bytes", allow_pickle=True)
+    examples_4, labels_4 = datasets_4
+    '''
+    dataset1, dataset2, dataset3 = load_sEMG_train_data(path), load_sEMG_val_data(path), load_sEMG_test_data(path)
+    dataset_list = [dataset1, dataset2, dataset3]
+    all_sEMG = data_utils.ConcatDataset(dataset_list)
+    total_size = len(all_sEMG)
+
+    train_size = int(total_size * 0.8)
+    val_size = int(total_size * 0.1)
+    test_size = total_size - train_size - val_size
+
+    trainset, valset, testset = data_utils.random_split(all_sEMG, [train_size, val_size, test_size])
+
+    return trainset, valset, testset
