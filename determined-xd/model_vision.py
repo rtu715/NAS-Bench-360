@@ -273,7 +273,7 @@ class XDTrial(PyTorchTrial):
                 batch = self.context.to_device(batch)
                 input, target = batch
                 num_batches += 1
-                logits, _ = self.model(input)
+                logits = self.model(input)
                 loss = self.criterion(logits, target)
                 top1, top5 = utils_pt.accuracy(logits, target, topk=(1, 5))
                 acc_top1 += top1
@@ -294,7 +294,7 @@ class XDTrial(PyTorchTrial):
                 batch = self.context.to_device(batch)
                 input, target = batch
                 num_batches += 1
-                logits, _ = self.model(input)
+                logits = self.model(input)
                 loss = self.criterion(logits, target)
                 top1, top5 = utils_pt.accuracy(logits, target, topk=(1, 5))
                 test_acc_top1 += top1

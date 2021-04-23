@@ -69,7 +69,7 @@ class DARTSCNNTrial(PyTorchTrial):
     def __init__(self, context: PyTorchTrialContext) -> None:
         self.context = context
         self.data_config = context.get_data_config()
-        self.hparams = context.get_hparams()
+        self.hparams = AttrDict(context.get_hparams())
         self.criterion = torch.nn.functional.cross_entropy
         # The last epoch is only used for logging.
         self._last_epoch = -1
@@ -77,6 +77,7 @@ class DARTSCNNTrial(PyTorchTrial):
                         "test_top1_accuracy": 0, "test_top5_accuracy": 0}
 
         # Create a unique download directory for each rank so they don't overwrite each other.
+        '''
         self.download_directory = tempfile.mkdtemp()
 
         if self.hparams['task'] == 'spherical':
@@ -85,8 +86,8 @@ class DARTSCNNTrial(PyTorchTrial):
 
         if self.hparams['task'] == 'sEMG':
             self.download_directory = '/workspace/tasks/MyoArmbandDataset/PyTorchImplementation/sEMG'
-
-        #self.download_directory = self.download_data_from_s3()
+        '''
+        self.download_directory = self.download_data_from_s3()
 
         n_classes = 7 if self.hparams['task'] == 'sEMG' else 10
         in_channels = 3 if self.hparams['task'] == 'cifar' else 1
