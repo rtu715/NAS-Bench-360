@@ -1,22 +1,54 @@
 description: darts_cnn_nas
 
+environment:
+  image: "renbotu/xd-nas:determined1.8"
+  registry_auth:
+    username: renbotu
+    password: 980715tutubo
+
+
 data:
-  data_download_dir: /data
+  download_dir: /data
+  type: s3
+  bucket: pde-xd
+
+
+bind_mounts:
+  - host_path: /tmp
+    container_path: /data
+    read_only: false
 
 min_validation_period:
-  batches: 500
+  epochs: 1
 
 hyperparameters:
-  learning_rate: 0.025
-  momentum: 0.9
-  weight_decay: 3e-4
+  task: spherical
+  permute: false
+
+  learning_rate: 
+    type: log
+    minval: -2.0
+    maxval: 0.0
+    base: 10.0 
+ 
+  momentum: 
+    type: double
+    minval: 0.0
+    maxval: 0.9
+
+  weight_decay: 
+    type: log
+    minval: -4.0
+    maxval: -2.0
+    base: 10.0
+
   train_epochs: 300
-  global_batch_size: 96
-  init_channels: 36
-  layers: 20
-  auxiliary: true
+  global_batch_size: 256
+  init_channels: 16
+  layers: 8
+  auxiliary: false
   auxiliary_weight: 0.4
-  cutout: true
+  cutout: false
   cutout_length: 16
   drop_path_prob: 0.2
   clip_gradients_l2_norm: 5
@@ -123,15 +155,11 @@ hyperparameters:
 
 resources:
   slots_per_trial: 1
-  max_slots: 16
+  max_slots: 5
 
 scheduling_unit: 100
 
-bind_mounts:
-    - host_path: /tmp
-      container_path: /data
-      read_only: false
-
+records_per_epoch: 60000
 
 searcher:
   name: adaptive_asha
@@ -139,13 +167,15 @@ searcher:
   smaller_is_better: false
   # 50k examples in train, 96 examples per batch, 100 batches per step -> 300 epochs ~ 1562 steps
   max_length:
-    batches: 156200
+          epochs: 300
   max_trials: 10000
   mode: aggressive
   # A maximum of 4 rungs corresponds to a minimum training length of 1/divisor^(max_rungs - 1) = 1/64 * max_length 
   # per trial.  Trials with higher validation accuracy will be trained for longer than this minimum will poor
   # trials will be stopped early.
   max_rungs: 4
-  max_concurrent_trials: 16
+  max_concurrent_trials: 5
 
 entrypoint: model_def:DARTSCNNTrial
+
+max_restarts: 100

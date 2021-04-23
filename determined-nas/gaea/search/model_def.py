@@ -140,7 +140,7 @@ class GAEASearchTrial(PyTorchTrial):
             pass
 
         bilevel = BilevelDataset(trainset)
-
+        self.train_data = bilevel
 
         return DataLoader(bilevel, batch_size=self.context.get_per_slot_batch_size(), shuffle=True, num_workers=2)
 
