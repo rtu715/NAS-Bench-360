@@ -159,6 +159,8 @@ class DARTSCNNTrial(PyTorchTrial):
                 if not os.path.exists(filepath):
                     s3.download_file(s3_bucket, data_file, filepath)
 
+            self.train_data, self.val_data, self.test_data = utils.load_sEMG_data(download_directory)
+
         #instantiate test loader
         self.build_test_data_loader(download_directory)
 
@@ -172,7 +174,8 @@ class DARTSCNNTrial(PyTorchTrial):
             trainset = self.train_data
 
         elif self.hparams['task'] == 'sEMG':
-            trainset = utils.load_sEMG_train_data(self.download_directory)
+            #trainset = utils.load_sEMG_train_data(self.download_directory)
+            trainset = self.train_data
 
         else:
             pass
@@ -189,7 +192,8 @@ class DARTSCNNTrial(PyTorchTrial):
             valset = self.val_data
 
         elif self.hparams['task'] == 'sEMG':
-            valset = utils.load_sEMG_val_data(self.download_directory)
+            #valset = utils.load_sEMG_val_data(self.download_directory)
+            valset = self.val_data
 
         else:
             pass
@@ -205,7 +209,8 @@ class DARTSCNNTrial(PyTorchTrial):
             testset = self.test_data
 
         elif self.hparams['task'] == 'sEMG':
-            testset = utils.load_sEMG_test_data(download_directory)
+            #testset = utils.load_sEMG_test_data(download_directory)
+            testset = self.test_data
 
         else:
             pass

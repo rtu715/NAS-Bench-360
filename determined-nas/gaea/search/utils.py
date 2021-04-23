@@ -269,3 +269,35 @@ def load_sEMG_test_data(path):
                   torch.from_numpy(Y_test))
 
     return test
+
+def load_sEMG_data(path):
+    '''merge all sEMG data and apply 80/10/10 partition'''
+    '''
+    datasets_1 = np.load(os.path.join(path, "saved_pre_training_dataset_spectrogram.npy"),
+            encoding="bytes", allow_pickle=True)
+    examples_1, labels_1 = datasets_1
+
+    datasets_2 = np.load(os.path.join(path, "saved_evaluation_dataset_training.npy"),
+                                encoding="bytes", allow_pickle=True)
+    examples_2, labels_2 = datasets_2
+
+    datasets_3 = np.load(os.path.join(path, "saved_evaluation_dataset_test0.npy"),
+                             encoding="bytes", allow_pickle=True)
+    examples_3, labels_3 = datasets_3
+
+    datasets_4 = np.load(os.path.join(path, "saved_evaluation_dataset_test1.npy"),
+                             encoding="bytes", allow_pickle=True)
+    examples_4, labels_4 = datasets_4
+    '''
+    dataset1, dataset2, dataset3 = load_sEMG_train_data(path), load_sEMG_val_data(path), load_sEMG_test_data(path)
+    dataset_list = [dataset1, dataset2, dataset3]
+    all_sEMG = data_utils.ConcatDataset(dataset_list)
+    total_size = len(all_sEMG)
+
+    train_size = int(total_size * 0.8)
+    val_size = int(total_size * 0.1)
+    test_size = total_size - train_size - val_size
+
+    trainset, valset, testset = data_utils.random_split(all_sEMG, [train_size, val_size, test_size])
+
+    return trainset, valset, testset

@@ -24,8 +24,6 @@ hyperparameters:
     task: spherical
     permute: false
 
-
-
     # Channel shuffle factor.  1 / shuffle_factor channels are activated at a given time.
     shuffle_factor: 4
     global_batch_size: 96
@@ -34,7 +32,7 @@ hyperparameters:
     min_learning_rate: 0
     scheduler_epochs: 50
     weight_decay: 3e-4
-    arch_learning_rate: 0.01
+    arch_learning_rate: 0.1
     init_channels: 16
     layers: 8
     nodes: 4
@@ -55,5 +53,7 @@ searcher:
 
 optimizations:
   aggregation_frequency:  1
+
+max_restarts: 1000
 
 entrypoint: model_def:GAEASearchTrial
