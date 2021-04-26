@@ -21,12 +21,12 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-    task: spherical
+    task: sEMG
     permute: false
 
     # Channel shuffle factor.  1 / shuffle_factor channels are activated at a given time.
     shuffle_factor: 4
-    global_batch_size: 96
+    global_batch_size: 512
     learning_rate: 0.1
     momentum: 0.9
     min_learning_rate: 0
@@ -41,9 +41,12 @@ resources:
   slots_per_trial: 1
 
 min_validation_period: 
-  batches: 300
+  epochs: 1
 
-records_per_epoch: 30000
+min_checkpoint_period:
+  epochs: 2
+
+records_per_epoch: 148352
 searcher:
   name: single
   metric: top1_accuracy 

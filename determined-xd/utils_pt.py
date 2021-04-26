@@ -220,12 +220,12 @@ def load_sEMG_test_data(path):
     X_test_1, Y_test_1 = [], []
     for j in range(17):
 
-        for k in range(len(examples_test0)):
+        for k in range(len(examples_test0[j])):
             X_test_0.extend(examples_test0[j][k])
             Y_test_0.extend(labels_test0[j][k])
 
 
-        for k in range(len(examples_test1)):
+        for k in range(len(examples_test1[j])):
             X_test_1.extend(examples_test1[j][k])
             Y_test_1.extend(labels_test1[j][k])
 
@@ -262,7 +262,7 @@ def load_sEMG_data(path):
     dataset_list = [dataset1, dataset2, dataset3]
     all_sEMG = data_utils.ConcatDataset(dataset_list)
     total_size = len(all_sEMG)
-
+    print('total sEMG samples: ', total_size)
     train_size = int(total_size * 0.8)
     val_size = int(total_size * 0.1)
     test_size = total_size - train_size - val_size

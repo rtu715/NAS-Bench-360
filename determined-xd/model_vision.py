@@ -74,10 +74,13 @@ class XDTrial(PyTorchTrial):
         n_classes = 7 if self.hparams.task == 'sEMG' else 10
 
         # Changing our backbone
+        depth = int(self.hparams.backbone[0:2])
+        width = int(self.hparams.backbone[3:4])
+
         self.backbone = Backbone_Pt(
-            self.hparams.layers,
+            depth,
             n_classes,
-            self.hparams.widen_factor,
+            width,
             dropRate=self.hparams.droprate,
             in_channels=3 if self.hparams.task=='cifar' else 1,
         )
@@ -162,7 +165,7 @@ class XDTrial(PyTorchTrial):
 
             self.train_data, self.val_data, self.test_data = utils_pt.load_spherical_data(download_directory)
 
-        if self.hparams.task == 'sEMG':
+        elif self.hparams.task == 'sEMG':
             data_files = ["saved_evaluation_dataset_test0.npy", "saved_evaluation_dataset_test1.npy",
                           "saved_evaluation_dataset_training.npy", "saved_pre_training_dataset_spectrogram.npy"]
             for data_file in data_files:

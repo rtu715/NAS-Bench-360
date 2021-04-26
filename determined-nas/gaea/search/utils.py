@@ -88,7 +88,7 @@ def load_spherical_data(path, val_split=0.16):
         dataset["test"]["images"][:, None, :, :].astype(np.float32))
     test_labels = torch.from_numpy(
         dataset["test"]["labels"].astype(np.int64))
-
+    
     test_dataset = data_utils.TensorDataset(test_data, test_labels)
     #test_loader = data_utils.DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
 
@@ -194,11 +194,10 @@ def load_sEMG_train_data(path):
             encoding="bytes", allow_pickle=True)
     examples_training, labels_training = datasets_training
 
+    examples_personne_training = []
+    labels_gesture_personne_training = []
     for j in range(19):
         print("CURRENT DATASET : ", j)
-        examples_personne_training = []
-        labels_gesture_personne_training = []
-
         for k in range(len(examples_training[j])):
             examples_personne_training.extend(examples_training[j][k])
             labels_gesture_personne_training.extend(labels_training[j][k])
@@ -208,7 +207,7 @@ def load_sEMG_train_data(path):
     train = data_utils.TensorDataset(torch.from_numpy(np.array(examples_personne_scrambled, dtype=np.float32)),
                               torch.from_numpy(np.array(labels_gesture_personne_scrambled, dtype=np.int64)))
 
-
+    
     return train
 
 def load_sEMG_val_data(path):
@@ -218,10 +217,10 @@ def load_sEMG_val_data(path):
     #examples_training = examples_training.reshape(-1, *examples_training.shape[2:])
     #labels_training = labels_training.reshape(-1, *labels_training.shape[2:])
 
+    examples_personne_val = []
+    labels_gesture_personne_val = []
     for j in range(17):
         print("CURRENT DATASET : ", j)
-        examples_personne_val = []
-        labels_gesture_personne_val = []
 
         for k in range(len(examples_val[j])):
             examples_personne_val.extend(examples_val[j][k])
@@ -248,15 +247,16 @@ def load_sEMG_test_data(path):
 
     #x_val = np.concatenate((examples_test0.reshape(-1), examples_test1.reshape(-1)))
     #y_val = np.concatenate((labels_test0.reshape(-1), labels_test1.reshape(-1)))
-
+    
+    X_test_1, Y_test_1 = [], []
+    X_test_0, Y_test_0 = [], []
+    
     for j in range(17):
-        X_test_0, Y_test_0 = [], []
-        for k in range(len(examples_test0)):
+        for k in range(len(examples_test0[j])):
             X_test_0.extend(examples_test0[j][k])
             Y_test_0.extend(labels_test0[j][k])
 
-        X_test_1, Y_test_1 = [], []
-        for k in range(len(examples_test1)):
+        for k in range(len(examples_test1[j])):
             X_test_1.extend(examples_test1[j][k])
             Y_test_1.extend(labels_test1[j][k])
 
@@ -292,12 +292,43 @@ def load_sEMG_data(path):
     dataset1, dataset2, dataset3 = load_sEMG_train_data(path), load_sEMG_val_data(path), load_sEMG_test_data(path)
     dataset_list = [dataset1, dataset2, dataset3]
     all_sEMG = data_utils.ConcatDataset(dataset_list)
+    print('sEMG set1 size: ', len(dataset1))
+    print('sEMG set2 size: ', len(dataset2))
+    print('sEMG set3 size: ', len(dataset3))
+    
     total_size = len(all_sEMG)
-
+    print('sEMG samples: ', total_size)
     train_size = int(total_size * 0.8)
     val_size = int(total_size * 0.1)
     test_size = total_size - train_size - val_size
 
     trainset, valset, testset = data_utils.random_split(all_sEMG, [train_size, val_size, test_size])
+
+    return trainset, valset, testset
+
+
+'''sEMG ninapro data'''
+def load_ninapro_data(path):
+
+    data = np.load(os.path.join(path, "ninapro_data.npy"),
+                             encoding="bytes", allow_pickle=True)
+    labels = np.load(os.path.join(path, "ninapro_label.npy"), encoding="bytes", allow_pickle=True)
+   
+    data = np.transpose(data, (0, 2, 1))
+    data = data[:, None, :, :]
+    print(data.shape)
+    print(labels.shape)
+    data = torch.from_numpy(data.astype(np.float32))
+    labels = torch.from_numpy(labels.astype(np.int64))
+
+    total_size = data.shape[0]
+
+    train_size = int(total_size * 0.8)
+    val_size = int(total_size * 0.1)
+    test_size = total_size - train_size - val_size
+
+    all_data = data_utils.TensorDataset(data, labels)
+
+    trainset, valset, testset = data_utils.random_split(all_data, [train_size, val_size, test_size])
 
     return trainset, valset, testset
