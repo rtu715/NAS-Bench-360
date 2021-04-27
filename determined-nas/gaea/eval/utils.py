@@ -1,9 +1,18 @@
 from collections import namedtuple
 from typing import Any
 
+import os
+import gzip
+import pickle
+
 import numpy as np
 import torch
 from torch import nn
+
+import torch.utils.data as data_utils
+
+import torchvision
+from torchvision import transforms
 
 import randaugment.augmentation_transforms as augmentation_transforms
 import randaugment.policies as found_policies
@@ -235,3 +244,131 @@ class AvgrageMeter(object):
         self.sum += val * n
         self.cnt += n
         self.avg = self.sum / self.cnt
+
+
+'''
+spherical MNIST related
+'''
+
+
+def load_spherical_data(path, val_split=0.16):
+    data_file = os.path.join(path, 's2_mnist.gz')
+    with gzip.open(data_file, 'rb') as f:
+        dataset = pickle.load(f)
+
+    train_data = torch.from_numpy(
+        dataset["train"]["images"][:, None, :, :].astype(np.float32))
+    train_labels = torch.from_numpy(
+        dataset["train"]["labels"].astype(np.int64))
+
+    all_train_dataset = data_utils.TensorDataset(train_data, train_labels)
+    print(len(all_train_dataset))
+
+    # train_loader = data_utils.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+
+    test_data = torch.from_numpy(
+        dataset["test"]["images"][:, None, :, :].astype(np.float32))
+    test_labels = torch.from_numpy(
+        dataset["test"]["labels"].astype(np.int64))
+
+    test_dataset = data_utils.TensorDataset(test_data, test_labels)
+    # test_loader = data_utils.DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
+
+    return all_train_dataset, test_dataset
+
+
+'''
+CIFAR related
+'''
+
+
+class RowColPermute(nn.Module):
+
+    def __init__(self, row, col):
+        super().__init__()
+        self.rowperm = torch.randperm(row) if type(row) == int else row
+        self.colperm = torch.randperm(col) if type(col) == int else col
+
+    def forward(self, tensor):
+        return tensor[:, self.rowperm][:, :, self.colperm]
+
+
+def load_cifar_train_data(path, permute):
+    # We could include cutout in transforms
+    CIFAR_MEAN = [0.49139968, 0.48215827, 0.44653124]
+    CIFAR_STD = [0.24703233, 0.24348505, 0.26158768]
+
+    normalize = transforms.Normalize(CIFAR_MEAN,
+                                     CIFAR_STD)
+
+    if permute:
+        permute_op = RowColPermute(32, 32)
+        transform = transforms.Compose([transforms.ToTensor(), permute_op, normalize])
+
+    else:
+        transform = transforms.Compose(
+            [transforms.RandomCrop(32, padding=4), transforms.RandomHorizontalFlip(), transforms.ToTensor(),
+             normalize]
+        )
+
+    trainset = torchvision.datasets.CIFAR10(
+        root=path, train=True, download=True, transform=transform
+    )
+
+
+    return trainset
+
+
+def load_cifar_test_data(path, permute=False):
+    CIFAR_MEAN = [0.49139968, 0.48215827, 0.44653124]
+    CIFAR_STD = [0.24703233, 0.24348505, 0.26158768]
+
+    normalize = transforms.Normalize(CIFAR_MEAN,
+                                     CIFAR_STD)
+    if permute:
+        permute_op = RowColPermute(32, 32)
+        transform = transforms.Compose([transforms.ToTensor(), permute_op, normalize])
+
+    else:
+        transform = transforms.Compose(
+            [transforms.ToTensor(), normalize]
+        )
+
+    testset = torchvision.datasets.CIFAR10(
+        root=path, train=False, download=True, transform=transform
+    )
+
+    return testset
+
+'''sEMG Myo'''
+def load_sEMG_data(path):
+    train_val_set = torch.load(os.path.join(path, 'trainval_Myo.pt'))
+    testset = torch.load(os.path.join(path, 'test_Myo.pt'))
+
+    return train_val_set,  testset
+
+'''sEMG ninapro data'''
+
+
+def load_ninapro_data(path):
+    data = np.load(os.path.join(path, "ninapro_data.npy"),
+                   encoding="bytes", allow_pickle=True)
+    labels = np.load(os.path.join(path, "ninapro_label.npy"), encoding="bytes", allow_pickle=True)
+
+    data = np.transpose(data, (0, 2, 1))
+    data = data[:, None, :, :]
+    print(data.shape)
+    print(labels.shape)
+    data = torch.from_numpy(data.astype(np.float32))
+    labels = torch.from_numpy(labels.astype(np.int64))
+
+    total_size = data.shape[0]
+
+    train_size = int(total_size * 0.9)
+    test_size = total_size - train_size
+
+    all_data = data_utils.TensorDataset(data, labels)
+
+    trainset, testset = all_data[:train_size], all_data[train_size:]
+
+    return trainset, testset

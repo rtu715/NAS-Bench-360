@@ -50,8 +50,8 @@ hyperparameters:
   auxiliary_weight: 0.4
   cutout: false
   cutout_length: 16
-  drop_path_prob: 0.2
-  clip_gradients_l2_norm: 5
+  drop_path_prob: 0.0
+  clip_gradients_l2_norm: 0
 
   # Tunable hyperparameters
   # Normal cell

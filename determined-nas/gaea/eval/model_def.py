@@ -14,6 +14,9 @@ directories set up.
 from collections import namedtuple
 from typing import Any, Dict
 
+import os
+import boto3
+
 import torchvision.transforms as transforms
 from torch import nn
 
@@ -24,32 +27,29 @@ from determined.pytorch import (
     PyTorchTrial,
     PyTorchTrialContext,
 )
-from model import NetworkImageNet
+from model import Network
 from utils import (
     RandAugment,
-    CrossEntropyLabelSmooth,
     Cutout,
     HSwish,
     Swish,
     accuracy,
     AvgrageMeter,
-    EMAWrapper,
 )
+from torch.optim.lr_scheduler import CosineAnnealingLR
 from lr_schedulers import *
 
-Genotype = namedtuple("Genotype", "normal normal_concat reduce reduce_concat")
+import utils
 
-activation_map = {"relu": nn.ReLU, "swish": Swish, "hswish": HSwish}
+Genotype = namedtuple("Genotype", "normal normal_concat reduce reduce_concat")
 
 
 class GAEAEvalTrial(PyTorchTrial):
     def __init__(self, context: PyTorchTrialContext) -> None:
         self.context = context
         self.data_config = context.get_data_config()
-        self.criterion = CrossEntropyLabelSmooth(
-            context.get_hparam("num_classes"),  # num classes
-            context.get_hparam("label_smoothing_rate"),
-        )
+        self.criterion = nn.CrossEntropyLoss()
+
         self.last_epoch_idx = -1
 
         self.model = self.context.wrap_model(self.build_model_from_config())
@@ -64,11 +64,17 @@ class GAEAEvalTrial(PyTorchTrial):
         )
 
         self.lr_scheduler = self.context.wrap_lr_scheduler(
-            self.build_lr_scheduler_from_config(self.optimizer),
+            lr_scheduler=CosineAnnealingLR(
+                self.optimizer,
+                50,
+                0,
+            ),
             step_mode=LRScheduler.StepMode.STEP_EVERY_EPOCH,
         )
 
+
     def build_model_from_config(self):
+        '''
         genotype = Genotype(
             normal=[
                 ("skip_connect", 1),
@@ -93,81 +99,93 @@ class GAEAEvalTrial(PyTorchTrial):
             ],
             reduce_concat=range(2, 6),
         )
-        activation_function = activation_map[self.context.get_hparam("activation")]
+        '''
+        genotype = Genotype(normal=[('max_pool_3x3', 0),
+                                    ('dil_conv_3x3', 1),
+                                    ('dil_conv_5x5', 0),
+                                    ('sep_conv_3x3', 2),
+                                    ('sep_conv_5x5', 1),
+                                    ('max_pool_3x3', 3),
+                                    ('sep_conv_3x3', 3),
+                                    ('sep_conv_3x3', 1)],
+                            normal_concat=range(2, 6),
+                            reduce=[('skip_connect', 1),
+                                    ('skip_connect', 0),
+                                    ('sep_conv_5x5', 1),
+                                    ('skip_connect', 0),
+                                    ('max_pool_3x3', 0),
+                                    ('sep_conv_3x3', 1),
+                                    ('max_pool_3x3', 4),
+                                    ('max_pool_3x3', 3)],
+                            reduce_concat=range(2, 6))
 
-        model = NetworkImageNet(
-            genotype,
-            activation_function,
+
+
+        model = Network(
             self.context.get_hparam("init_channels"),
             self.context.get_hparam("num_classes"),
             self.context.get_hparam("layers"),
-            auxiliary=self.context.get_hparam("auxiliary"),
-            do_SE=self.context.get_hparam("do_SE"),
-            drop_path_prob=self.context.get_hparam("drop_path_prob"),
-            drop_prob=self.context.get_hparam("drop_prob"),
+            genotype,
+            in_channels=3 if self.context.get_hparam('task') == 'cifar' else 1,
         )
 
-        ema_model = EMAWrapper(self.context.get_hparam("ema_decay"), model)
-        return ema_model
+        return model
 
-    def build_lr_scheduler_from_config(self, optimizer):
-        if self.context.get_hparam("lr_scheduler") == "cosine":
-            scheduler_cls = WarmupWrapper(torch.optim.lr_scheduler.CosineAnnealingLR)
-            scheduler = scheduler_cls(
-                self.context.get_hparam("warmup_epochs"),
-                optimizer,
-                self.context.get_hparam("lr_epochs"),
-            )
-        elif self.context.get_hparam("lr_scheduler") == "linear":
-            scheduler_cls = WarmupWrapper(LinearLRScheduler)
-            scheduler = scheduler_cls(
-                self.context.get_hparam("warmup_epochs"),
-                optimizer,
-                self.context.get_hparam("lr_epochs"),
-                self.context.get_hparam("warmup_epochs"),
-            )
-        elif self.context.get_hparam("lr_scheduler") == "efficientnet":
-            scheduler_cls = WarmupWrapper(EfficientNetScheduler)
-            scheduler = scheduler_cls(
-                self.context.get_hparam("warmup_epochs"),
-                optimizer,
-                self.context.get_hparam("lr_gamma"),
-                self.context.get_hparam("lr_decay_every"),
-            )
+
+    def download_data_from_s3(self):
+        '''Download data from s3 to store in temp directory'''
+
+        s3_bucket = self.context.get_data_config()["bucket"]
+        download_directory = f"/tmp/data-rank{self.context.distributed.get_rank()}"
+        s3 = boto3.client("s3")
+        os.makedirs(download_directory, exist_ok=True)
+
+        if self.context.get_hparam("task") == 'spherical':
+            data_files = ["s2_mnist.gz"]
+            for data_file in data_files:
+                filepath = os.path.join(download_directory, data_file)
+                if not os.path.exists(filepath):
+                    s3.download_file(s3_bucket, data_file, filepath)
+
+            self.train_data, self.test_data = utils.load_spherical_data(download_directory)
+
+        elif self.context.get_hparam("task") == 'sEMG':
+            #data_files = ["saved_evaluation_dataset_test0.npy", "saved_evaluation_dataset_test1.npy",
+            #              "saved_evaluation_dataset_training.npy", "saved_pre_training_dataset_spectrogram.npy"]
+
+            data_files = ['trainval_Myo.pt', 'test_Myo.pt']
+            for data_file in data_files:
+                filepath = os.path.join(download_directory, data_file)
+                s3_path = os.path.join('Myo', data_file)
+                if not os.path.exists(filepath):
+                    s3.download_file(s3_bucket, s3_path, filepath)
+
+            self.train_data, self.val_data = utils.load_sEMG_data(download_directory)
+
+        elif self.context.get_hparam("task") == 'ninapro':
+            data_files = ['ninapro_data.npy', 'ninapro_label.npy']
+            for data_file in data_files:
+                filepath = os.path.join(download_directory, data_file)
+                if not os.path.exists(filepath):
+                    s3.download_file(s3_bucket, data_file, filepath)
+
+            self.train_data, self.test_data = utils.load_ninapro_data(download_directory)
+
+        elif self.context.get_hparam("task") == 'cifar':
+            self.train_data, self.test_data = utils.load_cifar_train_data(download_directory, False), \
+                                              utils.load_cifar_test_data(download_directory, False)
+
+
         else:
-            raise NotImplementedError
-        return scheduler
+            pass
+
+        return download_directory
+
+
 
     def build_training_data_loader(self) -> DataLoader:
-        bucket_name = self.data_config["bucket_name"]
-        normalize = transforms.Normalize(
-            mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-        )
-        train_transforms = transforms.Compose(
-            [
-                transforms.RandomResizedCrop(224),
-                transforms.RandomHorizontalFlip(),
-                transforms.ColorJitter(
-                    brightness=0.4, contrast=0.4, saturation=0.4, hue=0.2
-                ),
-                transforms.ToTensor(),
-                normalize,
-            ]
-        )
-        if self.context.get_hparam("cutout"):
-            train_transforms.transforms.append(
-                Cutout(self.context.get_hparam("cutout_length"))
-            )
-        if self.context.get_hparam("randaugment"):
-            train_transforms.transforms.insert(0, RandAugment())
 
-        train_data = ImageNetDataset(
-            "train",
-            bucket_name,
-            streaming=self.data_config["streaming"],
-            data_download_dir=self.data_config["data_download_dir"],
-            transform=train_transforms,
-        )
+        train_data = self.train_data
 
         train_queue = DataLoader(
             train_data,
@@ -179,25 +197,8 @@ class GAEAEvalTrial(PyTorchTrial):
         return train_queue
 
     def build_validation_data_loader(self) -> DataLoader:
-        bucket_name = self.data_config["bucket_name"]
-        normalize = transforms.Normalize(
-            mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-        )
 
-        valid_data = ImageNetDataset(
-            "validation",
-            bucket_name,
-            streaming=self.data_config["streaming"],
-            data_download_dir=self.data_config["data_download_dir"],
-            transform=transforms.Compose(
-                [
-                    transforms.Resize(256),
-                    transforms.CenterCrop(224),
-                    transforms.ToTensor(),
-                    normalize,
-                ]
-            ),
-        )
+        valid_data = self.test_data
 
         valid_queue = DataLoader(
             valid_data,
@@ -212,9 +213,6 @@ class GAEAEvalTrial(PyTorchTrial):
         self, batch: Any, epoch_idx: int, batch_idx: int
     ) -> Dict[str, torch.Tensor]:
 
-        # Update EMA vars
-        self.model.update_ema()
-
         if batch_idx == 0 or self.last_epoch_idx < epoch_idx:
             current_lr = self.lr_scheduler.get_last_lr()[0]
             print("Epoch: {} lr {}".format(epoch_idx, current_lr))
@@ -222,19 +220,13 @@ class GAEAEvalTrial(PyTorchTrial):
 
         input, target = batch
 
-        logits, logits_aux = self.model(input)
+        logits = self.model(input)
         loss = self.criterion(logits, target)
-        if self.context.get_hparam("auxiliary"):
-            loss_aux = self.criterion(logits_aux, target)
-            loss += self.context.get_hparam("auxiliary_weight") * loss_aux
         top1, top5 = accuracy(logits, target, topk=(1, 5))
 
         self.context.backward(loss)
         self.context.step_optimizer(
             self.optimizer,
-            clip_grads=lambda params: torch.nn.utils.clip_grad_norm_(
-                params, self.context.get_hparam("clip_gradients_l2_norm"),
-            ),
         )
 
         return {"loss": loss, "top1_accuracy": top1, "top5_accuracy": top5}
@@ -245,20 +237,12 @@ class GAEAEvalTrial(PyTorchTrial):
         loss = self.criterion(logits, target)
         top1, top5 = accuracy(logits, target, topk=(1, 5))
 
-        self.model.restore_ema()
-        input, target = batch
-        logits, _ = self.model(input)
-        ema_loss = self.criterion(logits, target)
-        ema_top1, ema_top5 = accuracy(logits, target, topk=(1, 5))
-
         self.model.restore_latest()
 
         return {
             "loss": loss,
             "top1_accuracy": top1,
             "top5_accuracy": top5,
-            "ema_loss": ema_loss,
-            "top1_ema": ema_top1,
-            "top5_ema": ema_top5,
+
         }
 

@@ -115,14 +115,27 @@ class GAEASearchTrial(PyTorchTrial):
                     s3.download_file(s3_bucket, data_file, filepath)
 
             self.train_data, self.val_data, self.test_data = utils.load_spherical_data(download_directory)
-
+            '''
+            elif self.hparams.task == 'sEMG':
+                data_files = ["saved_evaluation_dataset_test0.npy", "saved_evaluation_dataset_test1.npy",
+                              "saved_evaluation_dataset_training.npy", "saved_pre_training_dataset_spectrogram.npy"]
+                for data_file in data_files:
+                    filepath = os.path.join(download_directory, data_file)
+                    if not os.path.exists(filepath):
+                        s3.download_file(s3_bucket, data_file, filepath)
+    
+                self.train_data, self.val_data, self.test_data = utils.load_sEMG_data(download_directory)
+            '''
         elif self.hparams.task == 'sEMG':
-            data_files = ["saved_evaluation_dataset_test0.npy", "saved_evaluation_dataset_test1.npy",
-                          "saved_evaluation_dataset_training.npy", "saved_pre_training_dataset_spectrogram.npy"]
+            #data_files = ["saved_evaluation_dataset_test0.npy", "saved_evaluation_dataset_test1.npy",
+            #              "saved_evaluation_dataset_training.npy", "saved_pre_training_dataset_spectrogram.npy"]
+
+            data_files = ['trainval_Myo.pt', 'test_Myo.pt']
             for data_file in data_files:
                 filepath = os.path.join(download_directory, data_file)
+                s3_path = os.path.join('Myo', data_file)
                 if not os.path.exists(filepath):
-                    s3.download_file(s3_bucket, data_file, filepath)
+                    s3.download_file(s3_bucket, s3_path, filepath)
 
             self.train_data, self.val_data, self.test_data = utils.load_sEMG_data(download_directory)
 
@@ -130,8 +143,10 @@ class GAEASearchTrial(PyTorchTrial):
             data_files = ['ninapro_data.npy', 'ninapro_label.npy']
             for data_file in data_files:
                 filepath = os.path.join(download_directory, data_file)
+                s3_path = os.path.join('ninapro', data_file)
+
                 if not os.path.exists(filepath):
-                    s3.download_file(s3_bucket, data_file, filepath)
+                    s3.download_file(s3_bucket, s3_path, filepath)
 
             self.train_data, self.val_data, self.test_data = utils.load_ninapro_data(download_directory)
         
