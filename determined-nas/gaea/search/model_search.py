@@ -56,6 +56,8 @@ class Cell(nn.Module):
         self, steps, multiplier, C_prev_prev, C_prev, C, reduction, reduction_prev, k=4
     ):
         super(Cell, self).__init__()
+        print(C_prev_prev, C_prev, C)
+
         self.reduction = reduction
 
         if reduction_prev:

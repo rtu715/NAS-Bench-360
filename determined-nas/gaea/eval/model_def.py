@@ -49,6 +49,7 @@ class GAEAEvalTrial(PyTorchTrial):
         self.context = context
         self.data_config = context.get_data_config()
         self.criterion = nn.CrossEntropyLoss()
+        self.download_directory = self.download_data_from_s3()
 
         self.last_epoch_idx = -1
 
@@ -99,7 +100,9 @@ class GAEAEvalTrial(PyTorchTrial):
             ],
             reduce_concat=range(2, 6),
         )
+        ''' 
         '''
+        best model for spherical MNIST
         genotype = Genotype(normal=[('max_pool_3x3', 0),
                                     ('dil_conv_3x3', 1),
                                     ('dil_conv_5x5', 0),
@@ -119,7 +122,25 @@ class GAEAEvalTrial(PyTorchTrial):
                                     ('max_pool_3x3', 3)],
                             reduce_concat=range(2, 6))
 
-
+        '''
+        genotype= Genotype(normal=[('sep_conv_5x5', 0), 
+            ('sep_conv_3x3', 1), 
+            ('max_pool_3x3', 0), 
+            ('sep_conv_5x5', 1), 
+            ('dil_conv_3x3', 0), 
+            ('dil_conv_3x3', 2), 
+            ('sep_conv_3x3', 2), 
+            ('sep_conv_3x3', 0)], 
+            normal_concat=range(2, 6), 
+            reduce=[('skip_connect', 0), 
+                ('avg_pool_3x3', 1), 
+                ('dil_conv_3x3', 2), 
+                ('max_pool_3x3', 0), 
+                ('sep_conv_3x3', 2), 
+                ('sep_conv_5x5', 0), 
+                ('dil_conv_5x5', 3), 
+                ('sep_conv_5x5', 2)], 
+            reduce_concat=range(2, 6))
 
         model = Network(
             self.context.get_hparam("init_channels"),
@@ -127,6 +148,7 @@ class GAEAEvalTrial(PyTorchTrial):
             self.context.get_hparam("layers"),
             genotype,
             in_channels=3 if self.context.get_hparam('task') == 'cifar' else 1,
+            drop_path_prob=self.context.get_hparam("drop_path_prob"),
         )
 
         return model
@@ -160,14 +182,15 @@ class GAEAEvalTrial(PyTorchTrial):
                 if not os.path.exists(filepath):
                     s3.download_file(s3_bucket, s3_path, filepath)
 
-            self.train_data, self.val_data = utils.load_sEMG_data(download_directory)
+            self.train_data, self.test_data = utils.load_sEMG_data(download_directory)
 
         elif self.context.get_hparam("task") == 'ninapro':
             data_files = ['ninapro_data.npy', 'ninapro_label.npy']
             for data_file in data_files:
                 filepath = os.path.join(download_directory, data_file)
+                s3_path = os.path.join('ninapro', data_file)
                 if not os.path.exists(filepath):
-                    s3.download_file(s3_bucket, data_file, filepath)
+                    s3.download_file(s3_bucket, s3_path, filepath)
 
             self.train_data, self.test_data = utils.load_ninapro_data(download_directory)
 
@@ -227,17 +250,19 @@ class GAEAEvalTrial(PyTorchTrial):
         self.context.backward(loss)
         self.context.step_optimizer(
             self.optimizer,
+            clip_grads=lambda params: torch.nn.utils.clip_grad_norm_(
+                params, self.context.get_hparam("clip_gradients_l2_norm"),
+            ),
         )
 
         return {"loss": loss, "top1_accuracy": top1, "top5_accuracy": top5}
 
     def evaluate_batch(self, batch: Any) -> Dict[str, Any]:
         input, target = batch
-        logits, _ = self.model(input)
+        logits  = self.model(input)
         loss = self.criterion(logits, target)
         top1, top5 = accuracy(logits, target, topk=(1, 5))
 
-        self.model.restore_latest()
 
         return {
             "loss": loss,

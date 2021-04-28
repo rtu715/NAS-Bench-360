@@ -109,20 +109,22 @@ class GAEASearchTrial(PyTorchTrial):
         for training shared-weights and another for updating architecture parameters.
         """
         ntrain = 1000
+        ntest= 100
         s = self.s
         r = self.hparams["sub"]
 
         TRAIN_PATH = os.path.join(self.download_directory, 'piececonst_r421_N1024_smooth1.mat')
-        reader = MatReader(TRAIN_PATH)
-        x_train = reader.read_field('coeff')[:ntrain, ::r, ::r][:, :s, :s]
-        y_train = reader.read_field('sol')[:ntrain, ::r, ::r][:, :s, :s]
+        self.reader = MatReader(TRAIN_PATH)
+        x_train = self.reader.read_field('coeff')[:ntrain-ntest, ::r, ::r][:, :s, :s]
+        y_train = self.reader.read_field('sol')[:ntrain-ntest, ::r, ::r][:, :s, :s]
 
         self.x_normalizer = UnitGaussianNormalizer(x_train)
         x_train = self.x_normalizer.encode(x_train)
 
         self.y_normalizer = UnitGaussianNormalizer(y_train)
         y_train = self.y_normalizer.encode(y_train)
-
+        
+        ntrain = ntrain - ntest
         x_train = torch.cat([x_train.reshape(ntrain, s, s, 1), self.grid.repeat(ntrain, 1, 1, 1)], dim=3)
         train_data = torch.utils.data.TensorDataset(x_train, y_train)
 
@@ -139,16 +141,26 @@ class GAEASearchTrial(PyTorchTrial):
         return train_queue
 
     def build_validation_data_loader(self) -> DataLoader:
+        ntrain= 1000
         ntest = 100
         s = self.s
         r = self.hparams["sub"]
-
+        '''
         TEST_PATH = os.path.join(self.download_directory, 'piececonst_r421_N1024_smooth1.mat')
         reader = MatReader(TEST_PATH)
         x_test = reader.read_field('coeff')[:ntest, ::r, ::r][:, :s, :s]
         y_test = reader.read_field('sol')[:ntest, ::r, ::r][:, :s, :s]
 
         x_test = self.x_normalizer.encode(x_test)
+        x_test = torch.cat([x_test.reshape(ntest, s, s, 1), self.grid.repeat(ntest, 1, 1, 1)], dim=3)
+        '''
+
+        x_test = self.reader.read_field('coeff')[ntrain-ntest:ntrain, ::r, ::r][:, :s, :s]
+        y_test = self.reader.read_field('sol')[ntrain-ntest:ntrain, ::r, ::r][:, :s, :s]
+
+        x_test = self.x_normalizer.encode(x_test)
+
+
         x_test = torch.cat([x_test.reshape(ntest, s, s, 1), self.grid.repeat(ntest, 1, 1, 1)], dim=3)
 
         return DataLoader(torch.utils.data.TensorDataset(x_test, y_test),

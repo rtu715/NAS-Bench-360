@@ -95,11 +95,14 @@ class Backbone_Pt(nn.Module):
         out = self.block2(out)
         out = self.block3(out)
         out = self.relu(self.bn1(out))
-        if out.shape[2] < 8:
+        if out.shape[2]==2 and out.shape[3]==8:
             out = F.avg_pool2d(out, (2,8))
+        
+        elif out.shape[3] == 13 and out.shape[2]==4:
+            out = F.avg_pool2d(out, (4, 13))
         else:
             out = F.avg_pool2d(out, 8)
-        out = out.view(-1, self.nChannels)
+        out = out.view(out.size(0), -1)
         return self.fc(out)
 
 

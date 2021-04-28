@@ -113,7 +113,7 @@ class NetworkPoint(nn.Module):
         super(NetworkPoint, self).__init__()
         self._layers = layers
         self._auxiliary = auxiliary
-        self.drop_path_prob = 0
+        self.drop_path_prob = 0.2
 
         stem_multiplier = 3
         C_curr = stem_multiplier * C

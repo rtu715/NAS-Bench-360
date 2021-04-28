@@ -1,4 +1,4 @@
-description: gaea_search
+description: pde_gaea_search
 
 data:
   download_dir: /data
@@ -15,7 +15,7 @@ hyperparameters:
     n_classes: 1
     # Channel shuffle factor.  1 / shuffle_factor channels are activated at a given time.
     shuffle_factor: 1
-    global_batch_size: 20
+    global_batch_size: 5
     learning_rate: 0.025
     momentum: 0.9
     min_learning_rate: 0
@@ -23,7 +23,7 @@ hyperparameters:
     weight_decay: 3e-4
     arch_learning_rate: 0.1
     init_channels: 16
-    layers: 4
+    layers: 8
     nodes: 4
     multiplier: 1
 
@@ -34,9 +34,12 @@ resources:
   slots_per_trial: 1
 
 min_validation_period: 
-  batches: 50
+  epochs: 1
 
-records_per_epoch: 1000
+min_checkpoint_period:
+  epochs: 1
+
+records_per_epoch: 450
 searcher:
   name: single
   metric: validation_error 

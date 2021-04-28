@@ -81,9 +81,10 @@ class Cell(nn.Module):
 
 
 class Network(nn.Module):
-    def __init__(self, C, num_classes, layers, genotype, in_channels):
+    def __init__(self, C, num_classes, layers, genotype, in_channels, drop_path_prob):
         super(Network, self).__init__()
         self._layers = layers
+        self.drop_path_prob = drop_path_prob
 
         stem_multiplier = 3
         C_curr = stem_multiplier * C
@@ -121,7 +122,7 @@ class Network(nn.Module):
     def forward(self, input, **kwargs):
         s0 = s1 = self.stem(input)
         for i, cell in enumerate(self.cells):
-            s0, s1 = s1, cell(s0, s1, 0.0)
+            s0, s1 = s1, cell(s0, s1, self.drop_path_prob)
 
         out = self.global_pooling(s1)
         logits = self.classifier(out.reshape(out.size(0), -1))

@@ -19,11 +19,12 @@ bind_mounts:
     read_only: false
 
 min_validation_period:
-  batches: 100
+  epochs: 1
 
 hyperparameters:
-    task: sEMG
+    task: spherical
     permute: false
+    train: false
 
     auxiliary: false
     auxiliary_weight: 0.4
@@ -31,48 +32,49 @@ hyperparameters:
     cutout: false
     cutout_length: 16
     drop_path_prob: 0.2
-    global_batch_size: 96
+    global_batch_size: 256
     init_channels: 16
-    layers: 10
-    learning_rate: 0.025
-    momentum: 0.9
-    normal_node1_edge1: 1
-    normal_node1_edge1_op: sep_conv_3x3
-    normal_node1_edge2: 1
-    normal_node1_edge2_op: sep_conv_3x3
-    normal_node2_edge1: 0
+    layers: 8
+    learning_rate: 0.43522243628762336
+    momentum: 0.15442011107231698
+
+    normal_node1_edge1: 0
+    normal_node1_edge1_op: avg_pool_3x3
+    normal_node1_edge2: 0
+    normal_node1_edge2_op: skip_connect
+    normal_node2_edge1: 2
     normal_node2_edge1_op: skip_connect
     normal_node2_edge2: 1
-    normal_node2_edge2_op: dil_conv_3x3
+    normal_node2_edge2_op: max_pool_3x3
     normal_node3_edge1: 0
-    normal_node3_edge1_op: sep_conv_3x3
-    normal_node3_edge2: 0
-    normal_node3_edge2_op: dil_conv_3x3
-    normal_node4_edge1: 0
-    normal_node4_edge1_op: max_pool_3x3
+    normal_node3_edge1_op: dil_conv_3x3
+    normal_node3_edge2: 2
+    normal_node3_edge2_op: max_pool_3x3
+    normal_node4_edge1: 4
+    normal_node4_edge1_op: avg_pool_3x3
     normal_node4_edge2: 0
-    normal_node4_edge2_op: sep_conv_3x3
-    reduce_node1_edge1: 1
-    reduce_node1_edge1_op: dil_conv_3x3
-    reduce_node1_edge2: 1
-    reduce_node1_edge2_op: max_pool_3x3
+    normal_node4_edge2_op: dil_conv_3x3
+    reduce_node1_edge1: 0
+    reduce_node1_edge1_op: sep_conv_5x5
+    reduce_node1_edge2: 0
+    reduce_node1_edge2_op: sep_conv_5x5
     reduce_node2_edge1: 2
-    reduce_node2_edge1_op: skip_connect
-    reduce_node2_edge2: 0
-    reduce_node2_edge2_op: dil_conv_3x3
-    reduce_node3_edge1: 1
+    reduce_node2_edge1_op: sep_conv_5x5
+    reduce_node2_edge2: 1
+    reduce_node2_edge2_op: sep_conv_5x5
+    reduce_node3_edge1: 2
     reduce_node3_edge1_op: sep_conv_3x3
     reduce_node3_edge2: 1
-    reduce_node3_edge2_op: max_pool_3x3
-    reduce_node4_edge1: 0
-    reduce_node4_edge1_op: max_pool_3x3
-    reduce_node4_edge2: 4
-    reduce_node4_edge2_op: sep_conv_3x3
-    train_epochs: 600
-    weight_decay: 0.0003
+    reduce_node3_edge2_op: dil_conv_5x5
+    reduce_node4_edge1: 4
+    reduce_node4_edge1_op: avg_pool_3x3
+    reduce_node4_edge2: 3
+    reduce_node4_edge2_op: avg_pool_3x3
+    train_epochs: 50
+    weight_decay: 0.0014506529853072386
 scheduling_unit: 100
 
-records_per_epoch: 50000
+records_per_epoch: 60000
 
 
 searcher:
@@ -81,6 +83,6 @@ searcher:
   smaller_is_better: false
   # 50k examples in train, 96 examples per batch, 100 batches per step -> 300 epochs ~ 1562 steps
   max_length:
-    epochs: 200
+    epochs: 50
 
 entrypoint: model_def:DARTSCNNTrial

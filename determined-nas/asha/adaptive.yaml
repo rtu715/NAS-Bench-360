@@ -1,4 +1,4 @@
-description: darts_cnn_nas
+description: ninapro_asha_search
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -21,37 +21,41 @@ bind_mounts:
 min_validation_period:
   epochs: 1
 
+min_checkpoint_period: 
+  epochs: 1
+
 hyperparameters:
-  task: spherical
+  task: ninapro
   permute: false
+  train: true
 
-  learning_rate: 
-    type: log
-    minval: -2.0
-    maxval: 0.0
-    base: 10.0 
+  learning_rate: 0.025
+  #type: log
+  #minval: -2.0
+  #maxval: 0.0
+  #base: 10.0 
  
-  momentum: 
-    type: double
-    minval: 0.0
-    maxval: 0.9
+  momentum: 0.9
+  #type: double
+  #minval: 0.0
+  #maxval: 0.9
 
-  weight_decay: 
-    type: log
-    minval: -4.0
-    maxval: -2.0
-    base: 10.0
+  weight_decay: 0.0003
+  #type: log
+  #minval: -4.0
+  #maxval: -2.0
+  #base: 10.0
 
-  train_epochs: 300
-  global_batch_size: 256
-  init_channels: 16
-  layers: 8
+  train_epochs: 200
+  global_batch_size: 128
+  init_channels: 36
+  layers: 20
   auxiliary: false
   auxiliary_weight: 0.4
   cutout: false
   cutout_length: 16
-  drop_path_prob: 0.0
-  clip_gradients_l2_norm: 0
+  drop_path_prob: 0.3
+  clip_gradients_l2_norm: 5
 
   # Tunable hyperparameters
   # Normal cell
@@ -159,22 +163,22 @@ resources:
 
 scheduling_unit: 100
 
-records_per_epoch: 60000
+records_per_epoch: 3560
 
 searcher:
   name: adaptive_asha
   metric: top1_accuracy
   smaller_is_better: false
-  # 50k examples in train, 96 examples per batch, 100 batches per step -> 300 epochs ~ 1562 steps
   max_length:
-          epochs: 300
-  max_trials: 10000
+    epochs: 200
+  max_trials: 32
   mode: aggressive
   # A maximum of 4 rungs corresponds to a minimum training length of 1/divisor^(max_rungs - 1) = 1/64 * max_length 
   # per trial.  Trials with higher validation accuracy will be trained for longer than this minimum will poor
   # trials will be stopped early.
-  max_rungs: 4
-  max_concurrent_trials: 5
+  max_rungs: 5
+  divisor: 4
+ 
 
 entrypoint: model_def:DARTSCNNTrial
 

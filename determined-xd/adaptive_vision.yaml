@@ -1,14 +1,4 @@
-description: xd-vision
-
-#provider:
-#  container_startup_script: |
-#      export HOME=/root
-#      apt-get update && apt-get install -y curl docker.io
-#      apt install amazon-ecr-credential-helper
-#      aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 212469337107.dkr.ecr.us-east-1.amazonaws.com
-
-#environment:
-#  image: "212469337107.dkr.ecr.us-east-1.amazonaws.com/xd:determined"
+description: ninapro-xd-search
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -16,6 +6,8 @@ environment:
     username: renbotu
     password: 980715tutubo
 
+reproducibility:
+  experiment_seed: 0 
 
 data:
   download_dir: /data
@@ -29,8 +21,9 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-  task: sEMG
-      
+  task: ninapro
+  train: true  
+
   #Number of classes in dataset
   permute: false
 
@@ -70,7 +63,7 @@ hyperparameters:
 
   arch_adam: true
 
-  global_batch_size: 64
+  global_batch_size: 256
 
   start_epoch: 0
   epochs: 200
@@ -87,11 +80,9 @@ resources:
   slots_per_trial: 1
   max_slots: 3
 
-records_per_epoch: 13686 
+records_per_epoch: 3160 
 # 50000 if cifar, 60000 if spherical
 
-reproducibility:
-  experiment_seed: 0
 
 searcher:
   name: adaptive_asha
@@ -99,10 +90,10 @@ searcher:
   smaller_is_better: false
   max_length:
     epochs: 200
-  max_trials: 64
+  max_trials: 32
   mode: aggressive
-  #divisor: 3
-  #max_rungs: 3
+  divisor: 4
+  max_rungs: 5
   #max_concurrent_trials: 5
 
 min_validation_period:

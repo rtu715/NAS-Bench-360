@@ -369,6 +369,6 @@ def load_ninapro_data(path):
 
     all_data = data_utils.TensorDataset(data, labels)
 
-    trainset, testset = all_data[:train_size], all_data[train_size:]
+    trainset, testset = torch.utils.data.random_split(all_data, [train_size, test_size])
 
     return trainset, testset

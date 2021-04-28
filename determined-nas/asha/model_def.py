@@ -89,8 +89,12 @@ class DARTSCNNTrial(PyTorchTrial):
         '''
         self.download_directory = self.download_data_from_s3()
 
-        n_classes = 7 if self.hparams['task'] == 'sEMG' else 10
-        in_channels = 3 if self.hparams['task'] == 'cifar' else 1
+        #n_classes = 7 if self.hparams['task'] == 'sEMG' else 10
+        #in_channels = 3 if self.hparams['task'] == 'cifar' else 1
+
+        dataset_hypers = {'sEMG': (7, 1), 'ninapro': (18, 1), 'cifar': (10, 3), 'spherical': (10, 1)}
+
+        n_classes, in_channels = dataset_hypers[self.hparams['task']]
 
         # Define the model
         genotype = self.get_genotype_from_hps()
@@ -148,10 +152,14 @@ class DARTSCNNTrial(PyTorchTrial):
                 filepath = os.path.join(download_directory, data_file)
                 if not os.path.exists(filepath):
                     s3.download_file(s3_bucket, data_file, filepath)
+            
+            if self.hparams['train']:
+                self.train_data, self.val_data, self.test_data = utils.load_spherical_data(download_directory)
+            
+            else:
+                self.train_data, _, self.val_data = utils.load_spherical_data(download_directory, 0.0)
 
-            self.train_data, self.val_data, self.test_data = utils.load_spherical_data(download_directory)
-
-        if self.hparams.task == 'sEMG':
+        elif self.hparams.task == 'sEMG':
             data_files = ["saved_evaluation_dataset_test0.npy", "saved_evaluation_dataset_test1.npy",
                           "saved_evaluation_dataset_training.npy", "saved_pre_training_dataset_spectrogram.npy"]
             for data_file in data_files:
@@ -161,8 +169,22 @@ class DARTSCNNTrial(PyTorchTrial):
 
             self.train_data, self.val_data, self.test_data = utils.load_sEMG_data(download_directory)
 
+        elif self.context.get_hparam("task") == 'ninapro':
+            data_files = ['ninapro_data.npy', 'ninapro_label.npy']
+            for data_file in data_files:
+                filepath = os.path.join(download_directory, data_file)
+                s3_path = os.path.join('ninapro', data_file)
+                if not os.path.exists(filepath):
+                    s3.download_file(s3_bucket, s3_path, filepath)
+            
+            if self.hparams['train']:
+                self.train_data, self.val_data, self.test_data = utils.load_ninapro_data(download_directory, True)
+            else:
+                self.train_data, _, self.val_data = utils.load_ninapro_data(download_directory, False)
+        
         #instantiate test loader
-        self.build_test_data_loader(download_directory)
+        if self.hparams['train']:
+            self.build_test_data_loader(download_directory)
 
         return download_directory
 
@@ -173,7 +195,7 @@ class DARTSCNNTrial(PyTorchTrial):
         elif self.hparams['task'] == 'spherical':
             trainset = self.train_data
 
-        elif self.hparams['task'] == 'sEMG':
+        elif self.hparams['task'] == 'sEMG' or self.hparams.task == 'ninapro':
             #trainset = utils.load_sEMG_train_data(self.download_directory)
             trainset = self.train_data
 
@@ -191,7 +213,7 @@ class DARTSCNNTrial(PyTorchTrial):
         elif self.hparams['task'] == 'spherical':
             valset = self.val_data
 
-        elif self.hparams['task'] == 'sEMG':
+        elif self.hparams['task'] == 'sEMG' or self.hparams.task == 'ninapro':
             #valset = utils.load_sEMG_val_data(self.download_directory)
             valset = self.val_data
 
@@ -208,7 +230,7 @@ class DARTSCNNTrial(PyTorchTrial):
         elif self.hparams['task'] == 'spherical':
             testset = self.test_data
 
-        elif self.hparams['task'] == 'sEMG':
+        elif self.hparams['task'] == 'sEMG' or self.hparams.task == 'ninapro':
             #testset = utils.load_sEMG_test_data(download_directory)
             testset = self.test_data
 
@@ -299,32 +321,33 @@ class DARTSCNNTrial(PyTorchTrial):
             "top1_accuracy": acc_top1.item() / num_batches,
             "top5_accuracy": acc_top5.item() / num_batches,
         }
+        
+        if self.hparams['train']:
+            test_acc_top1 = 0
+            test_acc_top5 = 0
+            test_loss_avg = 0
+            num_batches = 0
+            with torch.no_grad():
+                for batch in self.test_loader:
+                    batch = self.context.to_device(batch)
+                    input, target = batch
+                    num_batches += 1
+                    logits, _ = self.model(input)
+                    loss = self.criterion(logits, target)
+                    top1, top5 = utils.accuracy(logits, target, topk=(1, 5))
+                    test_acc_top1 += top1
+                    test_acc_top5 += top5
+                    test_loss_avg += loss
 
-        test_acc_top1 = 0
-        test_acc_top5 = 0
-        test_loss_avg = 0
-        num_batches = 0
-        with torch.no_grad():
-            for batch in self.test_loader:
-                batch = self.context.to_device(batch)
-                input, target = batch
-                num_batches += 1
-                logits, _ = self.model(input)
-                loss = self.criterion(logits, target)
-                top1, top5 = utils.accuracy(logits, target, topk=(1, 5))
-                test_acc_top1 += top1
-                test_acc_top5 += top5
-                test_loss_avg += loss
+            results2 = {
+                "test_loss": test_loss_avg.item() / num_batches,
+                "test_top1_accuracy": test_acc_top1.item() / num_batches,
+                "test_top5_accuracy": test_acc_top5.item() / num_batches,
+            }
 
-        results2 = {
-            "test_loss": test_loss_avg.item() / num_batches,
-            "test_top1_accuracy": test_acc_top1.item() / num_batches,
-            "test_top5_accuracy": test_acc_top5.item() / num_batches,
-        }
-
-        results.update(results2)
+            results.update(results2)
 
         if results["top1_accuracy"] > self.results["top1_accuracy"]:
             self.results = results
 
-        return self.results
+        return self.results if self.hparams['train'] else results

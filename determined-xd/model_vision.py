@@ -6,8 +6,8 @@ import tempfile
 from typing import Any, Dict, Sequence, Tuple, Union, cast
 from functools import partial
 
-import boto3
 import os
+import boto3
 
 import torch
 from torch import nn
@@ -21,6 +21,9 @@ from xd.nas import MixedOptimizer
 from xd.ops import Conv
 
 import utils_pt
+
+from data.load_data import load_data
+from data.download_data import download_data_from_s3 
 
 # Constants about the dataset here (need to modify)
 
@@ -71,8 +74,11 @@ class XDTrial(PyTorchTrial):
 
         self.criterion = nn.CrossEntropyLoss().cuda()
 
-        n_classes = 7 if self.hparams.task == 'sEMG' else 10
 
+        dataset_hypers = {'sEMG': (7, 1), 'ninapro': (18, 1), 'cifar': (10, 3), 'spherical': (10, 1)}
+
+        n_classes, in_channels = dataset_hypers[self.hparams.task]
+        print('task: ', self.hparams.task, 'in_channels: ',  in_channels, 'classes: ', n_classes)
         # Changing our backbone
         depth = int(self.hparams.backbone[0:2])
         width = int(self.hparams.backbone[3:4])
@@ -82,7 +88,7 @@ class XDTrial(PyTorchTrial):
             n_classes,
             width,
             dropRate=self.hparams.droprate,
-            in_channels=3 if self.hparams.task=='cifar' else 1,
+            in_channels=in_channels,
         )
 
         self.chrysalis, self.original = Chrysalis.metamorphosize(self.backbone), self.backbone
@@ -155,7 +161,7 @@ class XDTrial(PyTorchTrial):
         download_directory = f"/tmp/data-rank{self.context.distributed.get_rank()}"
         s3 = boto3.client("s3")
         os.makedirs(download_directory, exist_ok=True)
-
+        '''
         if self.hparams.task == 'spherical':
             data_files = ["s2_mnist.gz"]
             for data_file in data_files:
@@ -174,60 +180,33 @@ class XDTrial(PyTorchTrial):
                     s3.download_file(s3_bucket, data_file, filepath)
 
             self.train_data, self.val_data, self.test_data = utils_pt.load_sEMG_data(download_directory)
+        '''
+        download_data_from_s3(s3_bucket, self.hparams.task, download_directory)
 
-        #instantiate test loader
-        self.build_test_data_loader(download_directory)
+        if self.hparams.train:
+            self.train_data, self.val_data, self.test_data = load_data(self.hparams.task, download_directory, True) 
+            self.build_test_data_loader(download_directory)
+        
+        else:
+            self.train_data, _, self.val_data = load_data(self.hparams.task, download_directory, False)
 
         return download_directory
 
     def build_training_data_loader(self) -> DataLoader:
-        if self.hparams['task'] == 'cifar':
-            trainset, _ = utils_pt.load_cifar_train_data(self.download_directory, self.hparams['permute'])
 
-        elif self.hparams['task'] == 'spherical':
-            trainset = self.train_data
-
-        elif self.hparams['task'] == 'sEMG':
-            #trainset = utils_pt.load_sEMG_train_data(self.download_directory)
-            trainset = self.train_data
-
-        else:
-            pass
-
+        trainset = self.train_data
         return DataLoader(trainset, batch_size=self.context.get_per_slot_batch_size())
 
     def build_validation_data_loader(self) -> DataLoader:
 
 
-        if self.hparams['task'] == 'cifar':
-            _, valset = utils_pt.load_cifar_train_data(self.download_directory, self.hparams['permute'])
-
-        elif self.hparams['task'] == 'spherical':
-            valset = self.val_data
-
-        elif self.hparams['task'] == 'sEMG':
-            #valset = utils_pt.load_sEMG_val_data(self.download_directory)
-            valset = self.val_data
-
-        else:
-            pass
+        valset = self.val_data
 
         return DataLoader(valset, batch_size=self.context.get_per_slot_batch_size())
 
     def build_test_data_loader(self, download_directory):
 
-        if self.hparams['task'] == 'cifar':
-            testset = utils_pt.load_cifar_test_data(download_directory, self.hparams['permute'])
-
-        elif self.hparams['task'] == 'spherical':
-            testset = self.test_data
-
-        elif self.hparams['task'] == 'sEMG':
-            #testset = utils_pt.load_sEMG_test_data(download_directory)
-            testset = self.test_data
-
-        else:
-            pass
+        testset = self.test_data
 
         self.test_loader = torch.utils.data.DataLoader(testset, batch_size=self.context.get_per_slot_batch_size(),
                                                        shuffle=False, num_workers=2)
@@ -245,7 +224,6 @@ class XDTrial(PyTorchTrial):
         '''
 
         x_train, y_train = batch
-
         self.model.train()
         output = self.model(x_train)
         loss = self.criterion(output, y_train)

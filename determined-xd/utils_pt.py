@@ -270,3 +270,35 @@ def load_sEMG_data(path):
     trainset, valset, testset = data_utils.random_split(all_sEMG, [train_size, val_size, test_size])
 
     return trainset, valset, testset
+
+
+'''sEMG ninapro data'''
+def load_ninapro_data(path, train=True):
+
+    data = np.load(os.path.join(path, "ninapro_data.npy"),
+                             encoding="bytes", allow_pickle=True)
+    labels = np.load(os.path.join(path, "ninapro_label.npy"), encoding="bytes", allow_pickle=True)
+
+    data = np.transpose(data, (0, 2, 1))
+    data = data[:, None, :, :]
+    print(data.shape)
+    print(labels.shape)
+    data = torch.from_numpy(data.astype(np.float32))
+    labels = torch.from_numpy(labels.astype(np.int64))
+
+    total_size = data.shape[0]
+    all_data = data_utils.TensorDataset(data, labels)
+    
+    if train:
+        train_size = int(total_size * 0.8)
+        val_size = int(total_size * 0.1)
+        test_size = total_size - train_size - val_size
+        trainset, valset, testset = data_utils.random_split(all_data, [train_size, val_size, test_size])
+
+        return trainset, valset, testset
+
+    train_size = int(total_size * 0.9)
+    test_size = total_size - train_size
+    trainset, testset = data_utils.random_split(all_data, [train_size, test_size])
+    
+    return trainset, None, testset
