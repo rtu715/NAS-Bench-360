@@ -73,6 +73,28 @@ class DilConv(nn.Module):
     def forward(self, x):
         return self.op(x)
 
+class ActivationConvBN(nn.Module):
+    def __init__(
+        self,
+        activation_function,
+        C_in,
+        C_out,
+        kernel_size,
+        stride,
+        padding,
+        affine=True,
+    ):
+        super(ActivationConvBN, self).__init__()
+        self.op = nn.Sequential(
+            activation_function(),
+            nn.Conv2d(
+                C_in, C_out, kernel_size, stride=stride, padding=padding, bias=False
+            ),
+            nn.BatchNorm2d(C_out, affine=affine, momentum=0.999, eps=0.001),
+        )
+
+    def forward(self, x):
+        return self.op(x)
 
 class SepConv(nn.Module):
     def __init__(self, C_in, C_out, kernel_size, stride, padding, affine=True):

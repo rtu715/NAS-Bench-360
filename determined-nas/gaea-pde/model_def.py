@@ -31,9 +31,14 @@ Genotype = namedtuple("Genotype", "normal normal_concat reduce reduce_concat")
 class GenotypeCallback(PyTorchCallback):
     def __init__(self, context):
         self.model = context.models[0]
-
+        self.search_phase = context.get_hparam('train')
+    
     def on_validation_end(self, metrics):
-        print(self.model.genotype())
+        if self.search_phase:
+            print(self.model.genotype())
+
+        else:
+            print('eval phase - constant genotype')
 
 
 class GAEASearchTrial(PyTorchTrial):
@@ -62,6 +67,7 @@ class GAEASearchTrial(PyTorchTrial):
                     self.criterion,
                     self.hparams.nodes,
                     self.hparams.multiplier,
+                    in_channels=3,
                     width=self.hparams.width,
                     k=self.hparams.shuffle_factor,
                 )
@@ -94,25 +100,8 @@ class GAEASearchTrial(PyTorchTrial):
             )
 
         else:
-            searched_genotype = Genotype(normal=[('sep_conv_5x5', 0),
-                                        ('sep_conv_3x3', 1),
-                                        ('max_pool_3x3', 0),
-                                        ('sep_conv_5x5', 1),
-                                        ('dil_conv_3x3', 0),
-                                        ('dil_conv_3x3', 2),
-                                        ('sep_conv_3x3', 2),
-                                        ('sep_conv_3x3', 0)],
-                                normal_concat=range(2, 6),
-                                reduce=[('skip_connect', 0),
-                                        ('avg_pool_3x3', 1),
-                                        ('dil_conv_3x3', 2),
-                                        ('max_pool_3x3', 0),
-                                        ('sep_conv_3x3', 2),
-                                        ('sep_conv_5x5', 0),
-                                        ('dil_conv_5x5', 3),
-                                        ('sep_conv_5x5', 2)],
-                                reduce_concat=range(2, 6))
-
+            searched_genotype = Genotype(normal=[('dil_conv_5x5', 1), ('sep_conv_5x5', 0), ('dil_conv_5x5', 2), ('sep_conv_5x5', 1), ('dil_conv_5x5', 3), ('dil_conv_5x5', 2), ('dil_conv_5x5', 4), ('sep_conv_5x5', 3)], normal_concat=range(5, 6), reduce=[('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1)], reduce_concat=range(5, 6))
+           
             model = DiscretizedNetwork(
                 self.hparams.init_channels,
                 self.hparams.n_classes,
@@ -199,7 +188,8 @@ class GAEASearchTrial(PyTorchTrial):
             x_train = torch.cat([x_train.reshape(ntrain, s, s, 1), self.grid.repeat(ntrain, 1, 1, 1)], dim=3)
             train_data = torch.utils.data.TensorDataset(x_train, y_train)
 
-
+        print(x_train.shape)
+        print(y_train.shape)
         bilevel_data = BilevelDataset(train_data)
 
         self.train_data = bilevel_data
@@ -249,40 +239,60 @@ class GAEASearchTrial(PyTorchTrial):
         x_train, y_train, x_val, y_val = batch
         batch_size = self.context.get_per_slot_batch_size()
 
-        # Train shared-weights
-        for a in self.model.arch_parameters():
-            a.requires_grad = False
-        for w in self.model.ws_parameters():
-            w.requires_grad = True
+        if self.hparams.train:
+            # Train shared-weights
+            for a in self.model.arch_parameters():
+                a.requires_grad = False
+            for w in self.model.ws_parameters():
+                w.requires_grad = True
 
-        self.y_normalizer.cuda()
-        logits = self.model(x_train)
-        target = self.y_normalizer.decode(y_train)
-        logits = self.y_normalizer.decode(logits)
-        loss = self.criterion(logits.view(batch_size, -1), target.view(batch_size, -1))
+            self.y_normalizer.cuda()
+            logits = self.model(x_train)
+            target = self.y_normalizer.decode(y_train)
+            logits = self.y_normalizer.decode(logits)
+            
+            loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1))
 
-        self.context.backward(loss)
-        self.context.step_optimizer(self.ws_opt)
+            self.context.backward(loss)
+            self.context.step_optimizer(self.ws_opt)
 
-        # Train arch parameters
-        for a in self.model.arch_parameters():
-            a.requires_grad = True
-        for w in self.model.ws_parameters():
-            w.requires_grad = False
+            # Train arch parameters
+            for a in self.model.arch_parameters():
+                a.requires_grad = True
+            for w in self.model.ws_parameters():
+                w.requires_grad = False
 
-        logits = self.model(x_val)
-        target = self.y_normalizer.decode(y_val)
-        logits = self.y_normalizer.decode(logits)
-        arch_loss = self.criterion(logits.view(batch_size, -1), target.view(batch_size, -1))
+            logits = self.model(x_val)
+            target = self.y_normalizer.decode(y_val)
+            logits = self.y_normalizer.decode(logits)
+            arch_loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1))
 
-        self.context.backward(arch_loss)
-        self.context.step_optimizer(self.arch_opt)
+            self.context.backward(arch_loss)
+            self.context.step_optimizer(self.arch_opt)
+
+        else: 
+            self.y_normalizer.cuda()
+            logits = self.model(x_train)
+            target = self.y_normalizer.decode(y_train)
+            logits = self.y_normalizer.decode(logits)
+            loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1))
+
+            self.context.backward(loss)
+            #self.context.step_optimizer(self.optimizer)
+            self.context.step_optimizer(
+                optimizer=self.optimizer,
+                clip_grads=lambda params: torch.nn.utils.clip_grad_norm_(
+                    params,
+                    self.context.get_hparam("clip_gradients_l2_norm"),
+                ),
+            )
+            arch_loss = 0.0
 
         return {
             "loss": loss,
             "arch_loss": arch_loss,
         }
-
+    '''
     def evaluate_batch(self, batch: TorchData) -> Dict[str, Any]:
         input, target = batch
         batch_size = self.context.get_per_slot_batch_size()
@@ -294,6 +304,33 @@ class GAEASearchTrial(PyTorchTrial):
         validation_error = loss / batch_size
 
         return {"validation_error": validation_error}
+    '''
+
+    def evaluate_full_dataset(
+        self, data_loader: torch.utils.data.DataLoader
+    ) -> Dict[str, Any]:
+
+        loss_avg = 0
+        num_batches = 0
+        ntest = 100
+        batch_size = self.context.get_per_slot_batch_size()
+
+        with torch.no_grad():
+            for batch in data_loader:
+                batch = self.context.to_device(batch)
+                input, target = batch
+                num_batches += 1
+                logits = self.model(input)
+                logits = self.y_normalizer.decode(logits)
+                
+                loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1)).item()
+                loss_avg += loss
+
+        results = {
+            "validation_error": loss_avg / ntest,
+        }
+
+        return results
 
     def build_callbacks(self):
         return {"genotype": GenotypeCallback(self.context)}

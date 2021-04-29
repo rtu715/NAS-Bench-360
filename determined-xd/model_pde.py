@@ -64,8 +64,12 @@ class XDTrial(PyTorchTrial):
         h = int(((421 - 1)/self.r) + 1)
         s = h
         self.s = s
+ 
+        self.grid = self.create_grid()
+        
         #self.backbone = Backbone_Grid(12, 32, 5) 
         #self.backbone = Backbone_Grid(3, 32, 1)
+
         self.backbone = Backbone(8, 1, 4, 0.0)
 
         self.chrysalis, self.original = Chrysalis.metamorphosize(self.backbone), self.backbone
@@ -180,45 +184,75 @@ class XDTrial(PyTorchTrial):
         
         return grid
 
-    def build_training_data_loader(self) -> Any:
-        '''Load Darcy Flow data and normalize, preprocess'''
-        
-        ntrain = 1000
+    def build_training_data_loader(self) -> DataLoader:
+        TRAIN_PATH = os.path.join(self.download_directory, 'piececonst_r421_N1024_smooth1.mat')
+        self.reader = MatReader(TRAIN_PATH)
         s = self.s
         r = self.r
+        ntrain = 1000
+        ntest = 100
 
-        TRAIN_PATH = os.path.join(self.download_directory, 'piececonst_r421_N1024_smooth1.mat')
-        reader = MatReader(TRAIN_PATH)
-        x_train = reader.read_field('coeff')[:ntrain,::r,::r][:,:s,:s]
-        y_train = reader.read_field('sol')[:ntrain,::r,::r][:,:s,:s]
-    
-        self.x_normalizer = UnitGaussianNormalizer(x_train)
-        x_train = self.x_normalizer.encode(x_train)
+        if self.hparams.train:
+            x_train = self.reader.read_field('coeff')[:ntrain-ntest, ::r, ::r][:, :s, :s]
+            y_train = self.reader.read_field('sol')[:ntrain-ntest, ::r, ::r][:, :s, :s]
 
-        self.y_normalizer = UnitGaussianNormalizer(y_train)
-        y_train = self.y_normalizer.encode(y_train)
+            self.x_normalizer = UnitGaussianNormalizer(x_train)
+            x_train = self.x_normalizer.encode(x_train)
 
-        self.grid = self.create_grid()
-        x_train = torch.cat([x_train.reshape(ntrain,s,s,1), self.grid.repeat(ntrain,1,1,1)], dim=3)
-    
-        return DataLoader(torch.utils.data.TensorDataset(x_train, y_train), batch_size=self.context.get_per_slot_batch_size())
+            self.y_normalizer = UnitGaussianNormalizer(y_train)
+            y_train = self.y_normalizer.encode(y_train)
 
-    def build_validation_data_loader(self) -> Any:
-        '''Load Darcy Flow data for validation'''
-        
+            ntrain = ntrain - ntest
+            x_train = torch.cat([x_train.reshape(ntrain, s, s, 1), self.grid.repeat(ntrain, 1, 1, 1)], dim=3)
+            train_data = torch.utils.data.TensorDataset(x_train, y_train)
+
+        else:
+            x_train = self.reader.read_field('coeff')[:ntrain, ::r, ::r][:, :s, :s]
+            y_train = self.reader.read_field('sol')[:ntrain, ::r, ::r][:, :s, :s]
+
+            self.x_normalizer = UnitGaussianNormalizer(x_train)
+            x_train = self.x_normalizer.encode(x_train)
+
+            self.y_normalizer = UnitGaussianNormalizer(y_train)
+            y_train = self.y_normalizer.encode(y_train)
+
+            x_train = torch.cat([x_train.reshape(ntrain, s, s, 1), self.grid.repeat(ntrain, 1, 1, 1)], dim=3)
+            train_data = torch.utils.data.TensorDataset(x_train, y_train)
+
+
+        train_queue = DataLoader(
+            train_data,
+            batch_size=self.context.get_per_slot_batch_size(),
+            shuffle=True,
+            num_workers=2,
+        )
+        return train_queue
+
+    def build_validation_data_loader(self) -> DataLoader:
+        ntrain= 1000
         ntest = 100
         s = self.s
         r = self.r
 
-        TEST_PATH = os.path.join(self.download_directory, 'piececonst_r421_N1024_smooth1.mat')
-        reader = MatReader(TEST_PATH)
-        x_test = reader.read_field('coeff')[:ntest,::r,::r][:,:s,:s]
-        y_test = reader.read_field('sol')[:ntest,::r,::r][:,:s,:s]
+        if self.hparams.train:
+            x_test = self.reader.read_field('coeff')[ntrain-ntest:ntrain, ::r, ::r][:, :s, :s]
+            y_test = self.reader.read_field('sol')[ntrain-ntest:ntrain, ::r, ::r][:, :s, :s]
 
-        x_test = self.x_normalizer.encode(x_test)
-        x_test = torch.cat([x_test.reshape(ntest,s,s,1), self.grid.repeat(ntest,1,1,1)], dim=3)
+            x_test = self.x_normalizer.encode(x_test)
+            x_test = torch.cat([x_test.reshape(ntest, s, s, 1), self.grid.repeat(ntest, 1, 1, 1)], dim=3)
 
-        return DataLoader(torch.utils.data.TensorDataset(x_test, y_test), batch_size=self.context.get_per_slot_batch_size())
+        else:
+            TEST_PATH = os.path.join(self.download_directory, 'piececonst_r421_N1024_smooth1.mat')
+            reader = MatReader(TEST_PATH)
+            x_test = reader.read_field('coeff')[:ntest, ::r, ::r][:, :s, :s]
+            y_test = reader.read_field('sol')[:ntest, ::r, ::r][:, :s, :s]
+
+            x_test = self.x_normalizer.encode(x_test)
+            x_test = torch.cat([x_test.reshape(ntest, s, s, 1), self.grid.repeat(ntest, 1, 1, 1)], dim=3)
+
+
+        return DataLoader(torch.utils.data.TensorDataset(x_test, y_test),
+                          batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=2,)
 
 
     '''
@@ -243,7 +277,7 @@ class XDTrial(PyTorchTrial):
         #loss = self.criterion(output, y_train)
         output = self.y_normalizer.decode(output)
         y_train = self.y_normalizer.decode(y_train)
-        loss = self.criterion(output.reshape(batch_size, -1), y_train.reshape(batch_size, -1))
+        loss = self.criterion(output.reshape(output.size(0), -1), y_train.reshape(y_train.size(0), -1))
         
         self.context.backward(loss)
         self.context.step_optimizer(self.opt)
@@ -252,23 +286,29 @@ class XDTrial(PyTorchTrial):
             'loss': loss,
         }
 
-    def evaluate_batch(self, batch: TorchData) -> Dict[str, Any]:
-        """
-        Calculate validation metrics for a batch and return them as a dictionary.
-        This method is not necessary if the user overwrites evaluate_full_dataset().
-        """
-        batch = cast(Tuple[torch.Tensor, torch.Tensor], batch)
-        data, labels = batch
+
+    def evaluate_full_dataset(
+        self, data_loader: torch.utils.data.DataLoader
+    ) -> Dict[str, Any]:
+
+        loss_avg = 0
+        num_batches = 0
+        ntest = 100
         batch_size = self.context.get_per_slot_batch_size()
-        
-        output = self.model(data)
-        output = self.y_normalizer.decode(output)
 
-        #accuracy = accuracy_rate(output, labels)
-        rel_err = self.criterion(output.reshape(batch_size, -1), labels.reshape(batch_size, -1))
-        rel_err = rel_err / batch_size
+        with torch.no_grad():
+            for batch in data_loader:
+                batch = self.context.to_device(batch)
+                input, target = batch
+                num_batches += 1
+                logits = self.model(input)
+                logits = self.y_normalizer.decode(logits)
+                
+                loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1)).item()
+                loss_avg += loss
 
-        #return {"validation_accuracy": accuracy, "validation_error": 1.0 - accuracy}
-        return {"validation_error": rel_err}
+        results = {
+            "validation_error": loss_avg / ntest,
+        }
 
-
+        return results

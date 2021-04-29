@@ -91,7 +91,7 @@ class DARTSCNNTrial(PyTorchTrial):
                 1,  # num_classes
                 self.hparams["layers"],
                 self.hparams["width"],
-                self.hparams["auxiliary"],
+                3 if self.hparams["task"]=='pde' else 1,
                 genotype,
             )
         )
@@ -144,41 +144,66 @@ class DARTSCNNTrial(PyTorchTrial):
 
     def build_training_data_loader(self) -> Any:
         '''Load Darcy Flow data and normalize, preprocess'''
-
-        ntrain = 1000
+        
+        TRAIN_PATH = os.path.join(self.download_directory, 'piececonst_r421_N1024_smooth1.mat')
+        self.reader = MatReader(TRAIN_PATH)
         s = self.s
         r = self.hparams["sub"]
+        ntrain = 1000
+        ntest = 100
 
-        TRAIN_PATH = os.path.join(self.download_directory, 'piececonst_r421_N1024_smooth1.mat')
-        reader = MatReader(TRAIN_PATH)
-        x_train = reader.read_field('coeff')[:ntrain, ::r, ::r][:, :s, :s]
-        y_train = reader.read_field('sol')[:ntrain, ::r, ::r][:, :s, :s]
+        if self.hparams['train']:
+            x_train = self.reader.read_field('coeff')[:ntrain-ntest, ::r, ::r][:, :s, :s]
+            y_train = self.reader.read_field('sol')[:ntrain-ntest, ::r, ::r][:, :s, :s]
 
-        self.x_normalizer = UnitGaussianNormalizer(x_train)
-        x_train = self.x_normalizer.encode(x_train)
+            self.x_normalizer = UnitGaussianNormalizer(x_train)
+            x_train = self.x_normalizer.encode(x_train)
 
-        self.y_normalizer = UnitGaussianNormalizer(y_train)
-        y_train = self.y_normalizer.encode(y_train)
+            self.y_normalizer = UnitGaussianNormalizer(y_train)
+            y_train = self.y_normalizer.encode(y_train)
 
-        x_train = torch.cat([x_train.reshape(ntrain, s, s, 1), self.grid.repeat(ntrain, 1, 1, 1)], dim=3)
+            ntrain = ntrain - ntest
+            x_train = torch.cat([x_train.reshape(ntrain, s, s, 1), self.grid.repeat(ntrain, 1, 1, 1)], dim=3)
 
+        else:
+            x_train = self.reader.read_field('coeff')[:ntrain, ::r, ::r][:, :s, :s]
+            y_train = self.reader.read_field('sol')[:ntrain, ::r, ::r][:, :s, :s]
+
+            self.x_normalizer = UnitGaussianNormalizer(x_train)
+            x_train = self.x_normalizer.encode(x_train)
+
+            self.y_normalizer = UnitGaussianNormalizer(y_train)
+            y_train = self.y_normalizer.encode(y_train)
+
+            x_train = torch.cat([x_train.reshape(ntrain, s, s, 1), self.grid.repeat(ntrain, 1, 1, 1)], dim=3)
+
+        
         return DataLoader(torch.utils.data.TensorDataset(x_train, y_train),
                           batch_size=self.context.get_per_slot_batch_size(), shuffle=True)
 
     def build_validation_data_loader(self) -> Any:
         '''Load Darcy Flow data for validation'''
-
+        ntrain= 1000
         ntest = 100
         s = self.s
         r = self.hparams["sub"]
 
-        TEST_PATH = os.path.join(self.download_directory, 'piececonst_r421_N1024_smooth1.mat')
-        reader = MatReader(TEST_PATH)
-        x_test = reader.read_field('coeff')[:ntest, ::r, ::r][:, :s, :s]
-        y_test = reader.read_field('sol')[:ntest, ::r, ::r][:, :s, :s]
+        if self.hparams['train']:
+            x_test = self.reader.read_field('coeff')[ntrain-ntest:ntrain, ::r, ::r][:, :s, :s]
+            y_test = self.reader.read_field('sol')[ntrain-ntest:ntrain, ::r, ::r][:, :s, :s]
 
-        x_test = self.x_normalizer.encode(x_test)
-        x_test = torch.cat([x_test.reshape(ntest, s, s, 1), self.grid.repeat(ntest, 1, 1, 1)], dim=3)
+            x_test = self.x_normalizer.encode(x_test)
+            x_test = torch.cat([x_test.reshape(ntest, s, s, 1), self.grid.repeat(ntest, 1, 1, 1)], dim=3)
+
+        else:
+            TEST_PATH = os.path.join(self.download_directory, 'piececonst_r421_N1024_smooth1.mat')
+            reader = MatReader(TEST_PATH)
+            x_test = reader.read_field('coeff')[:ntest, ::r, ::r][:, :s, :s]
+            y_test = reader.read_field('sol')[:ntest, ::r, ::r][:, :s, :s]
+
+            x_test = self.x_normalizer.encode(x_test)
+            x_test = torch.cat([x_test.reshape(ntest, s, s, 1), self.grid.repeat(ntest, 1, 1, 1)], dim=3)
+
 
         return DataLoader(torch.utils.data.TensorDataset(x_test, y_test),
                           batch_size=self.context.get_per_slot_batch_size(), shuffle=False)
@@ -229,9 +254,6 @@ class DARTSCNNTrial(PyTorchTrial):
         logits = self.y_normalizer.decode(logits)
         
         loss = self.criterion(logits.view(batch_size, -1), target.view(batch_size, -1))
-        if self.context.get_hparam("auxiliary"):
-            loss_aux = self.criterion(logits_aux, target)
-            loss += self.context.get_hparam("auxiliary_weight") * loss_aux
 
         # Backward pass
         self.context.backward(loss)

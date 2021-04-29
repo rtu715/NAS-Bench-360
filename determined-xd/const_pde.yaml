@@ -1,4 +1,4 @@
-description: xd-pde
+description: pde-xd--search
 
 #provider:
 #  container_startup_script: |
@@ -23,6 +23,7 @@ data:
   bucket: pde-xd
 
 hyperparameters:
+  train: true
 
   learning_rate: 0.001
   momentum: 0.9

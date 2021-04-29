@@ -56,6 +56,8 @@ class Cell(nn.Module):
         self, steps, multiplier, C_prev_prev, C_prev, C, reduction, reduction_prev, k=4
     ):
         super(Cell, self).__init__()
+        print(C_prev_prev, C_prev, C)
+
         self.reduction = reduction
 
         if reduction_prev:
@@ -100,6 +102,7 @@ class Network(nn.Module):
         criterion,
         steps=4,
         multiplier=4,
+        in_channels=3,
         width=32,
         k=1,
     ):
@@ -111,12 +114,11 @@ class Network(nn.Module):
         self._steps = steps
         self._multiplier = multiplier
 
-        C_curr = width
+        C_curr = C
         self.stem = nn.Sequential(
-            nn.Linear(3, C_curr)
+            nn.Conv2d(in_channels, C_curr, 3, padding=1, bias=False), nn.BatchNorm2d(C_curr)
         )
-
-        C_prev_prev, C_prev, C_curr = C_curr, C_curr, C
+        C_prev_prev, C_prev, C_curr = C_curr, C_curr, width
         self.cells = nn.ModuleList()
         reduction_prev = False
         reduction = False
@@ -140,7 +142,7 @@ class Network(nn.Module):
             reduction_prev = reduction
             self.cells += [cell]
             C_prev_prev, C_prev = C_prev, multiplier * C_curr
-
+            print('multiplier: ', multiplier)
         #self.global_pooling = nn.AdaptiveAvgPool2d(1)
         self.classifier = nn.Linear(C_prev, num_classes)
 
@@ -149,7 +151,7 @@ class Network(nn.Module):
         self._initialize_alphas()
 
     def forward(self, input):
-        s0 = s1 = self.stem(input).permute(0, 3, 1, 2).contiguous()
+        s0 = s1 = self.stem(input.permute(0, 3, 1, 2).contiguous())
         for i, cell in enumerate(self.cells):
             if cell.reduction:
                 weights = F.softmax(self.alphas_reduce, dim=-1)

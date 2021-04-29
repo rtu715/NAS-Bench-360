@@ -1,31 +1,34 @@
-description: darts_cnn_nas
+description: pde-asha-search
 
 data:
   data_download_dir: /data
   type: s3
   bucket: pde-xd
 
-records_per_epoch: 1000
+records_per_epoch: 900
 
 min_validation_period:
   epochs: 1
 
 hyperparameters:
+  task: pde
+  train: true
+
   width: 32
   sub: 5
 
   learning_rate: 0.025
   momentum: 0.9
   weight_decay: 1e-4
-  train_epochs: 500
+  train_epochs: 200
   global_batch_size: 5
   init_channels: 36
-  layers: 6
+  layers: 20
   auxiliary: false
   auxiliary_weight: 0.4
-  cutout: true
+  cutout: false
   cutout_length: 16
-  drop_path_prob: 0.2
+  drop_path_prob: 0.3
   clip_gradients_l2_norm: 5
 
   # Tunable hyperparameters

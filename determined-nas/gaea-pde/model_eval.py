@@ -51,7 +51,7 @@ class Cell(nn.Module):
         self._ops = nn.ModuleList()
         for name, index in zip(op_names, indices):
             stride = 2 if reduction and index < 2 else 1
-            op = OPS[name](C, stride, True, activation_function)
+            op = OPS[name](C, stride, True)
             if "conv" in name and self.drop_prob > 0:
                 op = nn.Sequential(self.drop_module, op)
             self._ops += [op]
@@ -87,18 +87,21 @@ class DiscretizedNetwork(nn.Module):
         self.drop_path_prob = drop_path_prob
 
         stem_multiplier = 3
-        C_curr = stem_multiplier * C
+        #C_curr = stem_multiplier * C
+        C_curr = C  #width
+        width = 32
         self.stem = nn.Sequential(
             nn.Conv2d(in_channels, C_curr, 3, padding=1, bias=False), nn.BatchNorm2d(C_curr)
         )
 
-        C_prev_prev, C_prev, C_curr = C_curr, C_curr, C
+        C_prev_prev, C_prev, C_curr = C_curr, C_curr, width
         self.cells = nn.ModuleList()
         reduction_prev = False
         for i in range(layers):
             if i in [layers // 3, 2 * layers // 3]:
-                C_curr *= 2
-                reduction = True
+                #C_curr *= 2
+                #reduction = True
+                pass
             else:
                 reduction = False
             cell = Cell(
@@ -106,9 +109,11 @@ class DiscretizedNetwork(nn.Module):
             )
             reduction_prev = reduction
             self.cells += [cell]
-            C_prev_prev, C_prev = C_prev, cell.multiplier * C_curr
+            #C_prev_prev, C_prev = C_prev, cell.multiplier * C_curr
+            C_prev_prev, C_prev = C_prev, C_curr
+            print('cell multiplier: ',cell.multiplier)
 
-        self.global_pooling = nn.AdaptiveAvgPool2d(1)
+        #self.global_pooling = nn.AdaptiveAvgPool2d(1)
         self.classifier = nn.Linear(C_prev, num_classes)
 
     def get_save_states(self):
@@ -120,10 +125,11 @@ class DiscretizedNetwork(nn.Module):
         self.load_state_dict(save_states["state_dict"])
 
     def forward(self, input, **kwargs):
-        s0 = s1 = self.stem(input)
+        s0 = s1 = self.stem(input.permute(0,3,1,2).contiguous())
         for i, cell in enumerate(self.cells):
             s0, s1 = s1, cell(s0, s1, self.drop_path_prob)
 
-        out = self.global_pooling(s1)
-        logits = self.classifier(out.reshape(out.size(0), -1))
-        return logits
+        #out = self.global_pooling(s1)
+        out = s1
+        logits = self.classifier(out.permute(0,2,3,1).contiguous())
+        return logits.squeeze()
