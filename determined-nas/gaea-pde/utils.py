@@ -17,6 +17,20 @@ import scipy.io
 import h5py
 
 # reading data
+'''
+def load_pde_data(path, split=0.1, train=True, **kwargs):
+    if train:
+        ntrain = 1000
+        ntest = split * ntrain
+        r = kwargs['r']
+        s = kwargs['s']
+        
+        file_path = os.path.join(path, 'piececonst_r421_N1024_smooth1.mat')
+        reader = MatReader(file_path)
+        x_train = reader.read_field('coeff')[:ntrain-ntest, ::r, ::r][:, :s, :s]
+        y_train = reader.read_field('sol')[:ntrain-ntest, ::r, ::r][:, :s, :s]
+'''
+
 class MatReader(object):
     def __init__(self, file_path, to_torch=True, to_cuda=False, to_float=True):
         super(MatReader, self).__init__()

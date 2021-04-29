@@ -26,6 +26,9 @@ import determined as det
 from model import NetworkPoint as Network
 import utils
 
+from data_utils.load_data import load_data
+from data_utils.download_data import download_from_s3
+
 TorchData = Union[Dict[str, torch.Tensor], Sequence[torch.Tensor], torch.Tensor]
 
 Genotype = namedtuple("Genotype", "normal normal_concat reduce reduce_concat")
@@ -94,7 +97,7 @@ class DARTSCNNTrial(PyTorchTrial):
 
         dataset_hypers = {'sEMG': (7, 1), 'ninapro': (18, 1), 'cifar': (10, 3), 'spherical': (10, 1)}
 
-        n_classes, in_channels = dataset_hypers[self.hparams['task']]
+        n_classes, in_channels = dataset_hypers[self.hparams.task]
 
         # Define the model
         genotype = self.get_genotype_from_hps()
@@ -137,10 +140,8 @@ class DARTSCNNTrial(PyTorchTrial):
         self.wrapped_scheduler = self.context.wrap_lr_scheduler(
             self.scheduler, step_mode=step_mode
         )
-
+    '''
     def download_data_from_s3(self):
-        '''Download data from s3 to store in temp directory'''
-
         s3_bucket = self.context.get_data_config()["bucket"]
         download_directory = f"/tmp/data-rank{self.context.distributed.get_rank()}"
         s3 = boto3.client("s3")
@@ -187,55 +188,43 @@ class DARTSCNNTrial(PyTorchTrial):
             self.build_test_data_loader(download_directory)
 
         return download_directory
+    '''
 
-    def build_training_data_loader(self) -> DataLoader:
-        if self.hparams['task'] == 'cifar':
-            trainset, _ = utils.load_cifar_train_data(self.download_directory, self.hparams['permute'])
+    def download_data_from_s3(self):
+        '''Download data from s3 to store in temp directory'''
 
-        elif self.hparams['task'] == 'spherical':
-            trainset = self.train_data
+        s3_bucket = self.context.get_data_config()["bucket"]
+        download_directory = f"/tmp/data-rank{self.context.distributed.get_rank()}"
+        s3 = boto3.client("s3")
+        os.makedirs(download_directory, exist_ok=True)
 
-        elif self.hparams['task'] == 'sEMG' or self.hparams.task == 'ninapro':
-            #trainset = utils.load_sEMG_train_data(self.download_directory)
-            trainset = self.train_data
+        download_from_s3(s3_bucket, self.hparams.task, download_directory)
+
+        if self.hparams.train:
+            self.train_data, self.val_data, self.test_data = load_data(self.hparams.task, download_directory, True)
+            self.build_test_data_loader(download_directory)
 
         else:
-            pass
+            self.train_data, _, self.val_data = load_data(self.hparams.task, download_directory, False)
+
+        return download_directory
+
+    def build_training_data_loader(self) -> DataLoader:
+
+        trainset = self.train_data
 
         return DataLoader(trainset, batch_size=self.context.get_per_slot_batch_size())
 
     def build_validation_data_loader(self) -> DataLoader:
 
 
-        if self.hparams['task'] == 'cifar':
-            _, valset = utils.load_cifar_train_data(self.download_directory, self.hparams['permute'])
-
-        elif self.hparams['task'] == 'spherical':
-            valset = self.val_data
-
-        elif self.hparams['task'] == 'sEMG' or self.hparams.task == 'ninapro':
-            #valset = utils.load_sEMG_val_data(self.download_directory)
-            valset = self.val_data
-
-        else:
-            pass
+        valset = self.val_data
 
         return DataLoader(valset, batch_size=self.context.get_per_slot_batch_size())
 
     def build_test_data_loader(self, download_directory):
 
-        if self.hparams['task'] == 'cifar':
-            testset = utils.load_cifar_test_data(download_directory, self.hparams['permute'])
-
-        elif self.hparams['task'] == 'spherical':
-            testset = self.test_data
-
-        elif self.hparams['task'] == 'sEMG' or self.hparams.task == 'ninapro':
-            #testset = utils.load_sEMG_test_data(download_directory)
-            testset = self.test_data
-
-        else:
-            pass
+        testset = self.test_data
 
         self.test_loader = torch.utils.data.DataLoader(testset, batch_size=self.context.get_per_slot_batch_size(),
                                                        shuffle=False, num_workers=2)

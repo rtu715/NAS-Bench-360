@@ -28,7 +28,6 @@ bind_mounts:
 hyperparameters:
   task: ninapro 
 
-  num_classes: 18
   learning_rate: 0.025
   momentum: 0.9
   weight_decay: 3e-4

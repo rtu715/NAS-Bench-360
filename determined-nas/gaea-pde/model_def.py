@@ -19,11 +19,13 @@ from determined.pytorch import (
 
 from data import BilevelDataset
 from model_search import Network
+from model_eval import DiscretizedNetwork
 from optimizer import EG
 from utils import AttrDict, LpLoss, MatReader, UnitGaussianNormalizer
 import utils
 
 TorchData = Union[Dict[str, torch.Tensor], Sequence[torch.Tensor], torch.Tensor]
+Genotype = namedtuple("Genotype", "normal normal_concat reduce reduce_concat")
 
 
 class GenotypeCallback(PyTorchCallback):
@@ -42,49 +44,104 @@ class GAEASearchTrial(PyTorchTrial):
         self.last_epoch = 0
 
         self.download_directory = self.download_data_from_s3()
-        self.grid, self.s = utils.create_grid(self.hparams["sub"])
 
+        if self.hparams.task == 'pde':
+            self.grid, self.s = utils.create_grid(self.hparams["sub"])
+            self.criterion = LpLoss(size_average=False)
+
+        else:
+            self.criterion = nn.CrossEntropyLoss()
 
         # Initialize the models.
-        self.criterion = LpLoss(size_average=False)
-        self.model = self.context.wrap_model(
-            Network(
+        if self.hparams.train:
+            self.model = self.context.wrap_model(
+                Network(
+                    self.hparams.init_channels,
+                    self.hparams.n_classes,
+                    self.hparams.layers,
+                    self.criterion,
+                    self.hparams.nodes,
+                    self.hparams.multiplier,
+                    width=self.hparams.width,
+                    k=self.hparams.shuffle_factor,
+                )
+            )
+
+            # Initialize the optimizers and learning rate scheduler.
+            self.ws_opt = self.context.wrap_optimizer(
+                torch.optim.SGD(
+                    self.model.ws_parameters(),
+                    self.hparams.learning_rate,
+                    momentum=self.hparams.momentum,
+                    weight_decay=self.hparams.weight_decay,
+                )
+            )
+            self.arch_opt = self.context.wrap_optimizer(
+                EG(
+                    self.model.arch_parameters(),
+                    self.hparams.arch_learning_rate,
+                    lambda p: p / p.sum(dim=-1, keepdim=True),
+                )
+            )
+
+            self.lr_scheduler = self.context.wrap_lr_scheduler(
+                lr_scheduler=CosineAnnealingLR(
+                    self.ws_opt,
+                    self.hparams.scheduler_epochs,
+                    self.hparams.min_learning_rate,
+                ),
+                step_mode=LRScheduler.StepMode.STEP_EVERY_EPOCH,
+            )
+
+        else:
+            searched_genotype = Genotype(normal=[('sep_conv_5x5', 0),
+                                        ('sep_conv_3x3', 1),
+                                        ('max_pool_3x3', 0),
+                                        ('sep_conv_5x5', 1),
+                                        ('dil_conv_3x3', 0),
+                                        ('dil_conv_3x3', 2),
+                                        ('sep_conv_3x3', 2),
+                                        ('sep_conv_3x3', 0)],
+                                normal_concat=range(2, 6),
+                                reduce=[('skip_connect', 0),
+                                        ('avg_pool_3x3', 1),
+                                        ('dil_conv_3x3', 2),
+                                        ('max_pool_3x3', 0),
+                                        ('sep_conv_3x3', 2),
+                                        ('sep_conv_5x5', 0),
+                                        ('dil_conv_5x5', 3),
+                                        ('sep_conv_5x5', 2)],
+                                reduce_concat=range(2, 6))
+
+            model = DiscretizedNetwork(
                 self.hparams.init_channels,
                 self.hparams.n_classes,
                 self.hparams.layers,
-                self.criterion,
-                self.hparams.nodes,
-                self.hparams.multiplier,
-                width = self.hparams.width,
-                k=self.hparams.shuffle_factor,
+                searched_genotype,
+                in_channels=3,
+                drop_path_prob=self.context.get_hparam("drop_path_prob"),
             )
-        )
 
-        # Initialize the optimizers and learning rate scheduler.
-        self.ws_opt = self.context.wrap_optimizer(
-            torch.optim.SGD(
-                self.model.ws_parameters(),
-                self.hparams.learning_rate,
-                momentum=self.hparams.momentum,
-                weight_decay=self.hparams.weight_decay,
-            )
-        )
-        self.arch_opt = self.context.wrap_optimizer(
-            EG(
-                self.model.arch_parameters(),
-                self.hparams.arch_learning_rate,
-                lambda p: p / p.sum(dim=-1, keepdim=True),
-            )
-        )
+            self.model = self.context.wrap_model(model)
 
-        self.lr_scheduler = self.context.wrap_lr_scheduler(
-            lr_scheduler=CosineAnnealingLR(
-                self.ws_opt,
-                self.hparams.scheduler_epochs,
-                self.hparams.min_learning_rate,
-            ),
-            step_mode=LRScheduler.StepMode.STEP_EVERY_EPOCH,
-        )
+            self.optimizer = self.context.wrap_optimizer(
+                torch.optim.SGD(
+                    self.model.parameters(),
+                    lr=self.context.get_hparam("learning_rate"),
+                    momentum=self.context.get_hparam("momentum"),
+                    weight_decay=self.context.get_hparam("weight_decay"),
+                )
+            )
+
+            self.lr_scheduler = self.context.wrap_lr_scheduler(
+                lr_scheduler=CosineAnnealingLR(
+                    self.optimizer,
+                    50,
+                    0,
+                ),
+                step_mode=LRScheduler.StepMode.STEP_EVERY_EPOCH,
+            )
+
 
     def download_data_from_s3(self):
         '''Download pde data from s3 to store in temp directory'''
@@ -108,25 +165,40 @@ class GAEASearchTrial(PyTorchTrial):
         For bi-level NAS, we'll need each instance from the dataloader to have one image
         for training shared-weights and another for updating architecture parameters.
         """
-        ntrain = 1000
-        ntest= 100
-        s = self.s
-        r = self.hparams["sub"]
-
         TRAIN_PATH = os.path.join(self.download_directory, 'piececonst_r421_N1024_smooth1.mat')
         self.reader = MatReader(TRAIN_PATH)
-        x_train = self.reader.read_field('coeff')[:ntrain-ntest, ::r, ::r][:, :s, :s]
-        y_train = self.reader.read_field('sol')[:ntrain-ntest, ::r, ::r][:, :s, :s]
+        s = self.s
+        r = self.hparams["sub"]
+        ntrain = 1000
+        ntest = 100
 
-        self.x_normalizer = UnitGaussianNormalizer(x_train)
-        x_train = self.x_normalizer.encode(x_train)
+        if self.hparams.train:
+            x_train = self.reader.read_field('coeff')[:ntrain-ntest, ::r, ::r][:, :s, :s]
+            y_train = self.reader.read_field('sol')[:ntrain-ntest, ::r, ::r][:, :s, :s]
 
-        self.y_normalizer = UnitGaussianNormalizer(y_train)
-        y_train = self.y_normalizer.encode(y_train)
-        
-        ntrain = ntrain - ntest
-        x_train = torch.cat([x_train.reshape(ntrain, s, s, 1), self.grid.repeat(ntrain, 1, 1, 1)], dim=3)
-        train_data = torch.utils.data.TensorDataset(x_train, y_train)
+            self.x_normalizer = UnitGaussianNormalizer(x_train)
+            x_train = self.x_normalizer.encode(x_train)
+
+            self.y_normalizer = UnitGaussianNormalizer(y_train)
+            y_train = self.y_normalizer.encode(y_train)
+
+            ntrain = ntrain - ntest
+            x_train = torch.cat([x_train.reshape(ntrain, s, s, 1), self.grid.repeat(ntrain, 1, 1, 1)], dim=3)
+            train_data = torch.utils.data.TensorDataset(x_train, y_train)
+
+        else:
+            x_train = self.reader.read_field('coeff')[:ntrain, ::r, ::r][:, :s, :s]
+            y_train = self.reader.read_field('sol')[:ntrain, ::r, ::r][:, :s, :s]
+
+            self.x_normalizer = UnitGaussianNormalizer(x_train)
+            x_train = self.x_normalizer.encode(x_train)
+
+            self.y_normalizer = UnitGaussianNormalizer(y_train)
+            y_train = self.y_normalizer.encode(y_train)
+
+            x_train = torch.cat([x_train.reshape(ntrain, s, s, 1), self.grid.repeat(ntrain, 1, 1, 1)], dim=3)
+            train_data = torch.utils.data.TensorDataset(x_train, y_train)
+
 
         bilevel_data = BilevelDataset(train_data)
 
@@ -145,26 +217,28 @@ class GAEASearchTrial(PyTorchTrial):
         ntest = 100
         s = self.s
         r = self.hparams["sub"]
-        '''
-        TEST_PATH = os.path.join(self.download_directory, 'piececonst_r421_N1024_smooth1.mat')
-        reader = MatReader(TEST_PATH)
-        x_test = reader.read_field('coeff')[:ntest, ::r, ::r][:, :s, :s]
-        y_test = reader.read_field('sol')[:ntest, ::r, ::r][:, :s, :s]
 
-        x_test = self.x_normalizer.encode(x_test)
-        x_test = torch.cat([x_test.reshape(ntest, s, s, 1), self.grid.repeat(ntest, 1, 1, 1)], dim=3)
-        '''
+        if self.hparams.train:
+            x_test = self.reader.read_field('coeff')[ntrain-ntest:ntrain, ::r, ::r][:, :s, :s]
+            y_test = self.reader.read_field('sol')[ntrain-ntest:ntrain, ::r, ::r][:, :s, :s]
 
-        x_test = self.reader.read_field('coeff')[ntrain-ntest:ntrain, ::r, ::r][:, :s, :s]
-        y_test = self.reader.read_field('sol')[ntrain-ntest:ntrain, ::r, ::r][:, :s, :s]
+            x_test = self.x_normalizer.encode(x_test)
+            x_test = torch.cat([x_test.reshape(ntest, s, s, 1), self.grid.repeat(ntest, 1, 1, 1)], dim=3)
 
-        x_test = self.x_normalizer.encode(x_test)
+        else:
+            TEST_PATH = os.path.join(self.download_directory, 'piececonst_r421_N1024_smooth1.mat')
+            reader = MatReader(TEST_PATH)
+            x_test = reader.read_field('coeff')[:ntest, ::r, ::r][:, :s, :s]
+            y_test = reader.read_field('sol')[:ntest, ::r, ::r][:, :s, :s]
 
+            x_test = self.x_normalizer.encode(x_test)
+            x_test = torch.cat([x_test.reshape(ntest, s, s, 1), self.grid.repeat(ntest, 1, 1, 1)], dim=3)
 
-        x_test = torch.cat([x_test.reshape(ntest, s, s, 1), self.grid.repeat(ntest, 1, 1, 1)], dim=3)
 
         return DataLoader(torch.utils.data.TensorDataset(x_test, y_test),
                           batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=2,)
+
+
 
     def train_batch(
         self, batch: TorchData, epoch_idx: int, batch_idx: int

@@ -23,7 +23,7 @@ from xd.ops import Conv
 import utils_pt
 
 from data_utils.load_data import load_data
-from data_utils.download_data import download_data_from_s3 
+from data_utils.download_data import download_from_s3
 
 # Constants about the dataset here (need to modify)
 
@@ -161,27 +161,8 @@ class XDTrial(PyTorchTrial):
         download_directory = f"/tmp/data-rank{self.context.distributed.get_rank()}"
         s3 = boto3.client("s3")
         os.makedirs(download_directory, exist_ok=True)
-        '''
-        if self.hparams.task == 'spherical':
-            data_files = ["s2_mnist.gz"]
-            for data_file in data_files:
-                filepath = os.path.join(download_directory, data_file)
-                if not os.path.exists(filepath):
-                    s3.download_file(s3_bucket, data_file, filepath)
 
-            self.train_data, self.val_data, self.test_data = utils_pt.load_spherical_data(download_directory)
-
-        elif self.hparams.task == 'sEMG':
-            data_files = ["saved_evaluation_dataset_test0.npy", "saved_evaluation_dataset_test1.npy",
-                          "saved_evaluation_dataset_training.npy", "saved_pre_training_dataset_spectrogram.npy"]
-            for data_file in data_files:
-                filepath = os.path.join(download_directory, data_file)
-                if not os.path.exists(filepath):
-                    s3.download_file(s3_bucket, data_file, filepath)
-
-            self.train_data, self.val_data, self.test_data = utils_pt.load_sEMG_data(download_directory)
-        '''
-        download_data_from_s3(s3_bucket, self.hparams.task, download_directory)
+        download_from_s3(s3_bucket, self.hparams.task, download_directory)
 
         if self.hparams.train:
             self.train_data, self.val_data, self.test_data = load_data(self.hparams.task, download_directory, True) 
@@ -198,7 +179,6 @@ class XDTrial(PyTorchTrial):
         return DataLoader(trainset, batch_size=self.context.get_per_slot_batch_size())
 
     def build_validation_data_loader(self) -> DataLoader:
-
 
         valset = self.val_data
 

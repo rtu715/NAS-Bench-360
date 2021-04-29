@@ -41,6 +41,10 @@ from lr_schedulers import *
 
 import utils
 
+from data_utils.load_data import load_data
+from data_utils.download_data import download_from_s3
+
+
 Genotype = namedtuple("Genotype", "normal normal_concat reduce reduce_concat")
 
 
@@ -142,21 +146,22 @@ class GAEAEvalTrial(PyTorchTrial):
                 ('sep_conv_5x5', 2)], 
             reduce_concat=range(2, 6))
 
+        dataset_hypers = {'sEMG': (7, 1), 'ninapro': (18, 1), 'cifar': (10, 3), 'spherical': (10, 1)}
+        n_classes, in_channels = dataset_hypers[self.context.get_hparam('task')]
+
         model = Network(
             self.context.get_hparam("init_channels"),
-            self.context.get_hparam("num_classes"),
+            n_classes,
             self.context.get_hparam("layers"),
             genotype,
-            in_channels=3 if self.context.get_hparam('task') == 'cifar' else 1,
+            in_channels=in_channels,
             drop_path_prob=self.context.get_hparam("drop_path_prob"),
         )
 
         return model
 
-
+    '''
     def download_data_from_s3(self):
-        '''Download data from s3 to store in temp directory'''
-
         s3_bucket = self.context.get_data_config()["bucket"]
         download_directory = f"/tmp/data-rank{self.context.distributed.get_rank()}"
         s3 = boto3.client("s3")
@@ -203,6 +208,20 @@ class GAEAEvalTrial(PyTorchTrial):
             pass
 
         return download_directory
+    '''
+    def download_data_from_s3(self):
+        '''Download data from s3 to store in temp directory'''
+
+        s3_bucket = self.context.get_data_config()["bucket"]
+        download_directory = f"/tmp/data-rank{self.context.distributed.get_rank()}"
+        s3 = boto3.client("s3")
+        os.makedirs(download_directory, exist_ok=True)
+
+        download_from_s3(s3_bucket, self.hparams.task, download_directory)
+
+        self.train_data, _ , self.val_data = load_data(self.hparams.task, download_directory, False)
+
+        return download_directory
 
 
 
@@ -221,7 +240,7 @@ class GAEAEvalTrial(PyTorchTrial):
 
     def build_validation_data_loader(self) -> DataLoader:
 
-        valid_data = self.test_data
+        valid_data = self.val_data
 
         valid_queue = DataLoader(
             valid_data,
