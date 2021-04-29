@@ -22,8 +22,8 @@ from xd.ops import Conv
 
 import utils_pt
 
-from data.load_data import load_data
-from data.download_data import download_data_from_s3 
+from data_utils.load_data import load_data
+from data_utils.download_data import download_data_from_s3 
 
 # Constants about the dataset here (need to modify)
 
