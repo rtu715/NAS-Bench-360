@@ -1,16 +1,5 @@
-description: pde-xd--search
+description: pde-xd-search
 
-#provider:
-#  container_startup_script: |
-#      export HOME=/root
-#      apt-get update && apt-get install -y curl docker.io
-#      apt install amazon-ecr-credential-helper
-#      aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 212469337107.dkr.ecr.us-east-1.amazonaws.com
-
-#environment:
-#  image: "212469337107.dkr.ecr.us-east-1.amazonaws.com/xd:determined"
-
-environment:
   image: "renbotu/xd-nas:determined1.8"
   registry_auth:
     username: renbotu
@@ -23,7 +12,8 @@ data:
   bucket: pde-xd
 
 hyperparameters:
-  train: true
+  task: pde
+  train: false
 
   learning_rate: 0.001
   momentum: 0.9
@@ -48,7 +38,7 @@ hyperparameters:
 resources:
   slots_per_trial: 1
 
-records_per_epoch: 1000
+records_per_epoch: 900
 
 searcher:
   name: single
@@ -59,6 +49,6 @@ searcher:
 min_validation_period:
   epochs: 1
 
-max_restarts: 10
+max_restarts: 100
 
 entrypoint: model_pde:XDTrial

@@ -326,22 +326,25 @@ class GAEASearchTrial(PyTorchTrial):
                     self.context.get_hparam("clip_gradients_l2_norm"),
                 ),
             )
-            # Train arch parameters
-            for a in self.model.arch_parameters():
-                a.requires_grad = True
-            for w in self.model.ws_parameters():
-                w.requires_grad = False
 
-            logits = self.model(x_val)
-            if self.hparams.task =='pde':
-                target = self.y_normalizer.decode(y_val)
-                logits = self.y_normalizer.decode(logits)
-                arch_loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1))
-            elif self.hparams.task =='protein':
-                arch_loss = self.criterion(logits, y_val)
+            arch_loss = 0.0
+            if epoch_idx > 10:
+                # Train arch parameters
+                for a in self.model.arch_parameters():
+                    a.requires_grad = True
+                for w in self.model.ws_parameters():
+                    w.requires_grad = False
 
-            self.context.backward(arch_loss)
-            self.context.step_optimizer(self.arch_opt)
+                logits = self.model(x_val)
+                if self.hparams.task =='pde':
+                    target = self.y_normalizer.decode(y_val)
+                    logits = self.y_normalizer.decode(logits)
+                    arch_loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1))
+                elif self.hparams.task =='protein':
+                    arch_loss = self.criterion(logits, y_val)
+
+                self.context.backward(arch_loss)
+                self.context.step_optimizer(self.arch_opt)
 
         else: 
             if self.hparams.task =='pde':
@@ -370,19 +373,6 @@ class GAEASearchTrial(PyTorchTrial):
             "loss": loss,
             "arch_loss": arch_loss,
         }
-    '''
-    def evaluate_batch(self, batch: TorchData) -> Dict[str, Any]:
-        input, target = batch
-        batch_size = self.context.get_per_slot_batch_size()
-
-        logits = self.model(input)
-        logits = self.y_normalizer.decode(logits)
-
-        loss = self.criterion(logits.view(batch_size, -1), target.view(batch_size, -1)).item()
-        validation_error = loss / batch_size
-
-        return {"validation_error": validation_error}
-    '''
 
     def evaluate_full_dataset(
         self, data_loader: torch.utils.data.DataLoader
@@ -391,8 +381,6 @@ class GAEASearchTrial(PyTorchTrial):
         loss_sum = 0
         error_sum = 0
         num_batches = 0
-        ntest = 100
-        batch_size = self.context.get_per_slot_batch_size()
 
         with torch.no_grad():
             for batch in data_loader:

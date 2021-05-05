@@ -201,3 +201,26 @@ class LpLoss(object):
     def __call__(self, x, y):
         return self.rel(x, y)
 
+#Loss for protein folding task
+class LogCoshLoss(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, y_t, y_prime_t):
+        ey_t = y_t - y_prime_t
+        return torch.mean(torch.log(torch.cosh(ey_t + 1e-12)))
+
+
+
+def create_grid(sub):
+    '''construct a grid for pde data'''
+    s = int(((421 - 1) / sub) + 1)
+    grids = []
+    grids.append(np.linspace(0, 1, s))
+    grids.append(np.linspace(0, 1, s))
+    grid = np.vstack([xx.ravel() for xx in np.meshgrid(*grids)]).T
+    grid = grid.reshape(1, s, s, 2)
+    grid = torch.tensor(grid, dtype=torch.float)
+
+    return grid, s
+
