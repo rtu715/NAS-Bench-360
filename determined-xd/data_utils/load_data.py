@@ -24,7 +24,7 @@ def load_data(task, path, train=True):
     elif task == 'ninapro':
         return load_ninapro_data(path, train)
 
-    elif task == 'cifar':
+    elif task == 'cifar10':
         trainset, valset = load_cifar_train_data(path, False, 0.2, train)
         testset = load_cifar_test_data(path, False)
         return trainset, valset, testset

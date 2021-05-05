@@ -57,7 +57,7 @@ class GAEASearchTrial(PyTorchTrial):
         '''
         self.download_directory = self.download_data_from_s3()
 
-        dataset_hypers = {'sEMG': (7, 1), 'ninapro': (18, 1), 'cifar': (10, 3), 'spherical': (10, 1)}
+        dataset_hypers = {'sEMG': (7, 1), 'ninapro': (18, 1), 'cifar10': (10, 3), 'spherical': (10, 1)}
         n_classes, in_channels = dataset_hypers[self.hparams.task]
 
 
@@ -212,16 +212,25 @@ class GAEASearchTrial(PyTorchTrial):
             w.requires_grad = True
         loss = self.model._loss(x_train, y_train)
         self.context.backward(loss)
-        self.context.step_optimizer(self.ws_opt)
+        self.context.step_optimizer(
+            optimizer=self.ws_opt,
+            clip_grads=lambda params: torch.nn.utils.clip_grad_norm_(
+                params,
+                self.context.get_hparam("clip_gradients_l2_norm"),
+            ),
+        )
 
+        arch_loss = 0.0
         # Train arch parameters
-        for a in self.model.arch_parameters():
-            a.requires_grad = True
-        for w in self.model.ws_parameters():
-            w.requires_grad = False
-        arch_loss = self.model._loss(x_val, y_val)
-        self.context.backward(arch_loss)
-        self.context.step_optimizer(self.arch_opt)
+        if epoch_idx > 10:
+            print('trained arch')
+            for a in self.model.arch_parameters():
+                a.requires_grad = True
+            for w in self.model.ws_parameters():
+                w.requires_grad = False
+            arch_loss = self.model._loss(x_val, y_val)
+            self.context.backward(arch_loss)
+            self.context.step_optimizer(self.arch_opt)
 
         return {
             "loss": loss,

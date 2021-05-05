@@ -4,6 +4,7 @@ from collections import namedtuple
 import boto3
 import os
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -22,6 +23,7 @@ from model_search import Network
 from model_eval import DiscretizedNetwork
 from optimizer import EG
 from utils import AttrDict, LpLoss, MatReader, UnitGaussianNormalizer
+from utils import LogCoshLoss
 import utils
 
 TorchData = Union[Dict[str, torch.Tensor], Sequence[torch.Tensor], torch.Tensor]
@@ -53,9 +55,16 @@ class GAEASearchTrial(PyTorchTrial):
         if self.hparams.task == 'pde':
             self.grid, self.s = utils.create_grid(self.hparams["sub"])
             self.criterion = LpLoss(size_average=False)
+            self.in_channels = 3
+
+        elif self.hparams.task == 'protein':
+            self.criterion = LogCoshLoss()
+            #error is reported via MAE
+            self.error = nn.L1Loss()
+            self.in_channels = 57
 
         else:
-            self.criterion = nn.CrossEntropyLoss()
+            raise NotImplementedError
 
         # Initialize the models.
         if self.hparams.train:
@@ -67,7 +76,7 @@ class GAEASearchTrial(PyTorchTrial):
                     self.criterion,
                     self.hparams.nodes,
                     self.hparams.multiplier,
-                    in_channels=3,
+                    self.in_channels,
                     width=self.hparams.width,
                     k=self.hparams.shuffle_factor,
                 )
@@ -137,15 +146,26 @@ class GAEASearchTrial(PyTorchTrial):
 
         s3_bucket = self.context.get_data_config()["bucket"]
         download_directory = f"/tmp/data-rank{self.context.distributed.get_rank()}"
-        data_files = ["piececonst_r421_N1024_smooth1.mat", "piececonst_r421_N1024_smooth2.mat"]
+        
+        if self.hparams.task == 'pde':
+            data_files = ["piececonst_r421_N1024_smooth1.mat", "piececonst_r421_N1024_smooth2.mat"]
+            s3_path = '.'
+
+        elif self.hparams.task == 'protein':
+            data_files =['X_train.npz', 'X_valid.npz', 'Y_train.npz', 'Y_valid.npz']
+            s3_path = 'protein'
+
+        else:
+            raise NotImplementedError
 
         s3 = boto3.client("s3")
         os.makedirs(download_directory, exist_ok=True)
 
         for data_file in data_files:
             filepath = os.path.join(download_directory, data_file)
+            s3_loc = os.path.join(s3_path, data_file)
             if not os.path.exists(filepath):
-                s3.download_file(s3_bucket, data_file, filepath)
+                s3.download_file(s3_bucket, s3_loc, filepath)
 
         return download_directory
 
@@ -154,40 +174,57 @@ class GAEASearchTrial(PyTorchTrial):
         For bi-level NAS, we'll need each instance from the dataloader to have one image
         for training shared-weights and another for updating architecture parameters.
         """
-        TRAIN_PATH = os.path.join(self.download_directory, 'piececonst_r421_N1024_smooth1.mat')
-        self.reader = MatReader(TRAIN_PATH)
-        s = self.s
-        r = self.hparams["sub"]
-        ntrain = 1000
-        ntest = 100
 
-        if self.hparams.train:
-            x_train = self.reader.read_field('coeff')[:ntrain-ntest, ::r, ::r][:, :s, :s]
-            y_train = self.reader.read_field('sol')[:ntrain-ntest, ::r, ::r][:, :s, :s]
+        if self.hparams.task =='pde':
+            TRAIN_PATH = os.path.join(self.download_directory, 'piececonst_r421_N1024_smooth1.mat')
+            self.reader = MatReader(TRAIN_PATH)
+            s = self.s
+            r = self.hparams["sub"]
+            ntrain = 1000
+            ntest = 100
+            if self.hparams.train:
+                x_train = self.reader.read_field('coeff')[:ntrain-ntest, ::r, ::r][:, :s, :s]
+                y_train = self.reader.read_field('sol')[:ntrain-ntest, ::r, ::r][:, :s, :s]
 
-            self.x_normalizer = UnitGaussianNormalizer(x_train)
-            x_train = self.x_normalizer.encode(x_train)
+                self.x_normalizer = UnitGaussianNormalizer(x_train)
+                x_train = self.x_normalizer.encode(x_train)
 
-            self.y_normalizer = UnitGaussianNormalizer(y_train)
-            y_train = self.y_normalizer.encode(y_train)
+                self.y_normalizer = UnitGaussianNormalizer(y_train)
+                y_train = self.y_normalizer.encode(y_train)
 
-            ntrain = ntrain - ntest
-            x_train = torch.cat([x_train.reshape(ntrain, s, s, 1), self.grid.repeat(ntrain, 1, 1, 1)], dim=3)
+                ntrain = ntrain - ntest
+                x_train = torch.cat([x_train.reshape(ntrain, s, s, 1), self.grid.repeat(ntrain, 1, 1, 1)], dim=3)
+                train_data = torch.utils.data.TensorDataset(x_train, y_train)
+
+            else:
+                x_train = self.reader.read_field('coeff')[:ntrain, ::r, ::r][:, :s, :s]
+                y_train = self.reader.read_field('sol')[:ntrain, ::r, ::r][:, :s, :s]
+
+                self.x_normalizer = UnitGaussianNormalizer(x_train)
+                x_train = self.x_normalizer.encode(x_train)
+
+                self.y_normalizer = UnitGaussianNormalizer(y_train)
+                y_train = self.y_normalizer.encode(y_train)
+
+                x_train = torch.cat([x_train.reshape(ntrain, s, s, 1), self.grid.repeat(ntrain, 1, 1, 1)], dim=3)
+                train_data = torch.utils.data.TensorDataset(x_train, y_train)
+
+        elif self.hparams.task == 'protein':
+            os.chdir(self.download_directory)
+            x_train = np.load('X_train.npz')
+            y_train = np.load('Y_train.npz')
+            
+            x_train = torch.from_numpy(x_train.f.arr_0)
+            y_train = torch.from_numpy(y_train.f.arr_0)
+            
+            if self.hparams.train:
+                #save 100 samples from train set as validation
+                x_train = x_train[100:]
+                y_train = y_train[100:]
+                
+    
             train_data = torch.utils.data.TensorDataset(x_train, y_train)
-
-        else:
-            x_train = self.reader.read_field('coeff')[:ntrain, ::r, ::r][:, :s, :s]
-            y_train = self.reader.read_field('sol')[:ntrain, ::r, ::r][:, :s, :s]
-
-            self.x_normalizer = UnitGaussianNormalizer(x_train)
-            x_train = self.x_normalizer.encode(x_train)
-
-            self.y_normalizer = UnitGaussianNormalizer(y_train)
-            y_train = self.y_normalizer.encode(y_train)
-
-            x_train = torch.cat([x_train.reshape(ntrain, s, s, 1), self.grid.repeat(ntrain, 1, 1, 1)], dim=3)
-            train_data = torch.utils.data.TensorDataset(x_train, y_train)
-
+        
         print(x_train.shape)
         print(y_train.shape)
         bilevel_data = BilevelDataset(train_data)
@@ -203,26 +240,45 @@ class GAEASearchTrial(PyTorchTrial):
         return train_queue
 
     def build_validation_data_loader(self) -> DataLoader:
-        ntrain= 1000
-        ntest = 100
-        s = self.s
-        r = self.hparams["sub"]
+        
+        if self.hparams.task == 'pde':
+            ntrain= 1000
+            ntest = 100
+            s = self.s
+            r = self.hparams["sub"]
 
-        if self.hparams.train:
-            x_test = self.reader.read_field('coeff')[ntrain-ntest:ntrain, ::r, ::r][:, :s, :s]
-            y_test = self.reader.read_field('sol')[ntrain-ntest:ntrain, ::r, ::r][:, :s, :s]
+            if self.hparams.train:
+                x_test = self.reader.read_field('coeff')[ntrain-ntest:ntrain, ::r, ::r][:, :s, :s]
+                y_test = self.reader.read_field('sol')[ntrain-ntest:ntrain, ::r, ::r][:, :s, :s]
 
-            x_test = self.x_normalizer.encode(x_test)
-            x_test = torch.cat([x_test.reshape(ntest, s, s, 1), self.grid.repeat(ntest, 1, 1, 1)], dim=3)
+                x_test = self.x_normalizer.encode(x_test)
+                x_test = torch.cat([x_test.reshape(ntest, s, s, 1), self.grid.repeat(ntest, 1, 1, 1)], dim=3)
 
-        else:
-            TEST_PATH = os.path.join(self.download_directory, 'piececonst_r421_N1024_smooth1.mat')
-            reader = MatReader(TEST_PATH)
-            x_test = reader.read_field('coeff')[:ntest, ::r, ::r][:, :s, :s]
-            y_test = reader.read_field('sol')[:ntest, ::r, ::r][:, :s, :s]
+            else:
+                TEST_PATH = os.path.join(self.download_directory, 'piececonst_r421_N1024_smooth1.mat')
+                reader = MatReader(TEST_PATH)
+                x_test = reader.read_field('coeff')[:ntest, ::r, ::r][:, :s, :s]
+                y_test = reader.read_field('sol')[:ntest, ::r, ::r][:, :s, :s]
 
-            x_test = self.x_normalizer.encode(x_test)
-            x_test = torch.cat([x_test.reshape(ntest, s, s, 1), self.grid.repeat(ntest, 1, 1, 1)], dim=3)
+                x_test = self.x_normalizer.encode(x_test)
+                x_test = torch.cat([x_test.reshape(ntest, s, s, 1), self.grid.repeat(ntest, 1, 1, 1)], dim=3)
+
+        elif self.hparams.task == 'protein': 
+            
+            if self.hparams.train: 
+                x_train = np.load('X_train.npz')
+                y_train = np.load('Y_train.npz')
+                
+                x_train = torch.from_numpy(x_train.f.arr_0) 
+                y_train = torch.from_numpy(y_train.f.arr_0)
+                x_test = x_train[:100]
+                y_test = y_train[:100]
+
+            else:
+                x_test = np.load('X_valid.npz')
+                y_test = np.load('Y_valid.npz')
+                x_test = torch.from_numpy(x_test.f.arr_0)
+                y_test = torch.from_numpy(y_test.f.arr_0)
 
 
         return DataLoader(torch.utils.data.TensorDataset(x_test, y_test),
@@ -246,16 +302,30 @@ class GAEASearchTrial(PyTorchTrial):
             for w in self.model.ws_parameters():
                 w.requires_grad = True
 
-            self.y_normalizer.cuda()
             logits = self.model(x_train)
-            target = self.y_normalizer.decode(y_train)
-            logits = self.y_normalizer.decode(logits)
             
-            loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1))
+            if self.hparams.task =='pde':
+                self.y_normalizer.cuda()
+                target = self.y_normalizer.decode(y_train)
+                logits = self.y_normalizer.decode(logits)
+                
+                loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1))
+            
+            elif self.hparams.task == 'protein':
+                loss = self.criterion(logits, y_train)
+
+            else:
+                raise NotImplementedError
 
             self.context.backward(loss)
-            self.context.step_optimizer(self.ws_opt)
 
+            self.context.step_optimizer(
+                optimizer=self.ws_opt,
+                clip_grads=lambda params: torch.nn.utils.clip_grad_norm_(
+                    params,
+                    self.context.get_hparam("clip_gradients_l2_norm"),
+                ),
+            )
             # Train arch parameters
             for a in self.model.arch_parameters():
                 a.requires_grad = True
@@ -263,20 +333,28 @@ class GAEASearchTrial(PyTorchTrial):
                 w.requires_grad = False
 
             logits = self.model(x_val)
-            target = self.y_normalizer.decode(y_val)
-            logits = self.y_normalizer.decode(logits)
-            arch_loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1))
+            if self.hparams.task =='pde':
+                target = self.y_normalizer.decode(y_val)
+                logits = self.y_normalizer.decode(logits)
+                arch_loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1))
+            elif self.hparams.task =='protein':
+                arch_loss = self.criterion(logits, y_val)
 
             self.context.backward(arch_loss)
             self.context.step_optimizer(self.arch_opt)
 
         else: 
-            self.y_normalizer.cuda()
-            logits = self.model(x_train)
-            target = self.y_normalizer.decode(y_train)
-            logits = self.y_normalizer.decode(logits)
-            loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1))
+            if self.hparams.task =='pde':
+                self.y_normalizer.cuda()
+                logits = self.model(x_train)
+                target = self.y_normalizer.decode(y_train)
+                logits = self.y_normalizer.decode(logits)
+                loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1))
 
+            elif self.hparams.task =='protein':
+                logits = self.model(x_train)
+                loss = self.criterion(logits, y_train)
+            
             self.context.backward(loss)
             #self.context.step_optimizer(self.optimizer)
             self.context.step_optimizer(
@@ -310,7 +388,8 @@ class GAEASearchTrial(PyTorchTrial):
         self, data_loader: torch.utils.data.DataLoader
     ) -> Dict[str, Any]:
 
-        loss_avg = 0
+        loss_sum = 0
+        error_sum = 0
         num_batches = 0
         ntest = 100
         batch_size = self.context.get_per_slot_batch_size()
@@ -321,13 +400,20 @@ class GAEASearchTrial(PyTorchTrial):
                 input, target = batch
                 num_batches += 1
                 logits = self.model(input)
-                logits = self.y_normalizer.decode(logits)
-                
-                loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1)).item()
-                loss_avg += loss
+                if self.hparams.task == 'pde':
+                    logits = self.y_normalizer.decode(logits)
+                    loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1)).item()
+
+                elif self.hparams.task == 'protein':
+                    loss = self.criterion(logits, target)
+                    error = self.error(logits, target)
+
+                loss_sum += loss
+                error_sum += error
 
         results = {
-            "validation_error": loss_avg / ntest,
+            "validation_loss": loss_sum / num_batches,
+            "MAE": error_sum / num_batches,
         }
 
         return results

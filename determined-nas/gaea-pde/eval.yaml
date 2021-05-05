@@ -17,7 +17,7 @@ hyperparameters:
     # Number of classes in dataset
     n_classes: 1
     # Channel shuffle factor.  1 / shuffle_factor channels are activated at a given time.
-    shuffle_factor: 1
+    shuffle_factor: 4
     global_batch_size: 16
     learning_rate: 0.025
     momentum: 0.9

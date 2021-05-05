@@ -18,8 +18,11 @@ def download_from_s3(s3_bucket, task, download_dir):
         data_files = ['ninapro_data.npy', 'ninapro_label.npy']
         s3_folder = 'ninapro'
 
-    else: 
-        pass
+    elif task =='cifar10': 
+        return 
+
+    else:
+        raise NotImplementedError
 
     for data_file in data_files:
         filepath = os.path.join(download_dir, data_file)

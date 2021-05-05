@@ -11,13 +11,13 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-    task: pde
+    task: protein
     train: true
 
     # Number of classes in dataset
     n_classes: 1
     # Channel shuffle factor.  1 / shuffle_factor channels are activated at a given time.
-    shuffle_factor: 1
+    shuffle_factor: 4
     global_batch_size: 4
     learning_rate: 0.1
     momentum: 0.9
@@ -29,9 +29,10 @@ hyperparameters:
     init_channels: 16 #from pde
     layers: 8
     nodes: 4
-    multiplier: 1
+    multiplier: 4
     width: 32
     sub: 5
+    clip_gradients_l2_norm: 5
 
 resources:
   slots_per_trial: 1
@@ -40,9 +41,9 @@ min_validation_period:
   epochs: 1
 
 min_checkpoint_period:
-  epochs: 1
+  epochs: 2
 
-records_per_epoch: 450
+records_per_epoch: 1628
 searcher:
   name: single
   metric: validation_error 

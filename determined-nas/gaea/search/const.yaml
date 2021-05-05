@@ -1,4 +1,4 @@
-description: gaea_search
+description: cifar10_gaea_search_warmup
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -21,12 +21,14 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-    task: spherical 
+    task: cifar10 
     permute: false
 
     # Channel shuffle factor.  1 / shuffle_factor channels are activated at a given time.
     shuffle_factor: 4
-    global_batch_size: 512
+    global_batch_size: 256
+    
+    # these are default values
     learning_rate: 0.1
     momentum: 0.9
     min_learning_rate: 0
@@ -36,6 +38,7 @@ hyperparameters:
     init_channels: 16
     layers: 8
     nodes: 4
+    clip_gradients_l2_norm: 5
 
 resources:
   slots_per_trial: 1
@@ -46,7 +49,7 @@ min_validation_period:
 min_checkpoint_period:
   epochs: 2
 
-records_per_epoch: 148352
+records_per_epoch: 20000
 searcher:
   name: single
   metric: top1_accuracy 

@@ -44,6 +44,7 @@ class MixedOp(nn.Module):
         if temp1.shape[2] == x.shape[2]:
             ans = torch.cat([temp1, xtemp2], dim=1)
         else:
+            print(temp1.shape, ' vs ' ,xtemp2.shape, ' vs ', xtemp.shape)
             ans = torch.cat([temp1, self.mp(xtemp2)], dim=1)
         ans = channel_shuffle(ans, self.k)
         # ans = torch.cat([ans[ : ,  dim_2//4:, :, :],ans[ : , :  dim_2//4, :, :]],dim=1)
@@ -104,7 +105,7 @@ class Network(nn.Module):
         multiplier=4,
         in_channels=3,
         width=32,
-        k=1,
+        k=4,
     ):
         super(Network, self).__init__()
         self._C = C
@@ -118,15 +119,13 @@ class Network(nn.Module):
         self.stem = nn.Sequential(
             nn.Conv2d(in_channels, C_curr, 3, padding=1, bias=False), nn.BatchNorm2d(C_curr)
         )
-        C_prev_prev, C_prev, C_curr = C_curr, C_curr, width
+        C_prev_prev, C_prev, C_curr = C_curr, C_curr, C
         self.cells = nn.ModuleList()
         reduction_prev = False
-        reduction = False
         for i in range(layers):
             if i in [layers // 3, 2 * layers // 3]:
-                #C_curr *= 2
-                #reduction = True
-                pass
+                C_curr *= 2
+                reduction = True
             else:
                 reduction = False
             cell = Cell(
@@ -143,7 +142,7 @@ class Network(nn.Module):
             self.cells += [cell]
             C_prev_prev, C_prev = C_prev, multiplier * C_curr
             print('multiplier: ', multiplier)
-        #self.global_pooling = nn.AdaptiveAvgPool2d(1)
+        self.global_pooling = nn.AdaptiveAvgPool2d(85)
         self.classifier = nn.Linear(C_prev, num_classes)
 
         # Get the ws params before initializing alphas.
@@ -176,10 +175,9 @@ class Network(nn.Module):
                     n += 1
                     weights2 = torch.cat([weights2, tw2], dim=0)
             s0, s1 = s1, cell(s0, s1, weights, weights2)
-        #out = self.global_pooling(s1)
-        out = s1
+        out = self.global_pooling(s1)
         logits = self.classifier(out.permute(0, 2, 3, 1).contiguous())
-        return logits
+        return logits.squeeze()
 
     def _loss(self, input, target):
         logits = self(input)
