@@ -47,7 +47,7 @@ hyperparameters:
       - true
       - false
 
-
+  sub: 5
   global_batch_size: 10
 
   start_epoch: 0
@@ -77,4 +77,4 @@ min_validation_period:
 
 max_restarts: 100
 
-entrypoint: model_pde:XDTrial
+entrypoint: model_grid:XDTrial

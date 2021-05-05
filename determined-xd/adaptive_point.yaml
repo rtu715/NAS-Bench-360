@@ -109,4 +109,4 @@ min_checkpoint_period:
 
 max_restarts: 100
 
-entrypoint: model_vision:XDTrial
+entrypoint: model_point:XDTrial

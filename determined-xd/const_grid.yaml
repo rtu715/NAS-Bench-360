@@ -1,5 +1,5 @@
 description: pde-xd-search
-
+environment:
   image: "renbotu/xd-nas:determined1.8"
   registry_auth:
     username: renbotu
@@ -34,7 +34,8 @@ hyperparameters:
 
   warmup_epochs: 0
   cooldown_epochs: 0
-
+  
+  sub: 5
 resources:
   slots_per_trial: 1
 
@@ -51,4 +52,4 @@ min_validation_period:
 
 max_restarts: 100
 
-entrypoint: model_pde:XDTrial
+entrypoint: model_grid:XDTrial

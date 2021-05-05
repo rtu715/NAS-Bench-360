@@ -334,6 +334,7 @@ class XDTrial(PyTorchTrial):
                 if self.hparams.task == 'pde':
                     logits = self.y_normalizer.decode(logits)
                     loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1)).item()
+                    error = 0
 
                 elif self.hparams.task == 'protein':
                     loss = self.criterion(logits, target)
