@@ -54,7 +54,7 @@ searcher:
   metric: top1_accuracy 
   smaller_is_better: false 
   max_length:
-    epochs: 200
+    epochs: 600
 
 optimizations:
   aggregation_frequency:  1

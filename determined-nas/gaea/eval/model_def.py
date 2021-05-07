@@ -71,7 +71,7 @@ class GAEAEvalTrial(PyTorchTrial):
         self.lr_scheduler = self.context.wrap_lr_scheduler(
             lr_scheduler=CosineAnnealingLR(
                 self.optimizer,
-                50,
+                600,
                 0,
             ),
             step_mode=LRScheduler.StepMode.STEP_EVERY_EPOCH,
