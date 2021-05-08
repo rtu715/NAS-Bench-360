@@ -88,7 +88,7 @@ class Network(nn.Module):
         self._head_dim = self.config.optim.head_dim
         self._dataset = dataset
         # use 100-class sub dataset for search
-        self._num_classes = 100 
+        self._num_classes = 10 
 
         self.initialize()
 

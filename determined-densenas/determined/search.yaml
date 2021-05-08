@@ -21,7 +21,12 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
+  task: cifar10
+  train: true
+  num_examples: 50000
 
+  net_type: res
+  global_batch_size: 64
 
 resources:
   slots_per_trial: 1
@@ -32,13 +37,13 @@ min_validation_period:
 min_checkpoint_period:
   epochs: 2
 
-records_per_epoch: 40000
+records_per_epoch: 20000
 searcher:
   name: single
   metric: top1_accuracy
   smaller_is_better: false
   max_length:
-    epochs: 50
+    epochs: 70
 
 optimizations:
   aggregation_frequency:  1

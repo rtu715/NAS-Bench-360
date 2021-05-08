@@ -176,18 +176,20 @@ class XDTrial(PyTorchTrial):
     def build_training_data_loader(self) -> DataLoader:
 
         trainset = self.train_data
+        print(len(trainset))
         return DataLoader(trainset, batch_size=self.context.get_per_slot_batch_size())
 
     def build_validation_data_loader(self) -> DataLoader:
 
         valset = self.val_data
+        print(len(valset))
 
         return DataLoader(valset, batch_size=self.context.get_per_slot_batch_size())
 
     def build_test_data_loader(self, download_directory):
 
         testset = self.test_data
-
+        print(len(testset))
         self.test_loader = torch.utils.data.DataLoader(testset, batch_size=self.context.get_per_slot_batch_size(),
                                                        shuffle=False, num_workers=2)
         return
@@ -250,30 +252,31 @@ class XDTrial(PyTorchTrial):
             "top1_accuracy": acc_top1.item() / num_batches,
             "top5_accuracy": acc_top5.item() / num_batches,
         }
+        
+        if self.hparams.train:
+            test_acc_top1 = 0
+            test_acc_top5 = 0
+            test_loss_avg = 0
+            num_batches = 0
+            with torch.no_grad():
+                for batch in self.test_loader:
+                    batch = self.context.to_device(batch)
+                    input, target = batch
+                    num_batches += 1
+                    logits = self.model(input)
+                    loss = self.criterion(logits, target)
+                    top1, top5 = utils_pt.accuracy(logits, target, topk=(1, 5))
+                    test_acc_top1 += top1
+                    test_acc_top5 += top5
+                    test_loss_avg += loss
 
-        test_acc_top1 = 0
-        test_acc_top5 = 0
-        test_loss_avg = 0
-        num_batches = 0
-        with torch.no_grad():
-            for batch in self.test_loader:
-                batch = self.context.to_device(batch)
-                input, target = batch
-                num_batches += 1
-                logits = self.model(input)
-                loss = self.criterion(logits, target)
-                top1, top5 = utils_pt.accuracy(logits, target, topk=(1, 5))
-                test_acc_top1 += top1
-                test_acc_top5 += top5
-                test_loss_avg += loss
+            results2 = {
+                "test_loss": test_loss_avg.item() / num_batches,
+                "test_top1_accuracy": test_acc_top1.item() / num_batches,
+                "test_top5_accuracy": test_acc_top5.item() / num_batches,
+            }
 
-        results2 = {
-            "test_loss": test_loss_avg.item() / num_batches,
-            "test_top1_accuracy": test_acc_top1.item() / num_batches,
-            "test_top5_accuracy": test_acc_top5.item() / num_batches,
-        }
-
-        results.update(results2)
+            results.update(results2)
 
         if results["top1_accuracy"] > self.results["top1_accuracy"]:
             self.results = results

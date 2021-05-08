@@ -1,4 +1,4 @@
-description: xd-vision
+description: cifar10-xd-eval
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -21,15 +21,14 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-  task: ninapro
+  task: cifar10
   train: false
 
   #Number of classes in dataset
   permute: false
 
   #NN architecture backbone
-  layers: 22
-  widen_factor: 4
+  backbone: 16,8
   droprate: 0.0
 
   learning_rate: 0.1
@@ -38,7 +37,7 @@ hyperparameters:
   arch_lr: 1e-4
   arch_adam: true
 
-  global_batch_size: 32
+  global_batch_size: 64
 
   start_epoch: 0
   epochs: 200
@@ -54,12 +53,13 @@ hyperparameters:
 resources:
   slots_per_trial: 1
 
-records_per_epoch: 60000
+records_per_epoch: 50000
 # 50000 if cifar, 60000 if spherical
 
 searcher:
   name: single
-  metric: validation_error
+  metric: top1_accuracy
+  smaller_is_better: false 
   max_length:
     epochs: 200
 

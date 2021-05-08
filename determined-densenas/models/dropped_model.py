@@ -82,32 +82,32 @@ class Dropped_Network(nn.Module):
 
         self.softmax_temp = softmax_temp
         # static modules loading
-        self.input_block = super_model.module.input_block
-        if hasattr(super_model.module, 'head_block'):
-            self.head_block = super_model.module.head_block
-        self.conv1_1_block = super_model.module.conv1_1_block
-        self.global_pooling = super_model.module.global_pooling
-        self.classifier = super_model.module.classifier
+        self.input_block = super_model.input_block
+        if hasattr(super_model, 'head_block'):
+            self.head_block = super_model.head_block
+        self.conv1_1_block = super_model.conv1_1_block
+        self.global_pooling = super_model.global_pooling
+        self.classifier = super_model.classifier
 
         # architecture parameters loading
-        self.alpha_head_weights = super_model.module.alpha_head_weights
-        self.alpha_stack_weights = super_model.module.alpha_stack_weights
-        self.beta_weights = super_model.module.beta_weights
+        self.alpha_head_weights = super_model.alpha_head_weights
+        self.alpha_stack_weights = super_model.alpha_stack_weights
+        self.beta_weights = super_model.beta_weights
         self.alpha_head_index = alpha_head_index if alpha_head_index is not None else \
-                                                super_model.module.alpha_head_index
+                                                super_model.alpha_head_index
         self.alpha_stack_index = alpha_stack_index if alpha_stack_index is not None else \
-                                                super_model.module.alpha_stack_index
+                                                super_model.alpha_stack_index
 
         # config loading
-        self.config = super_model.module.config
-        self.input_configs = super_model.module.input_configs
-        self.output_configs = super_model.module.output_configs
-        self.sub_obj_list = super_model.module.sub_obj_list
+        self.config = super_model.config
+        self.input_configs = super_model.input_configs
+        self.output_configs = super_model.output_configs
+        self.sub_obj_list = super_model.sub_obj_list
 
         # dynamic blocks loading
         self.blocks = nn.ModuleList()
 
-        for i, block in enumerate(super_model.module.blocks):
+        for i, block in enumerate(super_model.blocks):
             input_config = self.input_configs[i]
 
             dropped_mixed_ops = []
