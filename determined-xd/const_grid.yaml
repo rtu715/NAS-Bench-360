@@ -43,7 +43,7 @@ records_per_epoch: 900
 
 searcher:
   name: single
-  metric: validation_error
+  metric: validation_loss
   max_length:
     epochs: 500
 

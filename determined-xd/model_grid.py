@@ -163,7 +163,7 @@ class XDTrial(PyTorchTrial):
 
         if self.hparams.task == 'pde':
             data_files = ["piececonst_r421_N1024_smooth1.mat", "piececonst_r421_N1024_smooth2.mat"]
-            s3_path = '.'
+            s3_path = None
 
         elif self.hparams.task == 'protein':
             data_files = ['X_train.npz', 'X_valid.npz', 'Y_train.npz', 'Y_valid.npz']
@@ -177,7 +177,7 @@ class XDTrial(PyTorchTrial):
 
         for data_file in data_files:
             filepath = os.path.join(download_directory, data_file)
-            s3_loc = os.path.join(s3_path, data_file)
+            s3_loc = os.path.join(s3_path, data_file) if s3_path is not None else data_file
             if not os.path.exists(filepath):
                 s3.download_file(s3_bucket, s3_loc, filepath)
 
@@ -307,7 +307,7 @@ class XDTrial(PyTorchTrial):
             loss = self.criterion(logits.view(logits.size(0), -1), target.view(logits.size(0), -1))
 
         elif self.hparams.task == 'protein':
-            loss = self.criterion(logits, y_train)
+            loss = self.criterion(logits, y_train.squeeze())
 
         self.context.backward(loss)
         self.context.step_optimizer(self.opt)
@@ -337,7 +337,7 @@ class XDTrial(PyTorchTrial):
                     error = 0
 
                 elif self.hparams.task == 'protein':
-                    loss = self.criterion(logits, target)
+                    loss = self.criterion(logits, target.squeeze())
                     error = self.error(logits, target)
 
                 loss_sum += loss

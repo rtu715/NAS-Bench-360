@@ -75,7 +75,7 @@ class XDTrial(PyTorchTrial):
         self.criterion = nn.CrossEntropyLoss().cuda()
 
 
-        dataset_hypers = {'sEMG': (7, 1), 'ninapro': (18, 1), 'cifar10': (10, 3), 'spherical': (10, 1)}
+        dataset_hypers = {'sEMG': (7, 1), 'ninapro': (18, 1), 'cifar10': (10, 3), 'spherical': (10, 1), 'cifar100':(100, 3)}
 
         n_classes, in_channels = dataset_hypers[self.hparams.task]
         print('task: ', self.hparams.task, 'in_channels: ',  in_channels, 'classes: ', n_classes)
@@ -165,11 +165,11 @@ class XDTrial(PyTorchTrial):
         download_from_s3(s3_bucket, self.hparams.task, download_directory)
 
         if self.hparams.train:
-            self.train_data, self.val_data, self.test_data = load_data(self.hparams.task, download_directory, True) 
+            self.train_data, self.val_data, self.test_data = load_data(self.hparams.task, download_directory, True, self.hparams.permute) 
             self.build_test_data_loader(download_directory)
         
         else:
-            self.train_data, _, self.val_data = load_data(self.hparams.task, download_directory, False)
+            self.train_data, _, self.val_data = load_data(self.hparams.task, download_directory, False, self.hparams.permute)
 
         return download_directory
 

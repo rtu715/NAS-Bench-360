@@ -1,4 +1,4 @@
-description: pde_gaea_search
+description: protein_gaea_search
 
 data:
   download_dir: /data
@@ -14,8 +14,6 @@ hyperparameters:
     task: protein
     train: true
 
-    # Number of classes in dataset
-    n_classes: 1
     # Channel shuffle factor.  1 / shuffle_factor channels are activated at a given time.
     shuffle_factor: 4
     global_batch_size: 4
@@ -43,10 +41,10 @@ min_validation_period:
 min_checkpoint_period:
   epochs: 2
 
-records_per_epoch: 1628
+records_per_epoch: 1628 
 searcher:
   name: single
-  metric: validation_error 
+  metric: MAE 
   max_length: 
     epochs: 50
 

@@ -56,12 +56,14 @@ class GAEASearchTrial(PyTorchTrial):
             self.grid, self.s = utils.create_grid(self.hparams["sub"])
             self.criterion = LpLoss(size_average=False)
             self.in_channels = 3
+            self.n_classes = 1
 
         elif self.hparams.task == 'protein':
             self.criterion = LogCoshLoss()
             #error is reported via MAE
             self.error = nn.L1Loss()
             self.in_channels = 57
+            self.n_classes = 1
 
         else:
             raise NotImplementedError
@@ -71,7 +73,7 @@ class GAEASearchTrial(PyTorchTrial):
             self.model = self.context.wrap_model(
                 Network(
                     self.hparams.init_channels,
-                    self.hparams.n_classes,
+                    self.n_classes,
                     self.hparams.layers,
                     self.criterion,
                     self.hparams.nodes,
@@ -113,7 +115,7 @@ class GAEASearchTrial(PyTorchTrial):
            
             model = DiscretizedNetwork(
                 self.hparams.init_channels,
-                self.hparams.n_classes,
+                self.n_classes,
                 self.hparams.layers,
                 searched_genotype,
                 in_channels=3,
@@ -149,7 +151,7 @@ class GAEASearchTrial(PyTorchTrial):
         
         if self.hparams.task == 'pde':
             data_files = ["piececonst_r421_N1024_smooth1.mat", "piececonst_r421_N1024_smooth2.mat"]
-            s3_path = '.'
+            s3_path = None
 
         elif self.hparams.task == 'protein':
             data_files =['X_train.npz', 'X_valid.npz', 'Y_train.npz', 'Y_valid.npz']
@@ -163,7 +165,7 @@ class GAEASearchTrial(PyTorchTrial):
 
         for data_file in data_files:
             filepath = os.path.join(download_directory, data_file)
-            s3_loc = os.path.join(s3_path, data_file)
+            s3_loc = os.path.join(s3_path, data_file) if s3_path is not None else data_file
             if not os.path.exists(filepath):
                 s3.download_file(s3_bucket, s3_loc, filepath)
 
@@ -308,11 +310,13 @@ class GAEASearchTrial(PyTorchTrial):
                 self.y_normalizer.cuda()
                 target = self.y_normalizer.decode(y_train)
                 logits = self.y_normalizer.decode(logits)
-                
                 loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1))
             
             elif self.hparams.task == 'protein':
-                loss = self.criterion(logits, y_train)
+                
+                print(logits.shape)
+                print(y_train.shape)
+                loss = self.criterion(logits, y_train.squeeze())
 
             else:
                 raise NotImplementedError
@@ -340,8 +344,8 @@ class GAEASearchTrial(PyTorchTrial):
                     target = self.y_normalizer.decode(y_val)
                     logits = self.y_normalizer.decode(logits)
                     arch_loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1))
-                elif self.hparams.task =='protein':
-                    arch_loss = self.criterion(logits, y_val)
+                elif self.hparams.task =='protein': 
+                    arch_loss = self.criterion(logits, y_val.squeeze())
 
                 self.context.backward(arch_loss)
                 self.context.step_optimizer(self.arch_opt)
@@ -356,7 +360,7 @@ class GAEASearchTrial(PyTorchTrial):
 
             elif self.hparams.task =='protein':
                 logits = self.model(x_train)
-                loss = self.criterion(logits, y_train)
+                loss = self.criterion(logits, y_train.squeeze())
             
             self.context.backward(loss)
             #self.context.step_optimizer(self.optimizer)
@@ -394,6 +398,7 @@ class GAEASearchTrial(PyTorchTrial):
                     error = 0 
 
                 elif self.hparams.task == 'protein':
+                    target = target.squeeze()
                     loss = self.criterion(logits, target)
                     error = self.error(logits, target)
 
@@ -401,7 +406,7 @@ class GAEASearchTrial(PyTorchTrial):
                 error_sum += error
 
         results = {
-            "validation_loss": loss_sum / num_batches,
+            "validation_error": loss_sum / num_batches,
             "MAE": error_sum / num_batches,
         }
 

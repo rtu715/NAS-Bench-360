@@ -57,7 +57,7 @@ class GAEASearchTrial(PyTorchTrial):
         '''
         self.download_directory = self.download_data_from_s3()
 
-        dataset_hypers = {'sEMG': (7, 1), 'ninapro': (18, 1), 'cifar10': (10, 3), 'spherical': (10, 1)}
+        dataset_hypers = {'sEMG': (7, 1), 'ninapro': (18, 1), 'cifar10': (10, 3), 'spherical': (10, 1), 'cifar100':(100, 3)}
         n_classes, in_channels = dataset_hypers[self.hparams.task]
 
 
@@ -100,65 +100,6 @@ class GAEASearchTrial(PyTorchTrial):
             ),
             step_mode=LRScheduler.StepMode.STEP_EVERY_EPOCH,
         )
-    '''
-    def download_data_from_s3(self):
-
-        s3_bucket = self.context.get_data_config()["bucket"]
-        download_directory = f"/tmp/data-rank{self.context.distributed.get_rank()}"
-        s3 = boto3.client("s3")
-        os.makedirs(download_directory, exist_ok=True)
-
-        if self.hparams.task == 'spherical':
-            data_files = ["s2_mnist.gz"]
-            for data_file in data_files:
-                filepath = os.path.join(download_directory, data_file)
-                if not os.path.exists(filepath):
-                    s3.download_file(s3_bucket, data_file, filepath)
-
-            self.train_data, self.val_data, self.test_data = utils.load_spherical_data(download_directory)
-            
-        elif self.hparams.task == 'sEMG':
-            data_files = ["saved_evaluation_dataset_test0.npy", "saved_evaluation_dataset_test1.npy",
-                          "saved_evaluation_dataset_training.npy", "saved_pre_training_dataset_spectrogram.npy"]
-            for data_file in data_files:
-                filepath = os.path.join(download_directory, data_file)
-                if not os.path.exists(filepath):
-                    s3.download_file(s3_bucket, data_file, filepath)
-
-            self.train_data, self.val_data, self.test_data = utils.load_sEMG_data(download_directory)
-        
-        elif self.hparams.task == 'sEMG':
-            #data_files = ["saved_evaluation_dataset_test0.npy", "saved_evaluation_dataset_test1.npy",
-            #              "saved_evaluation_dataset_training.npy", "saved_pre_training_dataset_spectrogram.npy"]
-
-            data_files = ['trainval_Myo.pt', 'test_Myo.pt']
-            for data_file in data_files:
-                filepath = os.path.join(download_directory, data_file)
-                s3_path = os.path.join('Myo', data_file)
-                if not os.path.exists(filepath):
-                    s3.download_file(s3_bucket, s3_path, filepath)
-
-            self.train_data, self.val_data, self.test_data = utils.load_sEMG_data(download_directory)
-
-        elif self.hparams.task =='ninapro':
-            data_files = ['ninapro_data.npy', 'ninapro_label.npy']
-            for data_file in data_files:
-                filepath = os.path.join(download_directory, data_file)
-                s3_path = os.path.join('ninapro', data_file)
-
-                if not os.path.exists(filepath):
-                    s3.download_file(s3_bucket, s3_path, filepath)
-
-            self.train_data, self.val_data, self.test_data = utils.load_ninapro_data(download_directory)
-        
-        else: 
-            pass
-
-        #instantiate test loader
-        self.build_test_data_loader(download_directory)
-
-        return download_directory
-    '''
 
     def download_data_from_s3(self):
         '''Download data from s3 to store in temp directory'''
@@ -170,7 +111,7 @@ class GAEASearchTrial(PyTorchTrial):
 
         download_from_s3(s3_bucket, self.hparams.task, download_directory)
 
-        self.train_data, self.val_data, self.test_data = load_data(self.hparams.task, download_directory, True)
+        self.train_data, self.val_data, self.test_data = load_data(self.hparams.task, download_directory, True, self.hparams.permute)
         self.build_test_data_loader(download_directory)
 
         return download_directory

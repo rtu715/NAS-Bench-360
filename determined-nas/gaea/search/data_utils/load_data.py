@@ -14,7 +14,7 @@ import torchvision
 from torchvision import transforms
 
 
-def load_data(task, path, train=True):
+def load_data(task, path, train=True, permute=False):
     if task == 'spherical':
         return load_spherical_data(path, 0.16, train)
 
@@ -25,8 +25,13 @@ def load_data(task, path, train=True):
         return load_ninapro_data(path, train)
 
     elif task == 'cifar10':
-        trainset, valset = load_cifar_train_data(path, False, 0.2, train)
-        testset = load_cifar_test_data(path, False)
+        trainset, valset = load_cifar10_train_data(path, permute, 0.2, train)
+        testset = load_cifar10_test_data(path, permute)
+        return trainset, valset, testset
+
+    elif task == 'cifar100':
+        trainset, valset = load_cifar100_train_data(path, permute, 0.2, train)
+        testset = load_cifar100_test_data(path, permute)
         return trainset, valset, testset
 
     else:
@@ -88,7 +93,7 @@ class RowColPermute(nn.Module):
 
 
 
-def load_cifar_train_data(path, permute=False, val_split=0.2, train=True):
+def load_cifar10_train_data(path, permute=False, val_split=0.2, train=True):
     #We could include cutout in transforms
     CIFAR_MEAN = [0.49139968, 0.48215827, 0.44653124]
     CIFAR_STD = [0.24703233, 0.24348505, 0.26158768]
@@ -122,7 +127,7 @@ def load_cifar_train_data(path, permute=False, val_split=0.2, train=True):
 
     return trainset, valset
 
-def load_cifar_test_data(path, permute=False):
+def load_cifar10_test_data(path, permute=False):
     CIFAR_MEAN = [0.49139968, 0.48215827, 0.44653124]
     CIFAR_STD = [0.24703233, 0.24348505, 0.26158768]
 
@@ -143,6 +148,66 @@ def load_cifar_test_data(path, permute=False):
 
     return testset
 
+
+'''
+cifar 100
+'''
+
+
+def load_cifar100_train_data(path, permute=False, val_split=0.2, train=True):
+    #We could include cutout in transforms
+    CIFAR_MEAN = [0.49139968, 0.48215827, 0.44653124]
+    CIFAR_STD = [0.24703233, 0.24348505, 0.26158768]
+
+    normalize = transforms.Normalize(CIFAR_MEAN,
+                                     CIFAR_STD)
+
+    if permute:
+        permute_op = RowColPermute(32, 32)
+        transform = transforms.Compose([transforms.ToTensor(), permute_op, normalize])
+
+    else:
+        transform = transforms.Compose(
+            [transforms.RandomCrop(32, padding=4), transforms.RandomHorizontalFlip(), transforms.ToTensor(),
+             normalize]
+        )
+
+
+    all_trainset = torchvision.datasets.CIFAR100(
+        root=path, train=True, download=True, transform=transform
+    )
+
+    if val_split==0.0 or not train:
+        return all_trainset, None
+
+    n_train = int((1-val_split) * len(all_trainset))
+    train_ind = torch.arange(n_train)
+    val_ind = torch.arange(n_train, len(all_trainset))
+    trainset = data_utils.Subset(all_trainset, train_ind)
+    valset = data_utils.Subset(all_trainset, val_ind)
+
+    return trainset, valset
+
+def load_cifar100_test_data(path, permute=False):
+    CIFAR_MEAN = [0.49139968, 0.48215827, 0.44653124]
+    CIFAR_STD = [0.24703233, 0.24348505, 0.26158768]
+
+    normalize = transforms.Normalize(CIFAR_MEAN,
+                                     CIFAR_STD)
+    if permute:
+        permute_op = RowColPermute(32, 32)
+        transform = transforms.Compose([transforms.ToTensor(), permute_op, normalize])
+
+    else:
+        transform = transforms.Compose(
+            [transforms.ToTensor(), normalize]
+        )
+
+    testset = torchvision.datasets.CIFAR100(
+        root=path, train=False, download=True, transform=transform
+    )
+
+    return testset
 
 
 '''

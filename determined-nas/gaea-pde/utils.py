@@ -4,8 +4,6 @@ class AttrDict(dict):
         self.__dict__ = self
 
 
-# From DARTS repo: https://github.com/quark0/darts
-# commit: be3c748f562819d150df2fcfe5a191031564077e
 import os
 import numpy as np
 import torch

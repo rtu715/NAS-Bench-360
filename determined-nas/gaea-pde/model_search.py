@@ -179,7 +179,7 @@ class Network(nn.Module):
         #out = self.global_pooling(s1)
         out = s1
         logits = self.classifier(out.permute(0, 2, 3, 1).contiguous())
-        return logits
+        return logits.squeeze()
 
     def _loss(self, input, target):
         logits = self(input)
