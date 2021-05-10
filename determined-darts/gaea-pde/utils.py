@@ -268,8 +268,8 @@ class LogCoshLoss(torch.nn.Module):
 
     def forward(self, y_t, y_prime_t):
         
-        #inv_pred = 1.0 / (y_t + 1e-8)
-        #inv_target = 1.0/ (y_prime_t + 1e-8)
+        #inv_pred = 100.0 / (y_t + 1e-8)
+        #inv_target = 100.0/ (y_prime_t + 1e-8)
         #return torch.mean(torch.log(torch.cosh(inv_target - inv_pred)))
         ey_t = y_t - y_prime_t
         return torch.mean(torch.log(torch.cosh(ey_t + 1e-12)))

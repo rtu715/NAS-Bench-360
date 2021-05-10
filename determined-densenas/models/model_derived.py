@@ -42,7 +42,7 @@ class Conv1_1_Block(nn.Module):
 
 
 class MBV2_Net(nn.Module):
-    def __init__(self, net_config, config=None):
+    def __init__(self, net_config, task='cifar10', config=None):
         """
         net_config=[[in_ch, out_ch], head_op, [stack_ops], num_stack_layers, stride]
         """
@@ -50,10 +50,15 @@ class MBV2_Net(nn.Module):
         self.config = config
         self.net_config = parse_net_config(net_config)
         self.in_chs = self.net_config[0][0][0]
-        self._num_classes = 1000
+        self.dataset = task
+        dataset_hypers = {'sEMG': (7, 1), 'ninapro': (18, 1), 'cifar10': (10, 3),
+                          'smnist': (10, 1), 'cifar100':(100, 3), 'scifar100': (100, 3)}
+        n_classes, in_channels = dataset_hypers[self.dataset]
+
+        self._num_classes = n_classes
 
         self.input_block = nn.Sequential(
-            nn.Conv2d(in_channels=3, out_channels=self.in_chs, kernel_size=3, 
+            nn.Conv2d(in_channels=in_channels, out_channels=self.in_chs, kernel_size=3,
                     stride=2, padding=1, bias=False),
             nn.BatchNorm2d(self.in_chs),
             nn.ReLU6(inplace=True)
@@ -124,7 +129,7 @@ class MBV2_Net(nn.Module):
 
 
 class RES_Net(nn.Module):
-    def __init__(self, net_config, config=None):
+    def __init__(self, net_config, task='cifar10', config=None):
         """
         net_config=[[in_ch, out_ch], head_op, [stack_ops], num_stack_layers, stride]
         """
@@ -132,10 +137,15 @@ class RES_Net(nn.Module):
         self.config = config
         self.net_config = parse_net_config(net_config)
         self.in_chs = self.net_config[0][0][0]
-        self._num_classes = 1000
+        self.dataset = task
+        dataset_hypers = {'sEMG': (7, 1), 'ninapro': (18, 1), 'cifar10': (10, 3),
+                          'smnist': (10, 1), 'cifar100':(100, 3), 'scifar100': (100, 3)}
+
+        n_classes, in_channels = dataset_hypers[self.dataset]
+        self._num_classes = n_classes
 
         self.input_block = nn.Sequential(
-            nn.Conv2d(in_channels=3, out_channels=self.in_chs, kernel_size=3, 
+            nn.Conv2d(in_channels=in_channels, out_channels=self.in_chs, kernel_size=3,
                     stride=2, padding=1, bias=False),
             nn.BatchNorm2d(self.in_chs),
             nn.ReLU6(inplace=True),

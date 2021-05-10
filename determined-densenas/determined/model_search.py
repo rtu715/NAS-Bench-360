@@ -69,7 +69,7 @@ class DenseNASSearchTrial(PyTorchTrial):
 
         super_model = SearchSpace(config.optim.init_dim, self.hparams.task, config)
         self.arch_gener = ArchGenerater(super_model, config)
-        self.der_Net = lambda net_config: derivedNetwork(net_config,
+        self.der_Net = lambda net_config: derivedNetwork(net_config, task=self.hparams.task,
                                                     config=config)
         #super_model = nn.DataParallel(super_model)
         #if need to parallel, evaluate batch not full dataet
@@ -122,7 +122,7 @@ class DenseNASSearchTrial(PyTorchTrial):
         #scheduler = get_lr_scheduler(config, self.weight_optimizer, self.hparams.num_examples)
         #scheduler.last_step = 0 
         scheduler = CosineAnnealingLR(self.weight_optimizer, config.train_params.epochs, config.optim.min_lr)
-        self.scheduler = self.context.wrap_lr_scheduler(scheduler, step_mode=LRScheduler.StepMode.MANUAL_STEP)
+        self.scheduler = self.context.wrap_lr_scheduler(scheduler, step_mode=LRScheduler.StepMode.STEP_EVERY_EPOCH)
 
         self.config = config 
         self.download_directory = self.download_data_from_s3()
@@ -175,7 +175,7 @@ class DenseNASSearchTrial(PyTorchTrial):
         
         self.set_param_grad_state('Weights')
         logits, loss, subobj = self.weight_step(x_train, y_train, self.model, search_stage)
-        self.scheduler.step()
+        #self.scheduler.step()
         
         prec1, prec5 = utils.accuracy(logits, y_train, topk=(1,5))
 

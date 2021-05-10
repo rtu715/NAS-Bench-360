@@ -229,6 +229,8 @@ class GAEAEvalTrial(PyTorchTrial):
 
         return {"loss": loss, "top1_accuracy": top1, "top5_accuracy": top5}
 
+
+    '''
     def evaluate_batch(self, batch: Any) -> Dict[str, Any]:
         input, target = batch
         logits  = self.model(input)
@@ -242,4 +244,31 @@ class GAEAEvalTrial(PyTorchTrial):
             "top5_accuracy": top5,
 
         }
+    '''
+
+    def evaluate_full_dataset(
+        self, data_loader: torch.utils.data.DataLoader
+    ) -> Dict[str, Any]:
+        acc_top1 = 0
+        acc_top5 = 0
+        loss_avg = 0
+        num_batches = 0
+        with torch.no_grad():
+            for batch in data_loader:
+                batch = self.context.to_device(batch)
+                input, target = batch
+                num_batches += 1
+                logits = self.model(input)
+                loss = self.criterion(logits, target)
+                top1, top5 = accuracy(logits, target, topk=(1, 5))
+                acc_top1 += top1
+                acc_top5 += top5
+                loss_avg += loss
+        results = {
+            "loss": loss_avg.item() / num_batches,
+            "top1_accuracy": acc_top1.item() / num_batches,
+            "top5_accuracy": acc_top5.item() / num_batches,
+        }
+
+        return results
 
