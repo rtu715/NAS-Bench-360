@@ -15,8 +15,11 @@ from torchvision import transforms
 
 
 def load_data(task, path, train=True, permute=False):
-    if task == 'spherical':
-        return load_spherical_data(path, 0.16, train)
+    if task == 'smnist':
+        return load_smnist_data(path, 0.16, train)
+
+    elif task == 'scifar100':
+        return load_scifar100_data(path, 0.2, train)
 
     elif task == 'sEMG':
         return load_sEMG_data(path, train)
@@ -37,12 +40,48 @@ def load_data(task, path, train=True, permute=False):
     else:
         raise NotImplementedError
 
+
+'''
+spherical CIFAR100 related
+'''
+def load_scifar100_data(path, val_split=0.2, train=True):
+
+    data_file = os.path.join(path, 's2_cifar100.gz')
+    with gzip.open(data_file, 'rb') as f:
+        dataset = pickle.load(f)
+
+    train_data = torch.from_numpy(
+        dataset["train"]["images"][:, :, :, :].astype(np.float32))
+    train_labels = torch.from_numpy(
+        dataset["train"]["labels"].astype(np.int64))
+
+
+    all_train_dataset = data_utils.TensorDataset(train_data, train_labels)
+    print(len(all_train_dataset))
+    if val_split == 0.0 or not train:
+        val_dataset = None
+        train_dataset = all_train_dataset
+    else:
+        ntrain = int((1-val_split) * len(all_train_dataset))
+        train_dataset = data_utils.TensorDataset(train_data[:ntrain], train_labels[:ntrain])
+        val_dataset = data_utils.TensorDataset(train_data[ntrain:], train_labels[ntrain:])
+
+    print(len(train_dataset))
+    test_data = torch.from_numpy(
+        dataset["test"]["images"][:, :, :, :].astype(np.float32))
+    test_labels = torch.from_numpy(
+        dataset["test"]["labels"].astype(np.int64))
+
+    test_dataset = data_utils.TensorDataset(test_data, test_labels)
+
+    return train_dataset, val_dataset, test_dataset
+
+
 '''
 spherical MNIST related
 '''
 
-def load_spherical_data(path, val_split=0.16, train=True):
-
+def load_smnist_data(path, val_split=0.16, train=True):
 
     data_file = os.path.join(path, 's2_mnist.gz')
     with gzip.open(data_file, 'rb') as f:
@@ -64,7 +103,6 @@ def load_spherical_data(path, val_split=0.16, train=True):
         train_dataset = data_utils.TensorDataset(train_data[:ntrain], train_labels[:ntrain])
         val_dataset = data_utils.TensorDataset(train_data[ntrain:], train_labels[ntrain:])
 
-    #train_loader = data_utils.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     print(len(train_dataset))
     test_data = torch.from_numpy(
         dataset["test"]["images"][:, None, :, :].astype(np.float32))
@@ -72,7 +110,6 @@ def load_spherical_data(path, val_split=0.16, train=True):
         dataset["test"]["labels"].astype(np.int64))
 
     test_dataset = data_utils.TensorDataset(test_data, test_labels)
-    #test_loader = data_utils.DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
 
     return train_dataset, val_dataset, test_dataset
 

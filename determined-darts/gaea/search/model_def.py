@@ -57,7 +57,7 @@ class GAEASearchTrial(PyTorchTrial):
         '''
         self.download_directory = self.download_data_from_s3()
 
-        dataset_hypers = {'sEMG': (7, 1), 'ninapro': (18, 1), 'cifar10': (10, 3), 'spherical': (10, 1), 'cifar100':(100, 3)}
+        dataset_hypers = {'sEMG': (7, 1), 'ninapro': (18, 1), 'cifar10': (10, 3), 'smnist': (10, 1), 'cifar100':(100, 3), 'scifar100': (100, 3)}
         n_classes, in_channels = dataset_hypers[self.hparams.task]
 
 
@@ -164,7 +164,6 @@ class GAEASearchTrial(PyTorchTrial):
         arch_loss = 0.0
         # Train arch parameters
         if epoch_idx > 10:
-            print('trained arch')
             for a in self.model.arch_parameters():
                 a.requires_grad = True
             for w in self.model.ws_parameters():

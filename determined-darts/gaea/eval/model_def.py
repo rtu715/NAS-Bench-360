@@ -148,7 +148,7 @@ class GAEAEvalTrial(PyTorchTrial):
         '''
         genotype=Genotype(normal=[('sep_conv_3x3', 0), ('dil_conv_5x5', 1), ('sep_conv_5x5', 0), ('sep_conv_3x3', 1), ('skip_connect', 0), ('sep_conv_5x5', 2), ('max_pool_3x3', 0), ('sep_conv_3x3', 4)], normal_concat=range(2, 6), reduce=[('sep_conv_5x5', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('dil_conv_5x5', 0), ('dil_conv_3x3', 1), ('sep_conv_5x5', 3), ('max_pool_3x3', 1), ('sep_conv_5x5', 3)], reduce_concat=range(2, 6))
         
-        dataset_hypers = {'sEMG': (7, 1), 'ninapro': (18, 1), 'cifar10': (10, 3), 'spherical': (10, 1)}
+        dataset_hypers = {'sEMG': (7, 1), 'ninapro': (18, 1), 'cifar10': (10, 3), 'smnist': (10, 1), 'cifar100': (100, 3), 'scifar100': (100, 3)}
         n_classes, in_channels = dataset_hypers[self.context.get_hparam('task')]
 
         model = Network(
@@ -162,55 +162,6 @@ class GAEAEvalTrial(PyTorchTrial):
 
         return model
 
-    '''
-    def download_data_from_s3(self):
-        s3_bucket = self.context.get_data_config()["bucket"]
-        download_directory = f"/tmp/data-rank{self.context.distributed.get_rank()}"
-        s3 = boto3.client("s3")
-        os.makedirs(download_directory, exist_ok=True)
-
-        if self.context.get_hparam("task") == 'spherical':
-            data_files = ["s2_mnist.gz"]
-            for data_file in data_files:
-                filepath = os.path.join(download_directory, data_file)
-                if not os.path.exists(filepath):
-                    s3.download_file(s3_bucket, data_file, filepath)
-
-            self.train_data, self.test_data = utils.load_spherical_data(download_directory)
-
-        elif self.context.get_hparam("task") == 'sEMG':
-            #data_files = ["saved_evaluation_dataset_test0.npy", "saved_evaluation_dataset_test1.npy",
-            #              "saved_evaluation_dataset_training.npy", "saved_pre_training_dataset_spectrogram.npy"]
-
-            data_files = ['trainval_Myo.pt', 'test_Myo.pt']
-            for data_file in data_files:
-                filepath = os.path.join(download_directory, data_file)
-                s3_path = os.path.join('Myo', data_file)
-                if not os.path.exists(filepath):
-                    s3.download_file(s3_bucket, s3_path, filepath)
-
-            self.train_data, self.test_data = utils.load_sEMG_data(download_directory)
-
-        elif self.context.get_hparam("task") == 'ninapro':
-            data_files = ['ninapro_data.npy', 'ninapro_label.npy']
-            for data_file in data_files:
-                filepath = os.path.join(download_directory, data_file)
-                s3_path = os.path.join('ninapro', data_file)
-                if not os.path.exists(filepath):
-                    s3.download_file(s3_bucket, s3_path, filepath)
-
-            self.train_data, self.test_data = utils.load_ninapro_data(download_directory)
-
-        elif self.context.get_hparam("task") == 'cifar':
-            self.train_data, self.test_data = utils.load_cifar_train_data(download_directory, False), \
-                                              utils.load_cifar_test_data(download_directory, False)
-
-
-        else:
-            pass
-
-        return download_directory
-    '''
     def download_data_from_s3(self):
         '''Download data from s3 to store in temp directory'''
 

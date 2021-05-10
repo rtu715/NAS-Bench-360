@@ -314,8 +314,6 @@ class GAEASearchTrial(PyTorchTrial):
             
             elif self.hparams.task == 'protein':
                 
-                print(logits.shape)
-                print(y_train.shape)
                 loss = self.criterion(logits, y_train.squeeze())
 
             else:
@@ -357,7 +355,6 @@ class GAEASearchTrial(PyTorchTrial):
                 target = self.y_normalizer.decode(y_train)
                 logits = self.y_normalizer.decode(logits)
                 loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1))
-
             elif self.hparams.task =='protein':
                 logits = self.model(x_train)
                 loss = self.criterion(logits, y_train.squeeze())
@@ -395,6 +392,7 @@ class GAEASearchTrial(PyTorchTrial):
                 if self.hparams.task == 'pde':
                     logits = self.y_normalizer.decode(logits)
                     loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1)).item()
+                    loss = loss / logits.size(0)
                     error = 0 
 
                 elif self.hparams.task == 'protein':

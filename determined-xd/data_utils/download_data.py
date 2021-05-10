@@ -4,9 +4,13 @@ import boto3
 def download_from_s3(s3_bucket, task, download_dir):
     s3 = boto3.client("s3")
     
-    if task == 'spherical':
+    if task == 'smnist':
         data_files = ["s2_mnist.gz"]
-        s3_folder = None
+        s3_folder = 'spherical'
+
+    if task == 'scifar100':
+        data_files = ["s2_cifar100.gz"]
+        s3_folder = 'spherical'
 
     elif task == 'sEMG':
         #data_files = ["saved_evaluation_dataset_test0.npy", "saved_evaluation_dataset_test1.npy",
