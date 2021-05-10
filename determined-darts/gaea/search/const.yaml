@@ -1,4 +1,4 @@
-description: spherical_gaea_search
+description: scifar100_gaea_search
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -21,7 +21,7 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-    task: spherical
+    task: scifar100
     permute: false
 
     # Channel shuffle factor.  1 / shuffle_factor channels are activated at a given time.
@@ -49,7 +49,7 @@ min_validation_period:
 min_checkpoint_period:
   epochs: 2
 
-records_per_epoch: 25200
+records_per_epoch: 20000
 searcher:
   name: single
   metric: top1_accuracy 

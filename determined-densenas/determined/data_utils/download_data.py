@@ -4,9 +4,13 @@ import boto3
 def download_from_s3(s3_bucket, task, download_dir):
     s3 = boto3.client("s3")
     
-    if task == 'spherical':
+    if task == 'smnist':
         data_files = ["s2_mnist.gz"]
-        s3_folder = None
+        s3_folder = 'spherical'
+
+    if task == 'scifar100':
+        data_files = ["s2_cifar100.gz"]
+        s3_folder = 'spherical'
 
     elif task == 'sEMG':
         #data_files = ["saved_evaluation_dataset_test0.npy", "saved_evaluation_dataset_test1.npy",
@@ -18,15 +22,18 @@ def download_from_s3(s3_bucket, task, download_dir):
         data_files = ['ninapro_data.npy', 'ninapro_label.npy']
         s3_folder = 'ninapro'
 
-    elif task =='cifar10': 
-        return 
+    elif task =='cifar10' or task =='cifar100': 
+        return
 
     else:
         raise NotImplementedError
 
     for data_file in data_files:
         filepath = os.path.join(download_dir, data_file)
-        s3_path = os.path.join(s3_folder, data_file)
+        if s3_folder is not None:
+            s3_path = os.path.join(s3_folder, data_file)
+        else:
+            s3_path = data_file
         if not os.path.exists(filepath):
             s3.download_file(s3_bucket, s3_path, filepath)    
 

@@ -1,4 +1,4 @@
-description: pde_gaea_search
+description: protein_gaea_search
 
 data:
   download_dir: /data
@@ -11,7 +11,7 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-    task: pde
+    task: protein
     train: true
 
     # Channel shuffle factor.  1 / shuffle_factor channels are activated at a given time.
@@ -41,7 +41,8 @@ min_validation_period:
 min_checkpoint_period:
   epochs: 2
 
-records_per_epoch: 450 
+records_per_epoch: 1628
+#450 for pde, 1628 for protein
 searcher:
   name: single
   metric: validation_error

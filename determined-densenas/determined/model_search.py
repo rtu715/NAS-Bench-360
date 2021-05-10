@@ -143,11 +143,11 @@ class DenseNASSearchTrial(PyTorchTrial):
     def build_training_data_loader(self) -> DataLoader:
 
         trainset = self.train_data
-        bilevel = BilevelDataset(trainset)
-        self.train_data = bilevel
-        print('Length of bilevel dataset: ', len(bilevel))
+        #bilevel = BilevelDataset(trainset)
+        #self.train_data = bilevel
+        #print('Length of bilevel dataset: ', len(bilevel))
 
-        return DataLoader(bilevel, batch_size=self.context.get_per_slot_batch_size(), shuffle=True, num_workers=2)
+        return DataLoader(trainset, batch_size=self.context.get_per_slot_batch_size(), shuffle=True, num_workers=2)
 
     def build_validation_data_loader(self) -> DataLoader:
 
@@ -156,24 +156,27 @@ class DenseNASSearchTrial(PyTorchTrial):
         return DataLoader(valset, batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=2)
 
     def train_batch(self, batch: TorchData, epoch_idx: int, batch_idx: int) -> Dict[str, torch.Tensor]:
-
+        '''
         if epoch_idx != self.last_epoch:
             self.train_data.shuffle_val_inds()
         self.last_epoch = epoch_idx
+        '''
         search_stage = 1 if epoch_idx > self.config.search_params.arch_update_epoch else 0 
         
-        x_train, y_train, x_val, y_val = batch
+        #x_train, y_train, x_val, y_val = batch
+        x_train, y_train = batch
         n = x_train.size(0)
 
         arch_loss = 0
         if search_stage:
             self.set_param_grad_state('Arch')
-            arch_logits, arch_loss, arch_subobj = self.arch_step(x_val, y_val, self.model, search_stage)
-
+            #arch_logits, arch_loss, arch_subobj = self.arch_step(x_val, y_val, self.model, search_stage)
+            arch_logits, arch_loss, arch_subobj = self.arch_step(x_train, y_train, self.model, search_stage)
+        
         self.set_param_grad_state('Weights')
-        self.scheduler.step()
         logits, loss, subobj = self.weight_step(x_train, y_train, self.model, search_stage)
-
+        self.scheduler.step()
+        
         prec1, prec5 = utils.accuracy(logits, y_train, topk=(1,5))
 
         return {

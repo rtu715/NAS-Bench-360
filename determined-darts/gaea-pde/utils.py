@@ -1,8 +1,3 @@
-class AttrDict(dict):
-    def __init__(self, *args, **kwargs):
-        super(AttrDict, self).__init__(*args, **kwargs)
-        self.__dict__ = self
-
 
 import os
 import numpy as np
@@ -28,6 +23,12 @@ def load_pde_data(path, split=0.1, train=True, **kwargs):
         x_train = reader.read_field('coeff')[:ntrain-ntest, ::r, ::r][:, :s, :s]
         y_train = reader.read_field('sol')[:ntrain-ntest, ::r, ::r][:, :s, :s]
 '''
+
+
+class AttrDict(dict):
+    def __init__(self, *args, **kwargs):
+        super(AttrDict, self).__init__(*args, **kwargs)
+        self.__dict__ = self
 
 class MatReader(object):
     def __init__(self, file_path, to_torch=True, to_cuda=False, to_float=True):
@@ -266,6 +267,18 @@ class LogCoshLoss(torch.nn.Module):
         super().__init__()
 
     def forward(self, y_t, y_prime_t):
+        
+        #inv_pred = 1.0 / (y_t + 1e-8)
+        #inv_target = 1.0/ (y_prime_t + 1e-8)
+        #return torch.mean(torch.log(torch.cosh(inv_target - inv_pred)))
         ey_t = y_t - y_prime_t
         return torch.mean(torch.log(torch.cosh(ey_t + 1e-12)))
 
+def filter_MAE(mat1, mat2, threshold):
+    #where mat1>threshold, the values are converted to 0 
+    a = torch.ones_like(mat1)
+    b = torch.zeros_like(mat1)
+    mask = torch.where(mat1 < threshold, a, b)
+    mat1 = mask * mat1
+    mat2 = mask * mat2
+    return mat1, mat2

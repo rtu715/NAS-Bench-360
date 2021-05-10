@@ -282,7 +282,7 @@ class GAEASearchTrial(PyTorchTrial):
                 x_test = torch.from_numpy(x_test.f.arr_0)
                 y_test = torch.from_numpy(y_test.f.arr_0)
 
-
+            print(x_test.shape)
         return DataLoader(torch.utils.data.TensorDataset(x_test, y_test),
                           batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=2,)
 
@@ -313,7 +313,7 @@ class GAEASearchTrial(PyTorchTrial):
                 loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1))
             
             elif self.hparams.task == 'protein':
-                
+                #logits = torch.clamp(logits, min=0.01)        
                 loss = self.criterion(logits, y_train.squeeze())
 
             else:
@@ -398,6 +398,9 @@ class GAEASearchTrial(PyTorchTrial):
                 elif self.hparams.task == 'protein':
                     target = target.squeeze()
                     loss = self.criterion(logits, target)
+                    
+                    #filter the matrixes
+                    target, logits = utils.filter_MAE(target, logits, 8.0)
                     error = self.error(logits, target)
 
                 loss_sum += loss
