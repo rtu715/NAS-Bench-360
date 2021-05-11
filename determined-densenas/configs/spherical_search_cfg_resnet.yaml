@@ -21,10 +21,10 @@ search_params:
             48, 56, 64, 
             72, 96, 112, 
             128, 144, 160, 176, 192, 208, 224] 
-        fm_sizes: [32, 
-            16, 16, 16, 
-            8, 8, 8, 
-            4, 4, 4, 4, 4, 4, 4]
+        fm_sizes: [60, 
+            30, 30, 30, 
+            15, 15, 15, 
+            7, 7, 7, 7, 7, 7, 7]
         stage: [0, 
             1, 1, 1, 
             2, 2, 2, 
@@ -64,9 +64,9 @@ optim:
         load_epoch: 9
 
 data:
-    dataset: cifar10
+    dataset: spherical
     patch_dataset: False
-    input_size: (3,32,32)
+    input_size: (3,60,60)
     type_of_data_aug: random_sized
     color: False
     random_sized:

@@ -25,7 +25,7 @@ from determined.pytorch import (
     PyTorchCallback
 )
 
-from configs.cifar_train_cfg import cfg as config
+from configs.point_train_cfg import cfg as config
 from models import model_derived
 from tools import utils
 from tools.lr_scheduler import get_lr_scheduler

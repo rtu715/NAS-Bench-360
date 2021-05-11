@@ -52,22 +52,6 @@ class XDTrial(PyTorchTrial):
         self.hparams = AttrDict(trial_context.get_hparams())
         self.last_epoch = 0
 
-        # self.data_dir = os.path.join(
-        # self.data_config["download_dir"],
-        # f"data-rank{self.context.distributed.get_rank()}",
-        # )
-
-        # Create a unique download directory for each rank so they don't overwrite each other.
-        ''' Only used for local testing
-        self.download_directory = tempfile.mkdtemp()
-        
-        if self.hparams.task == 'spherical':
-            path = '/workspace/tasks/spherical/s2_mnist.gz'
-            self.train_data, self.test_data = utils_pt.load_spherical_data(path, self.context.get_per_slot_batch_size())
-
-        if self.hparams.task == 'sEMG':
-            self.download_directory = '/workspace/tasks/MyoArmbandDataset/PyTorchImplementation/sEMG'
-        '''
         self.download_directory = self.download_data_from_s3()
         self.results = {"loss": float("inf"), "top1_accuracy": 0, "top5_accuracy": 0, "test_loss": float("inf"),
                         "test_top1_accuracy": 0, "test_top5_accuracy": 0}
@@ -116,7 +100,7 @@ class XDTrial(PyTorchTrial):
         '''
         Definition of optimizer 
         '''
-        momentum = partial(torch.optim.SGD, momentum=self.hparams.momentum)
+        momentum = partial(torch.optim.SGD, momentum=self.hparams.momentum, nesterov=self.hparams.nesterov)
         opts = [
             momentum(self.model.model_weights(), lr=self.hparams.learning_rate, weight_decay=self.hparams.weight_decay)]
 

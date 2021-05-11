@@ -4,8 +4,8 @@ __C = AttrDict()
 
 cfg = __C
 
-__C.net_type='mbv2' # mbv2 / res
-__C.net_config="""[[16, 16], 'mbconv_k3_t1', [], 0, 1]|
+__C.net_type='res' # mbv2 / res
+"""__C.net_config=[[16, 16], 'mbconv_k3_t1', [], 0, 1]|
 [[16, 24], 'mbconv_k3_t6', [], 0, 2]|
 [[24, 48], 'mbconv_k7_t6', ['mbconv_k3_t3'], 1, 2]|
 [[48, 72], 'mbconv_k5_t6', ['mbconv_k3_t6', 'mbconv_k3_t3'], 2, 2]|

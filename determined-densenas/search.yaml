@@ -1,4 +1,4 @@
-description: cifar10_densenas_search
+description: ninapro_densenas_search
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -21,9 +21,9 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-  task: cifar10
+  task: ninapro 
   train: true
-  num_examples: 50000
+  #num_examples: 50000
 
   net_type: res
   global_batch_size: 64
@@ -37,10 +37,10 @@ min_validation_period:
 min_checkpoint_period:
   epochs: 2
 
-records_per_epoch: 20000
+records_per_epoch: 3356
 searcher:
   name: single
-  metric: top1_accuracy
+  metric: validation_accuracy
   smaller_is_better: false
   max_length:
     epochs: 70

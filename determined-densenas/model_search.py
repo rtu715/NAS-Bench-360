@@ -8,7 +8,7 @@ import sys
 import time
 import boto3
 from typing import Any, Dict, Sequence, Tuple, Union, cast
-sys.path.insert(1, os.path.join(sys.path[0], '..'))
+#sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
 import numpy as np
 import torch
@@ -53,8 +53,28 @@ class DenseNASSearchTrial(PyTorchTrial):
         self.last_epoch = 0
 
         update_cfg_from_cfg(search_cfg, cfg)
-        merge_cfg_from_file('../configs/cifar_search_cfg_resnet.yaml', cfg)
+        if self.hparams.task in ['cifar10', 'cifar100', 'scifar100']:
+            merge_cfg_from_file('configs/cifar_search_cfg_resnet.yaml', cfg)
+            input_shape = (3, 32, 32)
+
+        elif self.hparams.task in ['scifar100', 'smnist']:
+            merge_cfg_from_file('configs/spherical_search_cfg_resnet.yaml', cfg)
+            input_shape = (3, 60, 60) if self.hparams.task=='scifar100' else (1, 60, 60)
+
+        elif self.hparams.task == 'ninapro':
+            merge_cfg_from_file('configs/ninapro_search_cfg_resnet.yaml', cfg)
+            input_shape = (1, 16, 52)
+
+        elif self.hparams.task == 'sEMG':
+            print('Not implemented yet!')
+            #merge_cfg_from_file('configs/sEMG_search_cfg_resnet.yaml', cfg)
+            input_shape = (1, 8, 52)
+
+        else:
+            raise NotImplementedError
+        
         config = cfg
+        self.input_shape = input_shape
         pprint.pformat(config)
         
         cudnn.benchmark = True
@@ -77,7 +97,7 @@ class DenseNASSearchTrial(PyTorchTrial):
 
         if config.optim.sub_obj.type=='flops':
             flops_list, total_flops = super_model.get_cost_list(
-                                    config.data.input_size, cost_type='flops')
+                                    input_shape, cost_type='flops')
             super_model.sub_obj_list = flops_list
             print("Super Network flops (M) list: \n")
             print(str(flops_list))
@@ -211,7 +231,7 @@ class DenseNASSearchTrial(PyTorchTrial):
         derived_arch = self.arch_gener.derive_archs(betas, head_alphas, stack_alphas)
         derived_arch_str = '|\n'.join(map(str, derived_arch))
         derived_model = self.der_Net(derived_arch_str)
-        derived_flops = comp_multadds(derived_model, input_size=self.config.data.input_size)
+        derived_flops = comp_multadds(derived_model, input_size=self.input_shape)
         derived_params = utils.count_parameters_in_MB(derived_model)
         print("Derived Model Mult-Adds = %.2fMB" % derived_flops)
         print("Derived Model Num Params = %.2fMB" % derived_params)

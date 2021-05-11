@@ -21,7 +21,7 @@ search_params:
             48, 56, 64, 
             72, 96, 112, 
             128, 144, 160, 176, 192, 208, 224] 
-        fm_sizes: [32, 
+        fm_sizes: [16, 
             16, 16, 16, 
             8, 8, 8, 
             4, 4, 4, 4, 4, 4, 4]
@@ -64,9 +64,9 @@ optim:
         load_epoch: 9
 
 data:
-    dataset: cifar10
+    dataset: ninapro
     patch_dataset: False
-    input_size: (3,32,32)
+    input_size: (1, 16, 52)
     type_of_data_aug: random_sized
     color: False
     random_sized:

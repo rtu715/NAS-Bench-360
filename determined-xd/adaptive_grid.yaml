@@ -67,10 +67,14 @@ resources:
 records_per_epoch: 900
 
 searcher:
-  name: single
+  name: adaptive_asha
   metric: validation_error
   max_length:
     epochs: 500
+  max_trials: 32
+  mode: aggressive
+  divisor: 4
+  max_rungs: 5
 
 min_validation_period:
   epochs: 1
