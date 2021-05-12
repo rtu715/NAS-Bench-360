@@ -36,7 +36,7 @@ from data_utils.load_data import load_data
 from data_utils.download_data import download_from_s3
 #from .optimizer import Optimizer
 #from .trainer import SearchTrainer
-from data import BilevelDataset
+#from data import BilevelDataset
 
 TorchData = Union[Dict[str, torch.Tensor], Sequence[torch.Tensor], torch.Tensor]
 
@@ -116,6 +116,8 @@ class DenseNASSearchTrial(PyTorchTrial):
         pprint.pformat("Num params = %.2fMB", utils.count_parameters_in_MB(super_model))
         self.model = self.context.wrap_model(super_model)
 
+        total_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)/ 1e6
+        print('Parameter size in MB: ', total_params)
         #search_optim = Optimizer(super_model, criterion, config)
         #self.opt = self.context.wrap_optimizer(search_optim)
         self.Dropped_Network = lambda model: Dropped_Network(
@@ -156,7 +158,7 @@ class DenseNASSearchTrial(PyTorchTrial):
 
         download_from_s3(s3_bucket, self.hparams.task, download_directory)
 
-        self.train_data, self.val_data, self.test_data = load_data(self.hparams.task, download_directory, True)
+        self.train_data, self.val_data, self.test_data = load_data(self.hparams.task, download_directory, True, self.hparams.permute)
 
         return download_directory
 
@@ -182,7 +184,7 @@ class DenseNASSearchTrial(PyTorchTrial):
         self.last_epoch = epoch_idx
         '''
         search_stage = 1 if epoch_idx > self.config.search_params.arch_update_epoch else 0 
-        
+
         #x_train, y_train, x_val, y_val = batch
         x_train, y_train = batch
         n = x_train.size(0)
@@ -309,7 +311,7 @@ class DenseNASSearchTrial(PyTorchTrial):
             old_exp_sum = old_weights.exp().sum()
             new_drop_arch_params = torch.gather(new_weights, dim=-1, index=index)
             new_exp_sum = new_drop_arch_params.exp().sum()
-            rescale_value = torch.log(old_exp_sum / new_exp_sum)
+            rescale_value = torch.log(old_exp_sum / new_exp_sum).item() 
             rescale_mat = torch.zeros_like(new_weights).scatter_(0, index, rescale_value)
             return rescale_value, rescale_mat
         

@@ -75,6 +75,9 @@ class GAEASearchTrial(PyTorchTrial):
             )
         )
 
+        total_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)/ 1e6
+        print('Parameter size in MB: ', total_params)
+        
         # Initialize the optimizers and learning rate scheduler.
         self.ws_opt = self.context.wrap_optimizer(
             torch.optim.SGD(

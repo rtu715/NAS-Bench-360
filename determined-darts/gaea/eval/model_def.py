@@ -43,7 +43,7 @@ import utils
 
 from data_utils.load_data import load_data
 from data_utils.download_data import download_from_s3
-
+from searched_genotypes import genotypes
 
 Genotype = namedtuple("Genotype", "normal normal_concat reduce reduce_concat")
 
@@ -58,6 +58,8 @@ class GAEAEvalTrial(PyTorchTrial):
         self.last_epoch_idx = -1
 
         self.model = self.context.wrap_model(self.build_model_from_config())
+        total_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)/ 1e6
+        print('Parameter size in MB: ', total_params)
 
         self.optimizer = self.context.wrap_optimizer(
             torch.optim.SGD(
@@ -146,8 +148,14 @@ class GAEAEvalTrial(PyTorchTrial):
                 ('sep_conv_5x5', 2)], 
             reduce_concat=range(2, 6))
         '''
-        genotype=Genotype(normal=[('sep_conv_3x3', 0), ('dil_conv_5x5', 1), ('sep_conv_5x5', 0), ('sep_conv_3x3', 1), ('skip_connect', 0), ('sep_conv_5x5', 2), ('max_pool_3x3', 0), ('sep_conv_3x3', 4)], normal_concat=range(2, 6), reduce=[('sep_conv_5x5', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('dil_conv_5x5', 0), ('dil_conv_3x3', 1), ('sep_conv_5x5', 3), ('max_pool_3x3', 1), ('sep_conv_5x5', 3)], reduce_concat=range(2, 6))
+        #genotype=Genotype(normal=[('dil_conv_5x5', 1), ('dil_conv_5x5', 0), ('sep_conv_3x3', 2), ('dil_conv_3x3', 0), ('sep_conv_5x5', 0), ('sep_conv_5x5', 1), ('sep_conv_5x5', 0), ('sep_conv_5x5', 4)], normal_concat=range(2, 6), reduce=[('avg_pool_3x3', 1), ('sep_conv_5x5', 0), ('dil_conv_5x5', 2), ('sep_conv_3x3', 0), ('sep_conv_5x5', 2), ('dil_conv_5x5', 3), ('sep_conv_5x5', 0), ('dil_conv_3x3', 2)], reduce_concat=range(2, 6)) 
+        if self.context.get_hparam('permute'):
+            genotype = genotypes['cifar100_permuted']
+        else:
+            genotype = genotypes[self.context.get_hparam('task')] 
         
+        print(genotype)
+
         dataset_hypers = {'sEMG': (7, 1), 'ninapro': (18, 1), 'cifar10': (10, 3), 'smnist': (10, 1), 'cifar100': (100, 3), 'scifar100': (100, 3)}
         n_classes, in_channels = dataset_hypers[self.context.get_hparam('task')]
 
@@ -172,7 +180,7 @@ class GAEAEvalTrial(PyTorchTrial):
 
         download_from_s3(s3_bucket, self.context.get_hparam('task'), download_directory)
 
-        self.train_data, _ , self.val_data = load_data(self.context.get_hparam('task'), download_directory, False)
+        self.train_data, _ , self.val_data = load_data(self.context.get_hparam('task'), download_directory, False, permute=self.context.get_hparam('permute'))
 
         return download_directory
 

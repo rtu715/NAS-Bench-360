@@ -166,6 +166,8 @@ class Dropped_Network(nn.Module):
                                                         self.alpha_head_index[i],
                                                         self.alpha_stack_index[i],
                                                         self.sub_obj_list[1][i])
+
+            #print('output: ', block_data.shape)    
             block_datas.append(block_data)
             sub_obj_list.append(block_sub_obj)
 

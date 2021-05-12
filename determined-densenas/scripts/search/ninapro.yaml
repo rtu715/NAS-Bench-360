@@ -23,6 +23,7 @@ bind_mounts:
 hyperparameters:
   task: ninapro 
   train: true
+  permute: false
   #num_examples: 50000
 
   net_type: res

@@ -1,4 +1,4 @@
-description: ninapro_densenas_search
+description: cifar10_densenas_eval
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -21,11 +21,16 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-  task: ninapro 
-  train: true
-  #num_examples: 50000
+  task: cifar10
+  permute: false
+  train: false
+  num_examples: 50000
 
   net_type: res
+  net_config: "[[ 32, 64 ], 'basic_block', [ ], 0, 2 ]|
+                [[64, 112], 'basic_block', ['basic_block', 'basic_block', 'basic_block'], 3, 2]|
+                [[112, 176], 'basic_block', ['basic_block', 'basic_block', 'basic_block'], 3, 2]|
+                [[176, 224], 'basic_block', [], 0, 1]"
   global_batch_size: 64
 
 resources:
@@ -37,17 +42,17 @@ min_validation_period:
 min_checkpoint_period:
   epochs: 2
 
-records_per_epoch: 3164
+records_per_epoch: 50000
 searcher:
   name: single
   metric: validation_accuracy
   smaller_is_better: false
   max_length:
-    epochs: 70
+    epochs: 240
 
 optimizations:
   aggregation_frequency:  1
 
 max_restarts: 1000
 
-entrypoint: model_search:DenseNASSearchTrial
+entrypoint: model_retrain:DenseNASTrainTrial

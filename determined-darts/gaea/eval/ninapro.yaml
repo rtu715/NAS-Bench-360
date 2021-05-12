@@ -1,7 +1,7 @@
 # NOTE: this config uses randomly generated data on single GPU.
 # Please use distributed.yaml if you want to run on the
 # the actual imagenet data.
-description: cifar100_permuted_gaea_eval
+description: ninapro_gaea_eval
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -26,8 +26,8 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-  task: cifar100
-  permute: true 
+  task: ninapro
+  permute: false
 
   learning_rate: 0.025
   momentum: 0.9
@@ -48,7 +48,7 @@ min_validation_period:
 min_checkpoint_period:
   epochs: 2
 
-records_per_epoch: 50000 
+records_per_epoch: 3560 
 
 searcher:
   name: single
