@@ -15,13 +15,11 @@ class Network(BaseSearchSpace):
         if dilation > 1:
             raise NotImplementedError("Dilation > 1 not supported in BasicBlock")
 
-        dataset_hypers = {'sEMG': (7, 1), 'ninapro': (18, 1), 'cifar10': (10, 3),
-                          'smnist': (10, 1), 'cifar100':(100, 3), 'scifar100': (100, 3)}
-
+        dataset_hypers = {'pde': (1, 3), 'protein': (1, 57)}
         n_classes, in_channels = dataset_hypers[dataset]
         # Both self.conv1 and self.downsample layers downsample the input when stride != 1
         self.input_block = nn.Sequential(
-            nn.Conv2d(in_channels, self._C_input, kernel_size=3, stride=2, padding=1, bias=False),
+            nn.Conv2d(in_channels, self._C_input, kernel_size=3, stride=1, padding=1, bias=False),
             norm_layer(self._C_input),
             nn.ReLU(inplace=True),
         )
@@ -45,7 +43,7 @@ class Network(BaseSearchSpace):
             conv1_1_input_dim = self.input_configs[-1]['in_chs']
             last_dim = self.config.optim.last_dim
         self.conv1_1_block = Conv1_1_Block(conv1_1_input_dim, last_dim)
-        self.global_pooling = nn.AdaptiveAvgPool2d((1, 1))
+        #self.global_pooling = nn.AdaptiveAvgPool2d((1, 1))
         self.classifier = nn.Linear(last_dim, n_classes)
 
         for m in self.modules():

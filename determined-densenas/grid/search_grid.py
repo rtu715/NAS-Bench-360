@@ -438,4 +438,4 @@ class DenseNASSearchTrial(PyTorchTrial):
             loss = self.criterion(logits, target_valid.squeeze())
             error = self.error(logits, target_valid)
 
-        return logits, loss.item(), sub_obj.item(), error.item()
+        return logits, loss.item(), sub_obj.item(), error

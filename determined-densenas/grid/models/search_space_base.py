@@ -87,7 +87,6 @@ class Network(nn.Module):
         self._head_dim = self.config.optim.head_dim
         self._dataset = dataset
         # use 100-class sub dataset for search
-        self._num_classes = 10 
 
         self.initialize()
 
@@ -390,6 +389,7 @@ class Network(nn.Module):
         if use_gpu:
             input_data = input_data.cuda()
 
+
         cost, block_data = cost_func(self.input_block, input_data)
         cost_list.append(cost)
         block_datas.append(block_data)
@@ -443,9 +443,9 @@ class Network(nn.Module):
 
         cost_list.append(conv1_1_flops)
         out = block_datas[-1]
-        out = self.global_pooling(out)
-
-        cost, out = cost_func(self.classifier, out.view(out.size(0), -1))
+        #out = self.global_pooling(out)
+        
+        cost, out = cost_func(self.classifier, out.permute(0, 2, 3, 1).contiguous())
         cost_list.append(cost)
         total_cost += cost
 

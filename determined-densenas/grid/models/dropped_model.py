@@ -86,7 +86,7 @@ class Dropped_Network(nn.Module):
         if hasattr(super_model, 'head_block'):
             self.head_block = super_model.head_block
         self.conv1_1_block = super_model.conv1_1_block
-        self.global_pooling = super_model.global_pooling
+        #self.global_pooling = super_model.global_pooling
         self.classifier = super_model.classifier
 
         # architecture parameters loading
@@ -141,7 +141,8 @@ class Dropped_Network(nn.Module):
         branch_weights = []
         for betas in self.beta_weights:
             branch_weights.append(F.softmax(betas / self.softmax_temp, dim=-1))
-
+        
+        x = x.permute(0, 3, 1, 2).contiguous()
         block_data = self.input_block(x)
         if hasattr(self, 'head_block'):
             block_data = self.head_block(block_data)
@@ -171,8 +172,10 @@ class Dropped_Network(nn.Module):
             block_datas.append(block_data)
             sub_obj_list.append(block_sub_obj)
 
-        out = self.global_pooling(block_datas[-1])
-        logits = self.classifier(out.view(out.size(0),-1))
+        out = block_datas[-1]
+        logits = self.classifier(out.permute(0, 2, 3, 1).contiguous())
+        logits = logits.squeeze()
+        #print('final output', logits.shape)
 
         # chained cost estimation
         for i, out_config in enumerate(self.output_configs[::-1]):
