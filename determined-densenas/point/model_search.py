@@ -53,7 +53,7 @@ class DenseNASSearchTrial(PyTorchTrial):
         self.last_epoch = 0
 
         update_cfg_from_cfg(search_cfg, cfg)
-        if self.hparams.task in ['cifar10', 'cifar100', 'scifar100']:
+        if self.hparams.task in ['cifar10', 'cifar100']:
             merge_cfg_from_file('configs/cifar_search_cfg_resnet.yaml', cfg)
             input_shape = (3, 32, 32)
 

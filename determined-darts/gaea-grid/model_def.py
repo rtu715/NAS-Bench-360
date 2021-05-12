@@ -118,7 +118,7 @@ class GAEASearchTrial(PyTorchTrial):
                 self.n_classes,
                 self.hparams.layers,
                 searched_genotype,
-                in_channels=3,
+                in_channels=self.in_channels,
                 drop_path_prob=self.context.get_hparam("drop_path_prob"),
             )
 

@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import shutil
 from torch.autograd import Variable
-
+import math
 import gzip
 import pickle
 from torch import nn
@@ -116,14 +116,25 @@ def load_smnist_data(path, val_split=0.16, train=True):
 '''
 CIFAR related
 '''
+def bitreversal_permutation(n):
+    log_n = int(math.log2(n))
+    assert n == 1 << log_n, 'n must be a power of 2'
+    perm = np.arange(n).reshape(n, 1)
+    for i in range(log_n):
+        n1 = perm.shape[0] // 2
+        perm = np.hstack((perm[:n1], perm[n1:]))
+    perm = perm.squeeze(0)
+    return torch.tensor(perm)
 
 class RowColPermute(nn.Module):
 
-    def __init__(self, row, col):
+    def __init__(self):
         super().__init__()
-        self.rowperm = torch.randperm(row) if type(row) == int else row
-        self.colperm = torch.randperm(col) if type(col) == int else col
-
+        #self.rowperm = torch.randperm(row) if type(row) == int else row
+        #self.colperm = torch.randperm(col) if type(col) == int else col
+        self.rowperm = bitreversal_permutation(32)
+        self.colperm = bitreversal_permutation(32)
+    
     def forward(self, tensor):
         return tensor[:, self.rowperm][:, :, self.colperm]
 
@@ -139,7 +150,7 @@ def load_cifar10_train_data(path, permute=False, val_split=0.2, train=True):
                                      CIFAR_STD)
 
     if permute:
-        permute_op = RowColPermute(32, 32)
+        permute_op = RowColPermute()
         transform = transforms.Compose([transforms.ToTensor(), permute_op, normalize])
 
     else:
@@ -171,7 +182,7 @@ def load_cifar10_test_data(path, permute=False):
     normalize = transforms.Normalize(CIFAR_MEAN,
                                      CIFAR_STD)
     if permute:
-        permute_op = RowColPermute(32, 32)
+        permute_op = RowColPermute()
         transform = transforms.Compose([transforms.ToTensor(), permute_op, normalize])
 
     else:
@@ -200,7 +211,7 @@ def load_cifar100_train_data(path, permute=False, val_split=0.2, train=True):
                                      CIFAR_STD)
 
     if permute:
-        permute_op = RowColPermute(32, 32)
+        permute_op = RowColPermute()
         transform = transforms.Compose([transforms.ToTensor(), permute_op, normalize])
 
     else:
@@ -232,7 +243,7 @@ def load_cifar100_test_data(path, permute=False):
     normalize = transforms.Normalize(CIFAR_MEAN,
                                      CIFAR_STD)
     if permute:
-        permute_op = RowColPermute(32, 32)
+        permute_op = RowColPermute()
         transform = transforms.Compose([transforms.ToTensor(), permute_op, normalize])
 
     else:

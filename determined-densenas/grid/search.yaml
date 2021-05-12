@@ -1,0 +1,53 @@
+description: pde_densenas_search
+
+environment:
+  image: "renbotu/xd-nas:determined1.8"
+  registry_auth:
+    username: renbotu
+    password: 980715tutubo
+
+reproducibility:
+  experiment_seed: 0
+
+data:
+  download_dir: /data
+  type: s3
+  bucket: pde-xd
+
+
+bind_mounts:
+  - host_path: /tmp
+    container_path: /data
+    read_only: false
+
+hyperparameters:
+  task: pde
+  train: true
+  sub: 5
+
+  net_type: res
+  global_batch_size: 4
+
+resources:
+  slots_per_trial: 1
+
+min_validation_period:
+  epochs: 1
+
+min_checkpoint_period:
+  epochs: 2
+
+records_per_epoch: 3164
+searcher:
+  name: single
+  metric: validation_accuracy
+  smaller_is_better: false
+  max_length:
+    epochs: 70
+
+optimizations:
+  aggregation_frequency:  1
+
+max_restarts: 1000
+
+entrypoint: search_grid:DenseNASSearchTrial
