@@ -54,7 +54,9 @@ class DenseNASSearchTrial(PyTorchTrial):
 
         update_cfg_from_cfg(search_cfg, cfg)
         if self.hparams.task in ['cifar10', 'cifar100']:
-            merge_cfg_from_file('configs/cifar_search_cfg_resnet.yaml', cfg)
+            #merge_cfg_from_file('configs/cifar_search_cfg_resnet.yaml', cfg)
+            
+            merge_cfg_from_file('configs/cifar_small_search_cfg_resnet.yaml', cfg)
             input_shape = (3, 32, 32)
 
         elif self.hparams.task in ['scifar100', 'smnist']:
@@ -141,10 +143,12 @@ class DenseNASSearchTrial(PyTorchTrial):
                             weight_decay=config.optim.arch.weight_decay))
 
 
-        #scheduler = get_lr_scheduler(config, self.weight_optimizer, self.hparams.num_examples)
-        #scheduler.last_step = 0 
-        scheduler = CosineAnnealingLR(self.weight_optimizer, config.train_params.epochs, config.optim.min_lr)
-        self.scheduler = self.context.wrap_lr_scheduler(scheduler, step_mode=LRScheduler.StepMode.STEP_EVERY_EPOCH)
+        scheduler = get_lr_scheduler(config, self.weight_optimizer, self.hparams.num_examples, self.context.get_per_slot_batch_size())
+
+        scheduler.last_step = 0 
+        #scheduler = CosineAnnealingLR(self.weight_optimizer, config.train_params.epochs, config.optim.min_lr)
+        #self.scheduler = self.context.wrap_lr_scheduler(scheduler, step_mode=LRScheduler.StepMode.STEP_EVERY_EPOCH)
+        self.scheduler = self.context.wrap_lr_scheduler(scheduler, step_mode=LRScheduler.StepMode.MANUAL_STEP)
 
         self.config = config 
         self.download_directory = self.download_data_from_s3()
@@ -184,20 +188,19 @@ class DenseNASSearchTrial(PyTorchTrial):
         self.last_epoch = epoch_idx
         '''
         search_stage = 1 if epoch_idx > self.config.search_params.arch_update_epoch else 0 
-
         #x_train, y_train, x_val, y_val = batch
         x_train, y_train = batch
         n = x_train.size(0)
-
+        #print('batch size is: ', n)
         arch_loss = 0
         if search_stage:
             self.set_param_grad_state('Arch')
             #arch_logits, arch_loss, arch_subobj = self.arch_step(x_val, y_val, self.model, search_stage)
             arch_logits, arch_loss, arch_subobj = self.arch_step(x_train, y_train, self.model, search_stage)
         
+        self.scheduler.step()
         self.set_param_grad_state('Weights')
         logits, loss, subobj = self.weight_step(x_train, y_train, self.model, search_stage)
-        #self.scheduler.step()
         
         prec1, prec5 = utils.accuracy(logits, y_train, topk=(1,5))
 

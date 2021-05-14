@@ -16,6 +16,20 @@ class AttrDict(dict):
         super(AttrDict, self).__init__(*args, **kwargs)
         self.__dict__ = self
 
+class AverageMeter(object):
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.avg = 0
+        self.sum = 0
+        self.cnt = 0
+
+    def update(self, val, n=1):
+        self.cur = val
+        self.sum += val * n
+        self.cnt += n
+        self.avg = self.sum / self.cnt
 
 def data_transforms_imagenet():
     IMAGENET_MEAN = [0.485, 0.456, 0.406]

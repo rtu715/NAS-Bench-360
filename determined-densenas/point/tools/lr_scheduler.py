@@ -96,13 +96,16 @@ class CosineRestartAnnealingLR(object):
         import matplotlib.pyplot as plt
         plt.plot(lrs)
         plt.show()
-        
+    
+    def state_dict(self):
 
-def get_lr_scheduler(config, optimizer, num_examples=None):
+        return {key: value for key, value in self.__dict__.items() if key != 'optimizer'}        
+
+def get_lr_scheduler(config, optimizer, num_examples=None, batch_size=None):
 
     if num_examples is None:
         num_examples = config.data.num_examples
-    epoch_steps = num_examples // config.data.batch_size + 1
+    epoch_steps = num_examples // batch_size + 1
 
     if config.optim.use_multi_stage:
         max_steps = epoch_steps * config.optim.multi_stage.stage_epochs

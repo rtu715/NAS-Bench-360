@@ -15,19 +15,18 @@ hyperparameters:
   task: pde
   train: false
 
-  learning_rate: 0.001
-  momentum: 0.9
+  learning_rate: 0.0001
   weight_decay: 1e-4
   arch_lr: 0.1
   arch_momentum: 0.5
   arch_adam: false
 
-  global_batch_size: 10
+  global_batch_size: 4
 
   start_epoch: 0
-  epochs: 500
+  epochs: 100
 
-  patch: true
+  patch: false
   from_scratch: false
   kmatrix_depth: 1
   max_kernel_size: 1
@@ -45,7 +44,7 @@ searcher:
   name: single
   metric: validation_loss
   max_length:
-    epochs: 500
+    epochs: 100
 
 min_validation_period:
   epochs: 1

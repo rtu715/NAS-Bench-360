@@ -1,19 +1,9 @@
-description: cifar100_gaea_search
-
-environment:
-  image: "renbotu/xd-nas:determined1.8"
-  registry_auth:
-    username: renbotu
-    password: 980715tutubo
-
-reproducibility:
-  experiment_seed: 0 
+description: protein_gaea_search
 
 data:
   download_dir: /data
   type: s3
   bucket: pde-xd
-
 
 bind_mounts:
   - host_path: /tmp
@@ -21,23 +11,25 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-    task: cifar100
-    permute: false
+    task: protein
+    train: true
 
     # Channel shuffle factor.  1 / shuffle_factor channels are activated at a given time.
-    shuffle_factor: 4
-    global_batch_size: 256
-    
-    # these are default values
+    shuffle_factor: 1
+    global_batch_size: 4
     learning_rate: 0.1
     momentum: 0.9
     min_learning_rate: 0
     scheduler_epochs: 50
     weight_decay: 3e-4
     arch_learning_rate: 0.1
-    init_channels: 16
+    #init_channels: 16
+    init_channels: 16 #from pde
     layers: 8
     nodes: 4
+    multiplier: 4
+    width: 32
+    sub: 5
     clip_gradients_l2_norm: 5
 
 resources:
@@ -49,17 +41,17 @@ min_validation_period:
 min_checkpoint_period:
   epochs: 2
 
-records_per_epoch: 20000
+records_per_epoch: 1628
+#450 for pde, 1628 for protein
 searcher:
   name: single
-  metric: top1_accuracy 
-  smaller_is_better: false 
+  metric: validation_error
   max_length: 
     epochs: 50
 
 optimizations:
   aggregation_frequency:  1
 
-max_restarts: 1000
+max_restarts: 100
 
 entrypoint: model_def:GAEASearchTrial

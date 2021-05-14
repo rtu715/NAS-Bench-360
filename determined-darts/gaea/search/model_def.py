@@ -103,7 +103,7 @@ class GAEASearchTrial(PyTorchTrial):
             ),
             step_mode=LRScheduler.StepMode.STEP_EVERY_EPOCH,
         )
-
+    
     def download_data_from_s3(self):
         '''Download data from s3 to store in temp directory'''
 
@@ -148,7 +148,6 @@ class GAEASearchTrial(PyTorchTrial):
             self.train_data.shuffle_val_inds()
         self.last_epoch = epoch_idx
         x_train, y_train, x_val, y_val = batch
-
         # Train shared-weights
         for a in self.model.arch_parameters():
             a.requires_grad = False
@@ -199,47 +198,46 @@ class GAEASearchTrial(PyTorchTrial):
     def evaluate_full_dataset(
         self, data_loader: torch.utils.data.DataLoader
     ) -> Dict[str, Any]:
-        acc_top1 = 0
-        acc_top5 = 0
-        loss_avg = 0
-        num_batches = 0
+        acc_top1 = utils.AverageMeter()
+        acc_top5 = utils.AverageMeter()
+        loss_avg = utils.AverageMeter()
+
         with torch.no_grad():
             for batch in data_loader:
                 batch = self.context.to_device(batch)
                 input, target = batch
-                num_batches += 1
+                n = input.size(0)
                 logits = self.model(input)
                 loss = self.model._loss(input, target)
                 top1, top5 = utils.accuracy(logits, target, topk=(1, 5))
-                acc_top1 += top1
-                acc_top5 += top5
-                loss_avg += loss
+                acc_top1.update(top1.item(), n)
+                acc_top5.update(top5.item(), n)
+                loss_avg.update(loss, n)
         results = {
-            "loss": loss_avg.item() / num_batches,
-            "top1_accuracy": acc_top1.item() / num_batches,
-            "top5_accuracy": acc_top5.item() / num_batches,
+            "loss": loss_avg.avg,
+            "top1_accuracy": acc_top1.avg,
+            "top5_accuracy": acc_top5.avg,
         }
 
 
-        acc_top1 = 0
-        acc_top5 = 0
-        loss_avg = 0
-        num_batches = 0
+        acc_top1 = utils.AverageMeter()
+        acc_top5 = utils.AverageMeter()
+        loss_avg = utils.AverageMeter()
         with torch.no_grad():
             for batch in self.test_loader:
                 batch = self.context.to_device(batch)
                 input, target = batch
-                num_batches += 1
+                n = input.size(0)
                 logits = self.model(input)
                 loss = self.model._loss(input, target)
                 top1, top5 = utils.accuracy(logits, target, topk=(1, 5))
-                acc_top1 += top1
-                acc_top5 += top5
-                loss_avg += loss
+                acc_top1.update(top1.item(), n)
+                acc_top5.update(top5.item(), n)
+                loss_avg.update(loss, n)
         results2 = {
-            "test_loss": loss_avg.item() / num_batches,
-            "test_top1_accuracy": acc_top1.item() / num_batches,
-            "test_top5_accuracy": acc_top5.item() / num_batches,
+            "test_loss": loss_avg.avg,
+            "test_top1_accuracy": acc_top1.avg,
+            "test_top5_accuracy": acc_top5.avg,
         }
 
         results.update(results2)

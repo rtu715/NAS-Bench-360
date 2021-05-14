@@ -1,4 +1,4 @@
-description: cifar100-xd-search
+description: scifar100-xd-search
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -21,7 +21,7 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-  task: cifar100
+  task: scifar100
   train: true  
   permute: false 
 
@@ -42,8 +42,8 @@ hyperparameters:
 
   arch_lr: 
     type: log
-    minval: -6.0
-    maxval: -2.0
+    minval: -4.0
+    maxval: 0.0
     base: 10.0
 
   arch_adam:
@@ -52,17 +52,22 @@ hyperparameters:
       - true
       - false
 
-  global_batch_size: 128
+  global_batch_size: 64
 
   start_epoch: 0
-  epochs: 100
+  epochs: 200
 
   patch: true
   from_scratch: false
   kmatrix_depth: 1
   max_kernel_size: 1
 
-  warmup_epochs: 0 
+  warmup_epochs: 
+    type: categorical
+    vals:
+      - 0
+      - 25
+      - 50
  
   cooldown_epochs: 0
 
@@ -80,7 +85,7 @@ searcher:
   smaller_is_better: false
   max_length:
     epochs: 200
-  max_trials: 16
+  max_trials: 24
   mode: aggressive
   divisor: 4
   max_rungs: 5
@@ -90,7 +95,7 @@ min_validation_period:
   epochs: 1
 
 min_checkpoint_period:
-  epochs: 5
+  epochs: 2
          
 
 max_restarts: 100

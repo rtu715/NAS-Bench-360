@@ -15,7 +15,6 @@ from determined.pytorch import (
     PyTorchTrialContext,
 )
 
-from model import Network
 from model import AuxNetworkCIFAR
 
 from utils import (
@@ -24,7 +23,7 @@ from utils import (
     HSwish,
     Swish,
     accuracy,
-    AverageMeter,
+    AvgrageMeter,
 )
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from lr_schedulers import *
@@ -150,6 +149,7 @@ class GAEAEvalTrial(PyTorchTrial):
         dataset_hypers = {'sEMG': (7, 1), 'ninapro': (18, 1), 'cifar10': (10, 3), 'smnist': (10, 1), 'cifar100': (100, 3), 'scifar100': (100, 3)}
         n_classes, in_channels = dataset_hypers[self.context.get_hparam('task')]
         
+        '''
         model = Network(
             self.context.get_hparam("init_channels"),
             n_classes,
@@ -157,6 +157,14 @@ class GAEAEvalTrial(PyTorchTrial):
             genotype,
             in_channels=in_channels,
             drop_path_prob=self.context.get_hparam("drop_path_prob"),
+        )
+        '''
+        model = AuxNetworkCIFAR(
+                self.context.get_hparam("init_channels"),
+                n_classes,
+                self.context.get_hparam("layers"),
+                True,
+                genotype,
         )
 
         return model
@@ -214,8 +222,11 @@ class GAEAEvalTrial(PyTorchTrial):
 
         input, target = batch
 
-        logits = self.model(input)
+        logits, logits_aux = self.model(input)
         loss = self.criterion(logits, target)
+        loss_aux = self.criterion(logits_aux, target)
+        loss += loss_aux * 0.4
+
         top1, top5 = accuracy(logits, target, topk=(1, 5))
 
         self.context.backward(loss)
@@ -248,25 +259,25 @@ class GAEAEvalTrial(PyTorchTrial):
     def evaluate_full_dataset(
         self, data_loader: torch.utils.data.DataLoader
     ) -> Dict[str, Any]:
-        acc_top1 = utils.AverageMeter()
-        acc_top5 = utils.AverageMeter()
-        loss_avg = utils.AverageMeter()
-
+        acc_top1 = 0
+        acc_top5 = 0
+        loss_avg = 0
+        num_batches = 0
         with torch.no_grad():
             for batch in data_loader:
                 batch = self.context.to_device(batch)
                 input, target = batch
-                n = input.size(0)
-                logits = self.model(input)
+                num_batches += 1
+                logits, _  = self.model(input)
                 loss = self.criterion(logits, target)
-                top1, top5 = utils.accuracy(logits, target, topk=(1, 5))
-                acc_top1.update(top1.item(), n)
-                acc_top5.update(top5.item(), n)
-                loss_avg.update(loss, n)
+                top1, top5 = accuracy(logits, target, topk=(1, 5))
+                acc_top1 += top1
+                acc_top5 += top5
+                loss_avg += loss
         results = {
-            "loss": loss_avg.avg,
-            "top1_accuracy": acc_top1.avg,
-            "top5_accuracy": acc_top5.avg,
+            "loss": loss_avg.item() / num_batches,
+            "top1_accuracy": acc_top1.item() / num_batches,
+            "top5_accuracy": acc_top5.item() / num_batches,
         }
 
         return results

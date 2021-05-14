@@ -1,7 +1,7 @@
 # NOTE: this config uses randomly generated data on single GPU.
 # Please use distributed.yaml if you want to run on the
 # the actual imagenet data.
-description: cifar100_gaea_eval_aux
+description: cifar100_permuted_gaea_eval
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -27,7 +27,7 @@ bind_mounts:
 
 hyperparameters:
   task: cifar100
-  permute: false 
+  permute: true 
 
   learning_rate: 0.025
   momentum: 0.9
@@ -62,4 +62,4 @@ optimizations:
 
 max_restarts: 1000
 
-entrypoint: model_aux:GAEAEvalTrial
+entrypoint: model_def:GAEAEvalTrial

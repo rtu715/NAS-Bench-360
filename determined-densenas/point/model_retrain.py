@@ -74,11 +74,12 @@ class DenseNASTrainTrial(PyTorchTrial):
         )
         self.optimizer = self.context.wrap_optimizer(optimizer)
 
-        # scheduler = get_lr_scheduler(config, self.weight_optimizer, self.hparams.num_examples)
-        # scheduler.last_step = 0
-        scheduler = CosineAnnealingLR(self.optimizer, config.train_params.epochs, config.optim.min_lr)
-        self.scheduler = self.context.wrap_lr_scheduler(scheduler, step_mode=LRScheduler.StepMode.STEP_EVERY_EPOCH)
-
+        scheduler = get_lr_scheduler(config, self.optimizer, self.hparams.num_examples, self.context.get_per_slot_batch_size())
+        scheduler.last_step = 0
+        self.scheduler = self.context.wrap_lr_scheduler(scheduler, step_mode=LRScheduler.StepMode.MANUAL_STEP)
+        #scheduler = CosineAnnealingLR(self.optimizer, config.train_params.epochs, config.optim.min_lr)
+        #self.scheduler = self.context.wrap_lr_scheduler(scheduler, step_mode=LRScheduler.StepMode.STEP_EVERY_EPOCH)
+        
         self.config = config
         self.download_directory = self.download_data_from_s3()
 
@@ -119,11 +120,11 @@ class DenseNASTrainTrial(PyTorchTrial):
         '''
 
         x_train, y_train = batch
+        self.scheduler.step()
         logits = self.model(x_train)
         loss = self.criterion(logits, y_train)
         self.context.backward(loss)
         self.context.step_optimizer(self.optimizer)
-
         prec1, prec5 = utils.accuracy(logits, y_train, topk=(1, 5))
 
         return {
@@ -148,7 +149,6 @@ class DenseNASTrainTrial(PyTorchTrial):
                 obj.update(loss, n)
                 top1.update(prec1.item(), n)
                 top5.update(prec5.item(), n)
-
         return {
             'validation_loss': obj.avg,
             'validation_accuracy': top1.avg,

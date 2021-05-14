@@ -77,27 +77,18 @@ class XDTrial(PyTorchTrial):
 
         total_params = sum(p.numel() for p in self.backbone.parameters() if p.requires_grad)/ 1e6
         print('Parameter size in MB(backbone): ', total_params)
-        self.chrysalis, self.original = Chrysalis.metamorphosize(self.backbone), self.backbone
-        self.patch_modules = [(n,m) for n, m in self.chrysalis.named_modules() if
-                hasattr(m, 'kernel_size') and type(m.kernel_size) == tuple and type(m) == Conv(len(m.kernel_size)) and m.kernel_size[0]!=1]
 
 
-        arch_kwargs = {'kmatrix_depth': self.hparams.kmatrix_depth,
+        self.arch_kwargs = {'kmatrix_depth': self.hparams.kmatrix_depth,
                        'max_kernel_size': self.hparams.max_kernel_size,
                        'base': 2,
                        'global_biasing': False,
                        'channel_gating': False,
                        'warm_start': True}
 
-        X, _ = next(iter(self.build_training_data_loader()))
+        self.patched = False
 
-        if self.hparams.patch:
-            self.chrysalis.patch_conv(X[:1], named_modules=self.patch_modules, **arch_kwargs)
-
-        else:
-            self.hparams.arch_lr = 0.0
-
-        self.model = self.context.wrap_model(self.chrysalis)
+        self.model = self.context.wrap_model(self.backbone)
 
         total_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)/ 1e6
         print('Parameter size in MB: ', total_params)
@@ -108,18 +99,11 @@ class XDTrial(PyTorchTrial):
         opts = [
             momentum(self.model.model_weights(), lr=self.hparams.learning_rate, weight_decay=self.hparams.weight_decay)]
 
-        if self.hparams.arch_lr:
-            arch_opt = torch.optim.Adam if self.hparams.arch_adam else momentum
-            opts.append(arch_opt(self.model.arch_params(), lr=self.hparams.arch_lr,
-                                 weight_decay=0.0 if self.hparams.arch_adam else self.hparams.weight_decay))
-
         optimizer = MixedOptimizer(opts)
         self.opt = self.context.wrap_optimizer(optimizer)
 
 
-        sched_groups = [self.weight_sched if g['params'][0] in set(self.model.model_weights()) else self.arch_sched for
-                        g in
-                        optimizer.param_groups]
+        sched_groups = self.weight_sched
 
         self.lr_scheduler = self.context.wrap_lr_scheduler(
             lr_scheduler=torch.optim.lr_scheduler.LambdaLR(
@@ -132,12 +116,7 @@ class XDTrial(PyTorchTrial):
 
     def weight_sched(self, epoch) -> Any:
         # deleted scheduling for different architectures
-        if self.hparams.epochs != 200:
-            return 0.2 ** (epoch >= int(0.3 * self.hparams.epochs)) * 0.2 ** (epoch > int(0.6 * self.hparams.epochs)) * 0.2 ** (epoch > int(0.8 * self.hparams.epochs))
-            
-        return 0.2 ** (epoch >= 60) * 0.2 ** (epoch >= 120) * 0.2 ** (epoch >=160)
-
-
+        return 0.1 ** (epoch >= int(0.5 * self.hparams.epochs)) * 0.1 ** (epoch >= int(0.75 * self.hparams.epochs))
 
     def arch_sched(self, epoch) -> Any:
         return 0.0 if epoch < self.hparams.warmup_epochs or epoch > self.hparams.epochs - self.hparams.cooldown_epochs else self.weight_sched(
@@ -192,12 +171,42 @@ class XDTrial(PyTorchTrial):
 
     def train_batch(self, batch: TorchData, epoch_idx: int, batch_idx: int
                     ) -> Dict[str, torch.Tensor]:
-        '''
-        if epoch_idx != self.last_epoch:
-            self.train_data.shuffle_val_inds()
-        self.last_epoch = epoch_idx
-        '''
+    
+        if epoch_idx >= self.hparams.warmup_epochs:
+            if self.hparams.patch and not self.patched:
+                self.patched = True
+                self.chrysalis, self.original = Chrysalis.metamorphosize(self.backbone), self.backbone
+                self.patch_modules = [(n,m) for n, m in self.chrysalis.named_modules() if
+                    hasattr(m, 'kernel_size') and type(m.kernel_size) == tuple and type(m) == Conv(len(m.kernel_size)) and m.kernel_size[0]!=1]
+                self.chrysalis.patch_conv(X[:1], named_modules=self.patch_modules, **self.arch_kwargs)
+                self.model = self.context.wrap_model(self.chrysalis)
 
+                momentum = partial(torch.optim.SGD, momentum=self.hparams.momentum, nesterov=self.hparams.nesterov)
+                opts = [
+                    momentum(self.model.model_weights(), lr=self.hparams.learning_rate, weight_decay=self.hparams.weight_decay)]
+
+                arch_opt = torch.optim.Adam if self.hparams.arch_adam else momentum
+                opts.append(arch_opt(self.model.arch_params(), lr=self.hparams.arch_lr,
+                                     weight_decay=0.0 if self.hparams.arch_adam else self.hparams.weight_decay))
+
+                optimizer = MixedOptimizer(opts)
+                self.opt = self.context.wrap_optimizer(optimizer)
+
+
+                sched_groups = [self.weight_sched if g['params'][0] in set(self.model.model_weights()) else self.arch_sched for
+                                g in
+                                optimizer.param_groups]
+
+                self.lr_scheduler = self.context.wrap_lr_scheduler(
+                    lr_scheduler=torch.optim.lr_scheduler.LambdaLR(
+                        optimizer,
+                        lr_lambda=sched_groups,
+                        last_epoch=self.hparams.start_epoch - 1
+                    ),
+                    step_mode=LRScheduler.StepMode.STEP_EVERY_EPOCH,
+                )
+
+        
         x_train, y_train = batch
         self.model.train()
         output = self.model(x_train)
@@ -225,46 +234,48 @@ class XDTrial(PyTorchTrial):
     def evaluate_full_dataset(
         self, data_loader: torch.utils.data.DataLoader
     ) -> Dict[str, Any]:
-        acc_top1 = utils_pt.AverageMeter()
-        acc_top5 = utils_pt.AverageMeter()
-        loss_avg = utils_pt.AverageMeter()
+        acc_top1 = 0
+        acc_top5 = 0
+        loss_avg = 0
+        num_batches = 0
         with torch.no_grad():
             for batch in data_loader:
                 batch = self.context.to_device(batch)
                 input, target = batch
-                n = input.size(0)
+                num_batches += 1
                 logits = self.model(input)
                 loss = self.criterion(logits, target)
                 top1, top5 = utils_pt.accuracy(logits, target, topk=(1, 5))
-                acc_top1.update(top1.item(), n)
-                acc_top5.update(top5.item(), n)
-                loss_avg.update(loss, n)
+                acc_top1 += top1
+                acc_top5 += top5
+                loss_avg += loss
         results = {
-            "loss": loss_avg.avg,
-            "top1_accuracy": acc_top1.avg,
-            "top5_accuracy": acc_top5.avg,
+            "loss": loss_avg.item() / num_batches,
+            "top1_accuracy": acc_top1.item() / num_batches,
+            "top5_accuracy": acc_top5.item() / num_batches,
         }
         
         if self.hparams.train:
-            test_acc_top1 = utils_pt.AverageMeter()
-            test_acc_top5 = utils_pt.AverageMeter()
-            test_loss = utils_pt.AverageMeter()
+            test_acc_top1 = 0
+            test_acc_top5 = 0
+            test_loss_avg = 0
+            num_batches = 0
             with torch.no_grad():
                 for batch in self.test_loader:
                     batch = self.context.to_device(batch)
                     input, target = batch
-                    n = input.size(0)
+                    num_batches += 1
                     logits = self.model(input)
                     loss = self.criterion(logits, target)
                     top1, top5 = utils_pt.accuracy(logits, target, topk=(1, 5))
-                    test_acc_top1.update(top1.item(), n)
-                    test_acc_top5.update(top5.item(), n)
-                    test_loss.update(loss, n)
+                    test_acc_top1 += top1
+                    test_acc_top5 += top5
+                    test_loss_avg += loss
 
             results2 = {
-                "test_loss": test_loss.avg,
-                "test_top1_accuracy": test_acc_top1.avg,
-                "test_top5_accuracy": test_acc_top5.avg,
+                "test_loss": test_loss_avg.item() / num_batches,
+                "test_top1_accuracy": test_acc_top1.item() / num_batches,
+                "test_top5_accuracy": test_acc_top5.item() / num_batches,
             }
 
             results.update(results2)

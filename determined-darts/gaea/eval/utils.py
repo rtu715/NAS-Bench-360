@@ -20,6 +20,21 @@ import randaugment.policies as found_policies
 # From: https://github.com/quark0/DARTS
 Genotype = namedtuple("Genotype", "normal normal_concat reduce reduce_concat")
 
+class AverageMeter(object):
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.avg = 0
+        self.sum = 0
+        self.cnt = 0
+
+    def update(self, val, n=1):
+        self.cur = val
+        self.sum += val * n
+        self.cnt += n
+        self.avg = self.sum / self.cnt
+
 
 class EMA(nn.Module):
     def __init__(self, mu):
@@ -231,19 +246,6 @@ class SqueezeAndExcitation(nn.Module):
         )
 
 
-class AvgrageMeter(object):
-    def __init__(self):
-        self.reset()
-
-    def reset(self):
-        self.avg = 0
-        self.sum = 0
-        self.cnt = 0
-
-    def update(self, val, n=1):
-        self.sum += val * n
-        self.cnt += n
-        self.avg = self.sum / self.cnt
 
 
 '''

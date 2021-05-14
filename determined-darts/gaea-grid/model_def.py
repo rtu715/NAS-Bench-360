@@ -79,7 +79,6 @@ class GAEASearchTrial(PyTorchTrial):
                     self.hparams.nodes,
                     self.hparams.multiplier,
                     self.in_channels,
-                    width=self.hparams.width,
                     k=self.hparams.shuffle_factor,
                 )
             )
@@ -111,8 +110,15 @@ class GAEASearchTrial(PyTorchTrial):
             )
 
         else:
-            searched_genotype = Genotype(normal=[('dil_conv_5x5', 1), ('sep_conv_5x5', 0), ('dil_conv_5x5', 2), ('sep_conv_5x5', 1), ('dil_conv_5x5', 3), ('dil_conv_5x5', 2), ('dil_conv_5x5', 4), ('sep_conv_5x5', 3)], normal_concat=range(5, 6), reduce=[('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1)], reduce_concat=range(5, 6))
-           
+            if self.hparams.task == 'pde':
+                #searched_genotype=Genotype(normal=[('sep_conv_3x3', 0), ('sep_conv_5x5', 1), ('dil_conv_5x5', 2), ('sep_conv_3x3', 1), ('dil_conv_5x5', 3), ('dil_conv_5x5', 2), ('dil_conv_5x5', 4), ('dil_conv_3x3', 2)], normal_concat=range(2, 6), reduce=[('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1)], reduce_concat=range(2, 6))
+                searched_genotype= Genotype(normal=[('dil_conv_5x5', 1), ('sep_conv_3x3', 0), ('dil_conv_5x5', 2), ('sep_conv_5x5', 1), ('sep_conv_5x5', 3), ('dil_conv_3x3', 1), ('dil_conv_5x5', 4), ('dil_conv_3x3', 2)], normal_concat=range(5, 6), reduce=[('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1)], reduce_concat=range(5, 6))
+
+            else:
+                raise ValueError
+
+            print(searched_genotype)
+
             model = DiscretizedNetwork(
                 self.hparams.init_channels,
                 self.n_classes,
@@ -136,12 +142,13 @@ class GAEASearchTrial(PyTorchTrial):
             self.lr_scheduler = self.context.wrap_lr_scheduler(
                 lr_scheduler=CosineAnnealingLR(
                     self.optimizer,
-                    50,
-                    0,
+                    self.hparams.scheduler_epochs,
+                    self.hparams.min_learning_rate,
                 ),
                 step_mode=LRScheduler.StepMode.STEP_EVERY_EPOCH,
             )
-
+        total_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)/ 1e6
+        print('Parameter size in MB: ', total_params)
 
     def download_data_from_s3(self):
         '''Download pde data from s3 to store in temp directory'''
@@ -231,10 +238,10 @@ class GAEASearchTrial(PyTorchTrial):
         print(y_train.shape)
         bilevel_data = BilevelDataset(train_data)
 
-        self.train_data = bilevel_data
+        self.train_data = bilevel_data if self.hparams.train else train_data
 
         train_queue = DataLoader(
-            bilevel_data,
+            self.train_data,
             batch_size=self.context.get_per_slot_batch_size(),
             shuffle=True,
             num_workers=2,
@@ -291,10 +298,15 @@ class GAEASearchTrial(PyTorchTrial):
     def train_batch(
         self, batch: TorchData, epoch_idx: int, batch_idx: int
     ) -> Dict[str, torch.Tensor]:
-        if epoch_idx != self.last_epoch:
-            self.train_data.shuffle_val_inds()
-        self.last_epoch = epoch_idx
-        x_train, y_train, x_val, y_val = batch
+        if self.hparams.train:
+            if epoch_idx != self.last_epoch:
+                self.train_data.shuffle_val_inds()
+            self.last_epoch = epoch_idx
+            x_train, y_train, x_val, y_val = batch
+        
+        else:
+            x_train, y_train = batch
+
         batch_size = self.context.get_per_slot_batch_size()
 
         if self.hparams.train:

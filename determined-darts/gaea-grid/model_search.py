@@ -103,7 +103,6 @@ class Network(nn.Module):
         steps=4,
         multiplier=4,
         in_channels=3,
-        width=32,
         k=1,
     ):
         super(Network, self).__init__()
@@ -141,8 +140,7 @@ class Network(nn.Module):
             )
             reduction_prev = reduction
             self.cells += [cell]
-            C_prev_prev, C_prev = C_prev, multiplier * C_curr
-            print('multiplier: ', multiplier)
+            C_prev_prev, C_prev = C_prev,  C_curr
         #self.global_pooling = nn.AdaptiveAvgPool2d(1)
         self.classifier = nn.Linear(C_prev, num_classes)
 

@@ -94,7 +94,6 @@ class XDTrial(PyTorchTrial):
             'fixed': (False, False, False),
         }
         
-        X, _ = next(iter(self.build_training_data_loader()))
         #X = torch.zeros([self.context.get_per_slot_batch_size(), self.s, self.s, 3])
 
         #named_modules = []
@@ -104,6 +103,7 @@ class XDTrial(PyTorchTrial):
 
         if self.hparams.patch:
             #self.chrysalis.patch_conv(X[:1], **arch_kwargs)
+            X, _ = next(iter(self.build_training_data_loader()))
             self.chrysalis.patch_conv(X[:1], named_modules=self.patch_modules, **arch_kwargs)
         
         else:
@@ -118,10 +118,10 @@ class XDTrial(PyTorchTrial):
         Definition of optimizers, no Adam implementation
         '''
         #momentum = partial(torch.optim.SGD, momentum=self.hparams.momentum)
-        #opts = [momentum(self.model.model_weights(), lr=self.hparams.learning_rate, weight_decay=self.hparams.weight_decay)]
-        opts = [torch.optim.Adam([{'params': list(self.model.xd_weights())},
-                          {'params': list(self.model.nonxd_weights())}],
-                          lr=self.hparams.learning_rate, weight_decay=1e-4)]
+        opts = [torch.optim.Adam(self.model.model_weights(), lr=self.hparams.learning_rate)]
+        #opts = [torch.optim.Adam([{'params': list(self.model.xd_weights())},
+        #                  {'params': list(self.model.nonxd_weights())}],
+        #                  lr=self.hparams.learning_rate)]
 
         if self.hparams.arch_lr:
             arch_opt = torch.optim.Adam if self.hparams.arch_adam else partial(torch.optim.SGD, momentum=self.hparams.arch_momentum)
@@ -335,6 +335,7 @@ class XDTrial(PyTorchTrial):
                 if self.hparams.task == 'pde':
                     logits = self.y_normalizer.decode(logits)
                     loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1)).item()
+                    loss = loss / logits.size(0)
                     error = 0
 
                 elif self.hparams.task == 'protein':
