@@ -1,4 +1,4 @@
-description: cifar100_xd_eval
+description: cifar100_xd_eval_warmup
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -23,6 +23,8 @@ bind_mounts:
 hyperparameters:
   task: cifar100
   train: false
+
+  #Number of classes in dataset
   permute: false
 
   #NN architecture backbone
@@ -46,7 +48,7 @@ hyperparameters:
   kmatrix_depth: 1
   max_kernel_size: 1
 
-  warmup_epochs: 0
+  warmup_epochs: 50
   cooldown_epochs: 0
 
 resources:

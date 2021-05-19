@@ -170,7 +170,6 @@ class DenseNASSearchTrial(PyTorchTrial):
 
         trainset = self.train_data
         #bilevel = BilevelDataset(trainset)
-        #self.train_data = bilevel
         #print('Length of bilevel dataset: ', len(bilevel))
 
         return DataLoader(trainset, batch_size=self.context.get_per_slot_batch_size(), shuffle=True, num_workers=2)

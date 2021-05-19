@@ -1,0 +1,72 @@
+description: pde_xd_search
+environment:
+  image: "renbotu/xd-nas:determined1.8"
+  registry_auth:
+    username: renbotu
+    password: 980715tutubo
+
+
+data:
+  download_dir: /data
+  type: s3
+  bucket: pde-xd
+
+hyperparameters:
+  task: pde
+  train: true
+
+  learning_rate: 0.0001
+  weight_decay: 1e-4
+
+  arch_lr:
+    type: log
+    minval: -6.0
+    maxval: -2.0
+    base: 10.0
+
+  arch_momentum: 0.5
+
+  arch_adam: 
+    type: categorical
+    vals:
+      - true
+      - false
+
+  global_batch_size: 4
+
+  start_epoch: 0
+  epochs: 100
+
+  patch: true
+  from_scratch: false
+  kmatrix_depth: 1
+  max_kernel_size: 1
+
+  warmup_epochs: 0
+  cooldown_epochs: 0
+  sub: 5
+
+resources:
+  slots_per_trial: 1
+  max_slots: 4
+
+records_per_epoch: 900
+
+searcher:
+  name: adaptive_asha
+  metric: validation_loss
+  max_length:
+    epochs: 100
+  max_trials: 16
+  mode: aggressive
+  divisor: 4
+  max_rungs: 5
+  max_concurrent_trials: 4
+  
+
+min_validation_period:
+  epochs: 1
+
+max_restarts: 100
+
+entrypoint: model_grid:XDTrial

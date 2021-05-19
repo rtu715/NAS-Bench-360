@@ -143,10 +143,10 @@ class RES_Net(nn.Module):
 
         n_classes, in_channels = dataset_hypers[self.dataset]
         self._num_classes = n_classes
-
+        #input stride changed to 1 from 2
         self.input_block = nn.Sequential(
             nn.Conv2d(in_channels=in_channels, out_channels=self.in_chs, kernel_size=3,
-                    stride=2, padding=1, bias=False),
+                    stride=1, padding=1, bias=False),
             nn.BatchNorm2d(self.in_chs),
             nn.ReLU6(inplace=True),
         )

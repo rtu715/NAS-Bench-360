@@ -1,4 +1,4 @@
-description: cifar100_densenas_eval
+description: cifar100_bilevel_densenas_eval
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -27,12 +27,27 @@ hyperparameters:
   num_examples: 50000
 
   net_type: res
-  net_config: "[[32, 64], 'basic_block', [], 0, 2]|
- [[64, 112], 'basic_block', ['basic_block', 'basic_block', 'basic_block', 'basic_block', 'basic_block'], 5, 2]|
-[[112, 176], 'basic_block', [], 0, 2]|
- [[176, 208], 'basic_block', [], 0, 1]|
-[[208, 272], 'basic_block', [], 0, 1]|
- [[272, 512], 'basic_block', [], 0, 1]"
+  #net_config: "[[32, 64], 'basic_block', [], 0, 2]|
+  #[[64, 112], 'basic_block', ['basic_block', 'basic_block', 'basic_block', 'basic_block', 'basic_block'], 5, 2]|
+  #[[112, 176], 'basic_block', [], 0, 2]|
+  #[[176, 208], 'basic_block', [], 0, 1]|
+  #[[208, 272], 'basic_block', [], 0, 1]|
+  #[[272, 512], 'basic_block', [], 0, 1]"
+
+  #net_config: "[[32, 64], 'basic_block', [], 0, 2]|
+  #[[64, 112], 'basic_block', ['basic_block', 'basic_block', 'basic_block', 'basic_block', 'basic_block'], 5, 2]|
+  #[[112, 160], 'basic_block', [], 0, 2]|
+  #[[160, 224], 'basic_block', [], 0, 1]"
+  #net_config: "[[32, 64], 'basic_block', [], 0, 2]|
+  #[[64, 96], 'basic_block', [], 0, 2]|
+  #[[96, 176], 'basic_block', ['basic_block', 'basic_block', 'basic_block'], 3, 2]|
+  #[[176, 208], 'basic_block', ['basic_block', 'basic_block', 'basic_block', 'basic_block', 'basic_block'], 5, 1]|
+  #[[208, 288], 'basic_block', ['basic_block', 'basic_block', 'basic_block', 'basic_block'], 4, 1]| [[288, 512], 'basic_block', ['basic_block'], 1, 1]"
+
+  net_config: "[[32, 64], 'basic_block', [], 0, 1]|
+[[64, 112], 'basic_block', [], 0, 2]|
+ [[112, 176], 'basic_block', ['basic_block', 'basic_block'], 2, 2]|
+ [[176, 224], 'basic_block', [], 0, 1]" 
 
   global_batch_size: 256
 

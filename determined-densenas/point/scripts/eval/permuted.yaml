@@ -1,4 +1,4 @@
-description: cifar100_permuted_densenas_search
+description: cifar100_permuted_densenas_eval
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -21,14 +21,18 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-  task: cifar100 
-  train: true
+  task: cifar100
+  train: false
   permute: true
-  num_examples: 8000
+  num_examples: 50000
 
   net_type: res
-  #global_batch_size: 256
-  global_batch_size: 64
+  net_config: "
+[[32, 64], 'basic_block', [], 0, 1]|
+ [[64, 72], 'basic_block', [], 0, 2]|
+[[72, 176], 'basic_block', ['basic_block', 'basic_block', 'basic_block', 'basic_block'], 4, 2]|
+[[176, 192], 'basic_block', [], 0, 1]"
+  global_batch_size: 256
 
 resources:
   slots_per_trial: 1
@@ -37,19 +41,19 @@ min_validation_period:
   epochs: 1
 
 min_checkpoint_period:
-  epochs: 5
+  epochs: 2
 
-records_per_epoch: 8000 
+records_per_epoch: 50000
 searcher:
   name: single
   metric: validation_accuracy
   smaller_is_better: false
   max_length:
-    epochs: 70
+    epochs: 240
 
 optimizations:
   aggregation_frequency:  1
 
 max_restarts: 1000
 
-entrypoint: model_bilevel:DenseNASSearchTrial
+entrypoint: model_retrain:DenseNASTrainTrial

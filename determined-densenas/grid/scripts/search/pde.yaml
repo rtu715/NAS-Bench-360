@@ -1,4 +1,4 @@
-description: cifar100_permuted_densenas_search
+description: pde_densenas_search
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -21,14 +21,12 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-  task: cifar100 
+  task: pde
   train: true
-  permute: true
-  num_examples: 8000
+  sub: 5
 
   net_type: res
-  #global_batch_size: 256
-  global_batch_size: 64
+  global_batch_size: 4
 
 resources:
   slots_per_trial: 1
@@ -37,13 +35,12 @@ min_validation_period:
   epochs: 1
 
 min_checkpoint_period:
-  epochs: 5
+  epochs: 2
 
-records_per_epoch: 8000 
+records_per_epoch: 900
 searcher:
   name: single
-  metric: validation_accuracy
-  smaller_is_better: false
+  metric: validation_loss
   max_length:
     epochs: 70
 
@@ -52,4 +49,4 @@ optimizations:
 
 max_restarts: 1000
 
-entrypoint: model_bilevel:DenseNASSearchTrial
+entrypoint: search_grid:DenseNASSearchTrial

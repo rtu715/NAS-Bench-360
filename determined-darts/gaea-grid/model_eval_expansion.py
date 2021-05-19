@@ -86,10 +86,8 @@ class DiscretizedNetwork(nn.Module):
         self._layers = layers
         self.drop_path_prob = drop_path_prob
 
-        #stem_multiplier = 3
-        #C_curr = stem_multiplier * C
-        C_curr = C  #width
-        #width = 32
+        stem_multiplier = 3
+        C_curr = stem_multiplier * C
         self.stem = nn.Sequential(
             nn.Conv2d(in_channels, C_curr, 3, padding=1, bias=False), nn.BatchNorm2d(C_curr)
         )
@@ -110,7 +108,6 @@ class DiscretizedNetwork(nn.Module):
             reduction_prev = reduction
             self.cells += [cell]
             C_prev_prev, C_prev = C_prev, cell.multiplier * C_curr
-            #C_prev_prev, C_prev = C_prev, C_curr
             print('cell multiplier: ',cell.multiplier)
 
         self.classifier = nn.Linear(C_prev, num_classes)

@@ -1,8 +1,6 @@
 net_type: res
 train_params:
     epochs: 70
-    use_seed: True
-    seed: 2
 
 search_params:
     arch_update_epoch: 10
@@ -20,23 +18,24 @@ search_params:
         chs: [32, 
             48, 56, 64, 
             72, 96, 112, 
-            128, 144, 160, 176, 192, 208, 224] 
+            128, 144, 160, 176] 
         fm_sizes: [60, 
             30, 30, 30, 
             15, 15, 15, 
-            7, 7, 7, 7, 7, 7, 7]
+            15, 15, 15, 15]
         stage: [0, 
             1, 1, 1, 
             2, 2, 2, 
-            3, 3, 3, 3, 4, 4, 4,
-            5]
+            3, 3, 3, 3,
+            4]
         num_layers: [0, 
             0, 0, 0,
             5, 5, 5,
-            15, 15, 5, 5, 1, 1, 1]
+            15, 15, 15, 15,
+            1]
 
 optim:
-    last_dim: 224
+    last_dim: 176
     init_dim: 32
     bn_momentum: 0.1
     bn_eps: 0.001

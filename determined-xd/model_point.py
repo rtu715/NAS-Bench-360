@@ -134,7 +134,7 @@ class XDTrial(PyTorchTrial):
         # deleted scheduling for different architectures
         if self.hparams.epochs != 200:
             return 0.2 ** (epoch >= int(0.3 * self.hparams.epochs)) * 0.2 ** (epoch > int(0.6 * self.hparams.epochs)) * 0.2 ** (epoch > int(0.8 * self.hparams.epochs))
-            
+        print('using original weight schedule') 
         return 0.2 ** (epoch >= 60) * 0.2 ** (epoch >= 120) * 0.2 ** (epoch >=160)
 
 

@@ -93,16 +93,13 @@ class DenseNASTrainTrial(PyTorchTrial):
 
         download_from_s3(s3_bucket, self.hparams.task, download_directory)
 
-        self.train_data, _, self.val_data = load_data(self.hparams.task, download_directory, False)
+        self.train_data, _, self.val_data = load_data(self.hparams.task, download_directory, False, self.hparams.permute)
 
         return download_directory
 
     def build_training_data_loader(self) -> DataLoader:
 
         trainset = self.train_data
-        # bilevel = BilevelDataset(trainset)
-        # self.train_data = bilevel
-        # print('Length of bilevel dataset: ', len(bilevel))
 
         return DataLoader(trainset, batch_size=self.context.get_per_slot_batch_size(), shuffle=True, num_workers=2)
 
@@ -113,11 +110,6 @@ class DenseNASTrainTrial(PyTorchTrial):
         return DataLoader(valset, batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=2)
 
     def train_batch(self, batch: TorchData, epoch_idx: int, batch_idx: int) -> Dict[str, torch.Tensor]:
-        '''
-        if epoch_idx != self.last_epoch:
-            self.train_data.shuffle_val_inds()
-        self.last_epoch = epoch_idx
-        '''
 
         x_train, y_train = batch
         self.scheduler.step()

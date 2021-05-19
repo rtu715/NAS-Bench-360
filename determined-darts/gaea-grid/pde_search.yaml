@@ -1,4 +1,4 @@
-description: pde_gaea_search
+description: pde_gaea_search_expansion
 
 data:
   download_dir: /data
@@ -27,7 +27,8 @@ hyperparameters:
     init_channels: 16 #from pde
     layers: 8
     nodes: 4
-    multiplier: 1
+    #multiplier: 1
+    multiplier: 4
     sub: 5
     clip_gradients_l2_norm: 5
 
