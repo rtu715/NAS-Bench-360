@@ -26,7 +26,6 @@ hyperparameters:
   sub: 5
 
   net_type: res
-  net_config: "[[32, 64], 'basic_block', [], 0, 1]|[[64, 112], 'basic_block', [], 0, 2]|[[112, 176], 'basic_block', [], 0, 2]|[[176, 224], 'basic_block', [], 0, 1]" 
   
   global_batch_size: 1
 
@@ -46,11 +45,11 @@ searcher:
   name: single
   metric: MAE
   max_length:
-    epochs: 240
+    epochs: 70
 
 optimizations:
   aggregation_frequency:  1
 
 max_restarts: 1000
 
-entrypoint: retrain_grid:DenseNASTrainTrial
+entrypoint: search_grid:DenseNASSearchTrial

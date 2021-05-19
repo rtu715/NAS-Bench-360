@@ -217,9 +217,7 @@ class DenseNASTrainTrial(PyTorchTrial):
 
 
         x_train, y_train = batch
-
         self.model.train()
-        self.y_normalizer.cuda()
         logits = self.model(x_train)
 
         if self.hparams.task == 'pde':
@@ -232,7 +230,7 @@ class DenseNASTrainTrial(PyTorchTrial):
             loss = self.criterion(logits, y_train.squeeze())
 
         self.context.backward(loss)
-        self.context.step_optimizer(self.opt)
+        self.context.step_optimizer(self.optimizer)
 
         return {
             'loss': loss,
@@ -260,8 +258,10 @@ class DenseNASTrainTrial(PyTorchTrial):
                     error = 0
 
                 elif self.hparams.task == 'protein':
-                    loss = self.criterion(logits, target.squeeze())
-                    loss = loss/ logits.size(0)
+                    target = target.squeeze()
+                    logits = logits.squeeze()
+                    loss = self.criterion(logits, target)
+                    loss = loss/ self.context.get_per_slot_batch_size()
 
                     target, logits, num = filter_MAE(target, logits, 8.0)
                     error = self.error(logits, target)

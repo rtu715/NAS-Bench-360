@@ -44,7 +44,8 @@ class Network(BaseSearchSpace):
             last_dim = self.config.optim.last_dim
         self.conv1_1_block = Conv1_1_Block(conv1_1_input_dim, last_dim)
         #self.global_pooling = nn.AdaptiveAvgPool2d((1, 1))
-        self.classifier = nn.Linear(last_dim, n_classes)
+        print(n_classes)
+        self.classifier = nn.Linear(last_dim, 1)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):

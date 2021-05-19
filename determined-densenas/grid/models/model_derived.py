@@ -169,10 +169,11 @@ class RES_Net(nn.Module):
                     nn.init.constant_(m.bias, 0)
 
     def forward(self, x):
+        x = x.permute(0, 3, 1, 2).contiguous()
         block_data = self.input_block(x)
         for i, block in enumerate(self.blocks):
             block_data = block(block_data)
         out = block_data
         out = out.permute(0, 2, 3, 1).contiguous()
         logits = self.classifier(out)
-        return logits
+        return logits.squeeze()

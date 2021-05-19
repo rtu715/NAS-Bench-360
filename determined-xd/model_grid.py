@@ -298,7 +298,6 @@ class XDTrial(PyTorchTrial):
 
         self.model.train()
 
-        self.y_normalizer.cuda()
         logits = self.model(x_train)
 
         if self.hparams.task == 'pde':
@@ -339,7 +338,9 @@ class XDTrial(PyTorchTrial):
                     error = 0
 
                 elif self.hparams.task == 'protein':
-                    loss = self.criterion(logits, target.squeeze())
+                    logits = logits.squeeze()
+                    target = target.squeeze()
+                    loss = self.criterion(logits, target)
                     loss = loss/ logits.size(0)
 
                     target, logits, num = filter_MAE(target, logits, 8.0)

@@ -1,5 +1,11 @@
 description: protein_gaea_search
 
+environment:
+  image: "renbotu/xd-nas:determined1.8"
+  registry_auth:
+    username: renbotu
+    password: 980715tutubo
+
 data:
   download_dir: /data
   type: s3

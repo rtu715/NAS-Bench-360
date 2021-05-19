@@ -31,7 +31,7 @@ hyperparameters:
   start_epoch: 0
   epochs: 100
 
-  patch: true
+  patch: false 
   from_scratch: false
   kmatrix_depth: 1
   max_kernel_size: 1
@@ -48,7 +48,7 @@ records_per_epoch: 3356
 
 searcher:
   name: single
-  metric: validation_loss
+  metric: MAE 
   max_length:
     epochs: 100
   

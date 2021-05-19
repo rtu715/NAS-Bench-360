@@ -26,9 +26,10 @@ hyperparameters:
   sub: 5
 
   net_type: res
-  net_config: "[[32, 64], 'basic_block', [], 0, 1]|[[64, 112], 'basic_block', [], 0, 2]|[[112, 176], 'basic_block', [], 0, 2]|[[176, 224], 'basic_block', [], 0, 1]" 
-  
-  global_batch_size: 64
+  net_config: "
+ [[32, 48], 'basic_block', ['basic_block'], 1, 1]|
+[[48, 72], 'basic_block', [], 0, 1]" 
+  global_batch_size: 5
 
 resources:
   slots_per_trial: 1
@@ -42,7 +43,7 @@ min_checkpoint_period:
 records_per_epoch: 3356
 searcher:
   name: single
-  metric: MAE
+  metric: validation_loss
   max_length:
     epochs: 240
 

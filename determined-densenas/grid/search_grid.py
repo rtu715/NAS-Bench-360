@@ -316,7 +316,9 @@ class DenseNASSearchTrial(PyTorchTrial):
         print("Derived Model Mult-Adds = %.2fMB" % derived_flops)
         print("Derived Model Num Params = %.2fMB" % derived_params)
         print(derived_arch_str)
-
+        print('num batches is: ', num_batches)
+        print(obj)
+        
         return {
                 'validation_loss': obj / num_batches,
                 'validation_subloss': sub_obj / num_batches,
@@ -432,18 +434,22 @@ class DenseNASSearchTrial(PyTorchTrial):
         sub_obj = torch.mean(sub_obj)
         if self.hparams.task == 'pde':
             self.y_normalizer.cuda()
-            target = self.y_normalizer.decode(target_valid)
-            logits = self.y_normalizer.decode(logits)
-            loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1))
-            loss = loss / logits.size(0)
+            logits = self.y_normalizer.decode(logits) 
+            
+            loss = self.criterion(logits.view(logits.size(0), -1), target_valid.view(target_valid.size(0), -1))
+            loss = loss / self.context.get_per_slot_batch_size()
+            
             error = 0
 
         elif self.hparams.task == 'protein':
             loss = self.criterion(logits, target_valid.squeeze())
-            loss = loss / logits.size(0)
-
-            target_valid, logits, num = filter_MAE(target_valid, logits, 8.0)
-            error = self.error(logits, target_valid)
-            error = error / num
+            loss = loss / self.context.get_per_slot_batch_size()
+                                                                
+            target_valid, logits, num = filter_MAE(target_valid.squeeze(), logits.squeeze(), 8.0)
+            error = self.error(logits, target_valid).item()
+            if num and error:
+                error = error / num
+            else:
+                error = 0
 
         return logits, loss.item(), sub_obj.item(), error
