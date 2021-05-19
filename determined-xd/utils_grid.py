@@ -224,3 +224,12 @@ def create_grid(sub):
 
     return grid, s
 
+def filter_MAE(mat1, mat2, threshold):
+    #where mat1>threshold, the values are converted to 0
+    a = torch.ones_like(mat1)
+    b = torch.zeros_like(mat1)
+    mask = torch.where(mat1 < threshold, a, b)
+    num = torch.count_nonzero(mask).item()
+    mat1 = mask * mat1
+    mat2 = mask * mat2
+    return mat1, mat2, num

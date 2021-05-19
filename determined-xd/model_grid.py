@@ -20,7 +20,7 @@ from backbone_grid_unet import Backbone_Grid, Tiny_Backbone_Grid
 #from backbone_grid_wrn import Backbone
 
 from utils_grid import LpLoss, MatReader, UnitGaussianNormalizer, LogCoshLoss
-from utils_grid import create_grid
+from utils_grid import create_grid, filter_MAE
 
 from xd.chrysalis import Chrysalis
 from xd.darts import Supernet
@@ -60,7 +60,7 @@ class XDTrial(PyTorchTrial):
         elif self.hparams.task == 'protein':
             self.criterion = LogCoshLoss()
             #error is reported via MAE
-            self.error = nn.L1Loss()
+            self.error = nn.L1Loss(reduction='sum')
             self.in_channels = 57
 
         else:
@@ -340,7 +340,11 @@ class XDTrial(PyTorchTrial):
 
                 elif self.hparams.task == 'protein':
                     loss = self.criterion(logits, target.squeeze())
+                    loss = loss/ logits.size(0)
+
+                    target, logits, num = filter_MAE(target, logits, 8.0)
                     error = self.error(logits, target)
+                    error = error / num
 
                 loss_sum += loss
                 error_sum += error

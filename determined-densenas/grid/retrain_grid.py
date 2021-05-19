@@ -21,7 +21,7 @@ from configs.grid_train_cfg import cfg as config
 from models import model_derived
 from tools import utils
 from utils_grid import LpLoss, MatReader, UnitGaussianNormalizer, LogCoshLoss
-from utils_grid import create_grid
+from utils_grid import create_grid, filter_MAE
 
 TorchData = Union[Dict[str, torch.Tensor], Sequence[torch.Tensor], torch.Tensor]
 
@@ -49,7 +49,7 @@ class DenseNASTrainTrial(PyTorchTrial):
         elif self.hparams.task == 'protein':
             self.criterion = LogCoshLoss()
             # error is reported via MAE
-            self.error = nn.L1Loss()
+            self.error = nn.L1Loss(reduction='sum')
             self.in_channels = 57
 
         else:
@@ -256,11 +256,16 @@ class DenseNASTrainTrial(PyTorchTrial):
                 if self.hparams.task == 'pde':
                     logits = self.y_normalizer.decode(logits)
                     loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1)).item()
+                    loss = loss / logits.size(0)
                     error = 0
 
                 elif self.hparams.task == 'protein':
                     loss = self.criterion(logits, target.squeeze())
+                    loss = loss/ logits.size(0)
+
+                    target, logits, num = filter_MAE(target, logits, 8.0)
                     error = self.error(logits, target)
+                    error = error / num
 
                 loss_sum += loss
                 error_sum += error

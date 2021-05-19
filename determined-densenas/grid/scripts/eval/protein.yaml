@@ -1,4 +1,4 @@
-description: pde_densenas_search
+description: protein_densenas_eval
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -21,12 +21,14 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-  task: pde
-  train: true
+  task: protein
+  train: false
   sub: 5
 
   net_type: res
-  global_batch_size: 1
+  net_config: "[[32, 64], 'basic_block', [], 0, 1]|[[64, 112], 'basic_block', [], 0, 2]|[[112, 176], 'basic_block', [], 0, 2]|[[176, 224], 'basic_block', [], 0, 1]" 
+  
+  global_batch_size: 64
 
 resources:
   slots_per_trial: 1
@@ -37,18 +39,16 @@ min_validation_period:
 min_checkpoint_period:
   epochs: 5
 
-records_per_epoch: 180
-#since we divided into 5, 900/5=180
-
+records_per_epoch: 3356
 searcher:
   name: single
-  metric: validation_loss
+  metric: MAE
   max_length:
-    epochs: 70
+    epochs: 240
 
 optimizations:
   aggregation_frequency:  1
 
 max_restarts: 1000
 
-entrypoint: search_grid:DenseNASSearchTrial
+entrypoint: retrain_grid:DenseNASTrainTrial

@@ -26,7 +26,7 @@ from tools.config_yaml import merge_cfg_from_file, update_cfg_from_cfg
 from tools.multadds_count import comp_multadds
 from data import BilevelDataset
 from utils_grid import LpLoss, MatReader, UnitGaussianNormalizer, LogCoshLoss
-from utils_grid import create_grid
+from utils_grid import create_grid, filter_MAE
 
 TorchData = Union[Dict[str, torch.Tensor], Sequence[torch.Tensor], torch.Tensor]
 
@@ -55,7 +55,7 @@ class DenseNASSearchTrial(PyTorchTrial):
             input_shape = (57, 64, 64)
             self.criterion = LogCoshLoss()
             #error is reported via MAE
-            self.error = nn.L1Loss()
+            self.error = nn.L1Loss(reduction='sum')
             self.in_channels = 57
 
         else:
@@ -290,22 +290,22 @@ class DenseNASSearchTrial(PyTorchTrial):
 
 
     def evaluate_full_dataset(self, data_loader: torch.utils.data.DataLoader) -> Dict[str, Any]:
-        
-        obj = utils.AverageMeter()
-        sub_obj = utils.AverageMeter()
-        error_meter = utils.AverageMeter()
 
+        obj = 0.0
+        sub_obj = 0.0
+        error_sum = 0.0
+        num_batches = 0
         self.set_param_grad_state('')
         with torch.no_grad():
             for batch in data_loader:
                 batch = self.context.to_device(batch)
                 input, target = batch
-                n = input.size(0)
                 logits, loss, subobj, error = self.valid_step(input, target, self.model)
 
-                obj.update(loss, n)
-                sub_obj.update(subobj, n)
-                error_meter.update(error, n)
+                num_batches += 1
+                obj += loss
+                sub_obj += subobj
+                error_sum += error
 
         betas, head_alphas, stack_alphas = self.model.display_arch_params()
         derived_arch = self.arch_gener.derive_archs(betas, head_alphas, stack_alphas)
@@ -318,9 +318,9 @@ class DenseNASSearchTrial(PyTorchTrial):
         print(derived_arch_str)
 
         return {
-                'validation_loss': obj.avg,
-                'validation_subloss': sub_obj.avg,
-                'MAE': error_meter.avg,
+                'validation_loss': obj / num_batches,
+                'validation_subloss': sub_obj / num_batches,
+                'MAE': error_sum / num_batches,
                 }
         
 
@@ -440,6 +440,10 @@ class DenseNASSearchTrial(PyTorchTrial):
 
         elif self.hparams.task == 'protein':
             loss = self.criterion(logits, target_valid.squeeze())
+            loss = loss / logits.size(0)
+
+            target_valid, logits, num = filter_MAE(target_valid, logits, 8.0)
             error = self.error(logits, target_valid)
+            error = error / num
 
         return logits, loss.item(), sub_obj.item(), error

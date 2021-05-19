@@ -63,7 +63,7 @@ class GAEASearchTrial(PyTorchTrial):
         elif self.hparams.task == 'protein':
             self.criterion = LogCoshLoss()
             #error is reported via MAE
-            self.error = nn.L1Loss()
+            self.error = nn.L1Loss(reduction='sum')
             self.in_channels = 57
             self.n_classes = 1
 
@@ -417,10 +417,12 @@ class GAEASearchTrial(PyTorchTrial):
                 elif self.hparams.task == 'protein':
                     target = target.squeeze()
                     loss = self.criterion(logits, target)
+                    loss = loss / logits.size(0)
                     
                     #filter the matrixes
-                    target, logits = utils.filter_MAE(target, logits, 8.0)
+                    target, logits, num = utils.filter_MAE(target, logits, 8.0)
                     error = self.error(logits, target)
+                    error = error / num
 
                 loss_sum += loss
                 error_sum += error
