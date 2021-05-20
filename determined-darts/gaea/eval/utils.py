@@ -123,6 +123,8 @@ def drop_path(x, drop_prob):
         x.mul_(mask)
     return x
 
+def count_parameters_in_MB(model):
+  return np.sum(np.prod(v.size()) for name, v in model.named_parameters() if "auxiliary" not in name)/1e6
 
 class Cutout(object):
     def __init__(self, length):

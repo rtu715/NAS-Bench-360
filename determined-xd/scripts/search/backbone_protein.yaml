@@ -1,4 +1,4 @@
-description: pde_xd_search
+description: protein_backbone_search
 environment:
   image: "renbotu/xd-nas:determined1.8"
   registry_auth:
@@ -8,39 +8,41 @@ environment:
 reproducibility:
   experiment_seed: 0 
 
-
 data:
   download_dir: /data
   type: s3
   bucket: pde-xd
 
 hyperparameters:
-  task: pde
+  task: protein
   train: true
+  #only because we don't have test set yet
 
-  learning_rate: 0.0001
-  weight_decay: 1e-4
-
-  arch_lr:
+  learning_rate:
     type: log
-    minval: -6.0
-    maxval: -2.0
+    minval: -4.0
+    maxval: 0.0
     base: 10.0
+ 
+  weight_decay:
+    type: log
+    minval: -5.0
+    maxval: -1.0
+    base: 10.0
+
+  arch_lr: 0.0
 
   arch_momentum: 0.5
 
-  arch_adam: 
-    type: categorical
-    vals:
-      - true
-      - false
-
-  global_batch_size: 4
+  #tuned
+  arch_adam: false
+  
+  global_batch_size: 2
 
   start_epoch: 0
   epochs: 100
 
-  patch: true
+  patch: false 
   from_scratch: false
   kmatrix_depth: 1
   max_kernel_size: 1
@@ -53,7 +55,7 @@ resources:
   slots_per_trial: 1
   max_slots: 4
 
-records_per_epoch: 900
+records_per_epoch: 3356
 
 searcher:
   name: adaptive_asha
@@ -65,7 +67,7 @@ searcher:
   divisor: 4
   max_rungs: 5
   max_concurrent_trials: 4
-  
+
 
 min_validation_period:
   epochs: 1

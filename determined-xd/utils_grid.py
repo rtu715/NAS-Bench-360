@@ -208,8 +208,9 @@ class LogCoshLoss(torch.nn.Module):
 
     def forward(self, y_t, y_prime_t):
         ey_t = y_t - y_prime_t
+        x = ey_t
         return torch.mean(torch.log(torch.cosh(ey_t + 1e-12)))
-
+        #return torch.mean(torch.log((torch.exp(x) + torch.exp(-x)) / 2))
 
 
 def create_grid(sub):

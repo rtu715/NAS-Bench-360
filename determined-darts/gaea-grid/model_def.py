@@ -111,6 +111,9 @@ class GAEASearchTrial(PyTorchTrial):
                 step_mode=LRScheduler.StepMode.STEP_EVERY_EPOCH,
             )
 
+            self.test_loader = None
+
+
         else:
             if self.hparams.task == 'pde':
                 #the genotype that works
@@ -233,12 +236,6 @@ class GAEASearchTrial(PyTorchTrial):
             x_train = torch.from_numpy(x_train.f.arr_0)
             y_train = torch.from_numpy(y_train.f.arr_0)
             
-            if self.hparams.train:
-                #save 100 samples from train set as validation
-                x_train = x_train[100:]
-                y_train = y_train[100:]
-                
-    
             train_data = torch.utils.data.TensorDataset(x_train, y_train)
         
         print(x_train.shape)
@@ -271,7 +268,7 @@ class GAEASearchTrial(PyTorchTrial):
                 x_test = torch.cat([x_test.reshape(ntest, s, s, 1), self.grid.repeat(ntest, 1, 1, 1)], dim=3)
 
             else:
-                TEST_PATH = os.path.join(self.download_directory, 'piececonst_r421_N1024_smooth1.mat')
+                TEST_PATH = os.path.join(self.download_directory, 'piececonst_r421_N1024_smooth2.mat')
                 reader = MatReader(TEST_PATH)
                 x_test = reader.read_field('coeff')[:ntest, ::r, ::r][:, :s, :s]
                 y_test = reader.read_field('sol')[:ntest, ::r, ::r][:, :s, :s]
@@ -282,38 +279,64 @@ class GAEASearchTrial(PyTorchTrial):
         elif self.hparams.task == 'protein': 
             
             if self.hparams.train: 
-                x_train = np.load('X_train.npz')
-                y_train = np.load('Y_train.npz')
-                
-                x_train = torch.from_numpy(x_train.f.arr_0) 
-                y_train = torch.from_numpy(y_train.f.arr_0)
-                x_test = x_train[:100]
-                y_test = y_train[:100]
-
-            else:
                 x_test = np.load('X_valid.npz')
                 y_test = np.load('Y_valid.npz')
                 x_test = torch.from_numpy(x_test.f.arr_0)
                 y_test = torch.from_numpy(y_test.f.arr_0)
 
+            else:
+                raise NotImplementedError
+            
             print(x_test.shape)
         return DataLoader(torch.utils.data.TensorDataset(x_test, y_test),
                           batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=2,)
 
 
 
+    def build_test_data_loader(self) -> DataLoader:
+        
+        if self.hparams.task == 'pde':
+            ntrain= 1000
+            ntest = 100
+            s = self.s
+            r = self.hparams["sub"]
+
+            TEST_PATH = os.path.join(self.download_directory, 'piececonst_r421_N1024_smooth2.mat')
+            reader = MatReader(TEST_PATH)
+            x_test = reader.read_field('coeff')[:ntest, ::r, ::r][:, :s, :s]
+            y_test = reader.read_field('sol')[:ntest, ::r, ::r][:, :s, :s]
+
+            x_test = self.x_normalizer.encode(x_test)
+            x_test = torch.cat([x_test.reshape(ntest, s, s, 1), self.grid.repeat(ntest, 1, 1, 1)], dim=3)
+
+        elif self.hparams.task == 'protein': 
+            
+            raise NotImplementedError
+            
+        
+        print(x_test.shape)
+        return DataLoader(torch.utils.data.TensorDataset(x_test, y_test),
+                          batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=2,)
+
     def train_batch(
         self, batch: TorchData, epoch_idx: int, batch_idx: int
     ) -> Dict[str, torch.Tensor]:
+
         if self.hparams.train:
             if epoch_idx != self.last_epoch:
                 self.train_data.shuffle_val_inds()
             self.last_epoch = epoch_idx
             x_train, y_train, x_val, y_val = batch
         
+            if epoch_idx == 0 and self.test_loader == None:
+                #build test dataloader to eval supernet
+                self.test_loader = self.build_test_data_loader()
+        
         else:
             x_train, y_train = batch
-
+            self.model.drop_path_prob = self.context.get_hparam("drop_path_prob") * epoch_idx / 600.0
+            print('current drop prob is {}'.format(self.model.drop_path_prob))
+        
         batch_size = self.context.get_per_slot_batch_size()
 
         if self.hparams.train:
@@ -415,6 +438,7 @@ class GAEASearchTrial(PyTorchTrial):
                     error = 0 
 
                 elif self.hparams.task == 'protein':
+                    logits = logits.squeeze()
                     target = target.squeeze()
                     loss = self.criterion(logits, target)
                     loss = loss / logits.size(0)
@@ -427,9 +451,34 @@ class GAEASearchTrial(PyTorchTrial):
                 loss_sum += loss
                 error_sum += error
 
+
+        test_loss_sum = 0
+        test_error_sum = 0
+        test_num_batches = 0
+
+        with torch.no_grad():
+            for batch in self.test_loader:
+                batch = self.context.to_device(batch)
+                input, target = batch
+                test_num_batches += 1
+                logits = self.model(input)
+                if self.hparams.task == 'pde':
+                    logits = self.y_normalizer.decode(logits)
+                    loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1)).item()
+                    loss = loss / logits.size(0)
+                    error = 0 
+
+                else:
+                    raise NotImplementedError
+
+                test_loss_sum += loss
+                test_error_sum += error
+
         results = {
             "validation_error": loss_sum / num_batches,
             "MAE": error_sum / num_batches,
+            "test_error": test_loss_sum / test_num_batches,
+            "test_MAE": test_error_sum / test_num_batches,
         }
 
         return results

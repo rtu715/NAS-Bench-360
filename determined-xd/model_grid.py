@@ -114,6 +114,8 @@ class XDTrial(PyTorchTrial):
         total_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)/ 1e6
         print('Parameter size in MB: ', total_params)
         
+        total_params = sum(p.numel() for p in self.backbone.parameters() if p.requires_grad)/ 1e6
+        print('Parameter size in MB: ', total_params)
         '''
         Definition of optimizers, no Adam implementation
         '''
@@ -227,14 +229,12 @@ class XDTrial(PyTorchTrial):
 
             x_train = torch.from_numpy(x_train.f.arr_0)
             y_train = torch.from_numpy(y_train.f.arr_0)
-
-            if self.hparams.train:
-                # save 100 samples from train set as validation
-                x_train = x_train[100:]
-                y_train = y_train[100:]
-
             train_data = torch.utils.data.TensorDataset(x_train, y_train)
 
+        else:
+            print('no such dataset')
+            raise NotImplementedError
+        
         train_queue = DataLoader(
             train_data,
             batch_size=self.context.get_per_slot_batch_size(),
@@ -259,7 +259,7 @@ class XDTrial(PyTorchTrial):
                 x_test = torch.cat([x_test.reshape(ntest, s, s, 1), self.grid.repeat(ntest, 1, 1, 1)], dim=3)
 
             else:
-                TEST_PATH = os.path.join(self.download_directory, 'piececonst_r421_N1024_smooth1.mat')
+                TEST_PATH = os.path.join(self.download_directory, 'piececonst_r421_N1024_smooth2.mat')
                 reader = MatReader(TEST_PATH)
                 x_test = reader.read_field('coeff')[:ntest, ::r, ::r][:, :s, :s]
                 y_test = reader.read_field('sol')[:ntest, ::r, ::r][:, :s, :s]
@@ -267,24 +267,26 @@ class XDTrial(PyTorchTrial):
                 x_test = self.x_normalizer.encode(x_test)
                 x_test = torch.cat([x_test.reshape(ntest, s, s, 1), self.grid.repeat(ntest, 1, 1, 1)], dim=3)
 
+            valid_queue = DataLoader(torch.utils.data.TensorDataset(x_test, y_test),
+                    batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=2,)
+
         elif self.hparams.task == 'protein':
             if self.hparams.train:
-                x_train = np.load('X_train.npz')
-                y_train = np.load('Y_train.npz')
-
-                x_train = torch.from_numpy(x_train.f.arr_0)
-                y_train = torch.from_numpy(y_train.f.arr_0)
-                x_test = x_train[:100]
-                y_test = y_train[:100]
-
-            else:
                 x_test = np.load('X_valid.npz')
                 y_test = np.load('Y_valid.npz')
                 x_test = torch.from_numpy(x_test.f.arr_0)
                 y_test = torch.from_numpy(y_test.f.arr_0)
-        return DataLoader(torch.utils.data.TensorDataset(x_test, y_test),
-                          batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=2,)
+                valid_queue = DataLoader(torch.utils.data.TensorDataset(x_test, y_test), batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=2)
 
+            else:
+                print('no test data yet')
+                raise NotImplementedError
+
+        else:
+            print('no such dataset')
+            raise NotImplementedError
+
+        return valid_queue 
 
     '''
     Train and Evaluate Methods

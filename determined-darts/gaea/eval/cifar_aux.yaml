@@ -1,7 +1,7 @@
 # NOTE: this config uses randomly generated data on single GPU.
 # Please use distributed.yaml if you want to run on the
 # the actual imagenet data.
-description: cifar100_gaea_eval
+description: cifar100_gaea_eval_aux
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -62,4 +62,4 @@ optimizations:
 
 max_restarts: 1000
 
-entrypoint: model_def:GAEAEvalTrial
+entrypoint: model_aux:GAEAEvalTrial

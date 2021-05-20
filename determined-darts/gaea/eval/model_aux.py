@@ -23,7 +23,7 @@ from utils import (
     HSwish,
     Swish,
     accuracy,
-    AvgrageMeter,
+    AverageMeter,
 )
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from lr_schedulers import *
@@ -47,8 +47,10 @@ class GAEAEvalTrial(PyTorchTrial):
         self.last_epoch_idx = -1
 
         self.model = self.context.wrap_model(self.build_model_from_config())
-        total_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)/ 1e6
-        print('Parameter size in MB: ', total_params)
+        
+        #total_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)/ 1e6
+        #print('Parameter size in MB: ', total_params)
+        print("param size = %fMB" % utils.count_parameters_in_MB(self.model))
 
         self.optimizer = self.context.wrap_optimizer(
             torch.optim.SGD(
@@ -62,7 +64,7 @@ class GAEAEvalTrial(PyTorchTrial):
         self.lr_scheduler = self.context.wrap_lr_scheduler(
             lr_scheduler=CosineAnnealingLR(
                 self.optimizer,
-                600,
+                600.0,
                 0,
             ),
             step_mode=LRScheduler.StepMode.STEP_EVERY_EPOCH,
@@ -219,6 +221,9 @@ class GAEAEvalTrial(PyTorchTrial):
             current_lr = self.lr_scheduler.get_last_lr()[0]
             print("Epoch: {} lr {}".format(epoch_idx, current_lr))
         self.last_epoch_idx = epoch_idx
+
+        self.model.drop_path_prob = self.context.get_hparam("drop_path_prob") * epoch_idx / 600.0
+        print('current drop prob is {}'.format(self.model.drop_path_prob))
 
         input, target = batch
 

@@ -5,6 +5,8 @@ environment:
     username: renbotu
     password: 980715tutubo
 
+reproducibility:
+  experiment_seed: 0 
 
 data:
   download_dir: /data
@@ -50,7 +52,7 @@ resources:
   slots_per_trial: 1
   max_slots: 4
 
-records_per_epoch: 3256
+records_per_epoch: 3356
 
 searcher:
   name: adaptive_asha

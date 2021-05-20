@@ -25,7 +25,7 @@ hyperparameters:
     n_classes: 1
     # Channel shuffle factor.  1 / shuffle_factor channels are activated at a given time.
     shuffle_factor: 4
-    global_batch_size: 16
+    global_batch_size: 2
     learning_rate: 0.025
     momentum: 0.9
     min_learning_rate: 0
@@ -57,7 +57,7 @@ searcher:
   name: single
   metric: validation_error 
   max_length: 
-    epochs: 200
+    epochs: 600
 
 optimizations:
   aggregation_frequency:  1

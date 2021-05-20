@@ -204,9 +204,8 @@ cifar 100
 
 def load_cifar100_train_data(path, permute=False, val_split=0.2, train=True):
     #We could include cutout in transforms
-    CIFAR_MEAN = [0.49139968, 0.48215827, 0.44653124]
-    CIFAR_STD = [0.24703233, 0.24348505, 0.26158768]
-
+    CIFAR_MEAN = [0.5071, 0.4867, 0.4408]
+    CIFAR_STD = [0.2675, 0.2565, 0.2761]
     normalize = transforms.Normalize(CIFAR_MEAN,
                                      CIFAR_STD)
 
@@ -237,8 +236,8 @@ def load_cifar100_train_data(path, permute=False, val_split=0.2, train=True):
     return trainset, valset
 
 def load_cifar100_test_data(path, permute=False):
-    CIFAR_MEAN = [0.49139968, 0.48215827, 0.44653124]
-    CIFAR_STD = [0.24703233, 0.24348505, 0.26158768]
+    CIFAR_MEAN = [0.5071, 0.4867, 0.4408]
+    CIFAR_STD = [0.2675, 0.2565, 0.2761]
 
     normalize = transforms.Normalize(CIFAR_MEAN,
                                      CIFAR_STD)

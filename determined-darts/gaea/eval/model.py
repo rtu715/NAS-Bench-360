@@ -23,8 +23,8 @@ class Cell(nn.Module):
         super(Cell, self).__init__()
         print(C_prev_prev, C_prev, C)
 
-        self.drop_prob = drop_prob
-        self.drop_module = nn.Dropout2d(drop_prob)
+        #self.drop_prob = drop_prob
+        #self.drop_module = nn.Dropout2d(drop_prob)
 
         if reduction_prev:
             self.preprocess0 = FactorizedReduce(C_prev_prev, C)
@@ -52,8 +52,8 @@ class Cell(nn.Module):
         for name, index in zip(op_names, indices):
             stride = 2 if reduction and index < 2 else 1
             op = OPS[name](C, stride, True, activation_function)
-            if "conv" in name and self.drop_prob > 0:
-                op = nn.Sequential(self.drop_module, op)
+            #if "conv" in name and self.drop_prob > 0:
+            #    op = nn.Sequential(self.drop_module, op)
             self._ops += [op]
         self._indices = indices
 
@@ -84,7 +84,7 @@ class Network(nn.Module):
     def __init__(self, C, num_classes, layers, genotype, in_channels, drop_path_prob):
         super(Network, self).__init__()
         self._layers = layers
-        self.drop_path_prob = drop_path_prob
+        self.drop_path_prob = 0.0
 
         stem_multiplier = 3
         C_curr = stem_multiplier * C

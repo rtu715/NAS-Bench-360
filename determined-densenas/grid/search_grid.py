@@ -130,6 +130,7 @@ class DenseNASSearchTrial(PyTorchTrial):
 
         self.config = config 
         self.download_directory = self.download_data_from_s3()
+        self.test_loader = None
 
     def download_data_from_s3(self):
         '''Download pde data from s3 to store in temp directory'''
@@ -167,32 +168,19 @@ class DenseNASSearchTrial(PyTorchTrial):
             r = self.hparams["sub"]
             ntrain = 1000
             ntest = 100
-            if self.hparams.train:
-                x_train = self.reader.read_field('coeff')[:ntrain - ntest, ::r, ::r][:, :s, :s]
-                y_train = self.reader.read_field('sol')[:ntrain - ntest, ::r, ::r][:, :s, :s]
+            x_train = self.reader.read_field('coeff')[:ntrain - ntest, ::r, ::r][:, :s, :s]
+            y_train = self.reader.read_field('sol')[:ntrain - ntest, ::r, ::r][:, :s, :s]
 
-                self.x_normalizer = UnitGaussianNormalizer(x_train)
-                x_train = self.x_normalizer.encode(x_train)
+            self.x_normalizer = UnitGaussianNormalizer(x_train)
+            x_train = self.x_normalizer.encode(x_train)
 
-                self.y_normalizer = UnitGaussianNormalizer(y_train)
-                y_train = self.y_normalizer.encode(y_train)
+            self.y_normalizer = UnitGaussianNormalizer(y_train)
+            y_train = self.y_normalizer.encode(y_train)
 
-                ntrain = ntrain - ntest
-                x_train = torch.cat([x_train.reshape(ntrain, s, s, 1), self.grid.repeat(ntrain, 1, 1, 1)], dim=3)
-                train_data = torch.utils.data.TensorDataset(x_train, y_train)
+            ntrain = ntrain - ntest
+            x_train = torch.cat([x_train.reshape(ntrain, s, s, 1), self.grid.repeat(ntrain, 1, 1, 1)], dim=3)
+            train_data = torch.utils.data.TensorDataset(x_train, y_train)
 
-            else:
-                x_train = self.reader.read_field('coeff')[:ntrain, ::r, ::r][:, :s, :s]
-                y_train = self.reader.read_field('sol')[:ntrain, ::r, ::r][:, :s, :s]
-
-                self.x_normalizer = UnitGaussianNormalizer(x_train)
-                x_train = self.x_normalizer.encode(x_train)
-
-                self.y_normalizer = UnitGaussianNormalizer(y_train)
-                y_train = self.y_normalizer.encode(y_train)
-
-                x_train = torch.cat([x_train.reshape(ntrain, s, s, 1), self.grid.repeat(ntrain, 1, 1, 1)], dim=3)
-                train_data = torch.utils.data.TensorDataset(x_train, y_train)
 
         elif self.hparams.task == 'protein':
             os.chdir(self.download_directory)
@@ -202,13 +190,10 @@ class DenseNASSearchTrial(PyTorchTrial):
             x_train = torch.from_numpy(x_train.f.arr_0)
             y_train = torch.from_numpy(y_train.f.arr_0)
 
-            if self.hparams.train:
-                # save 100 samples from train set as validation
-                x_train = x_train[100:]
-                y_train = y_train[100:]
-
             train_data = torch.utils.data.TensorDataset(x_train, y_train)
-
+        
+        print(x_train.shape)
+        print(y_train.shape)
 
         self.train_data = BilevelDataset(train_data)
         train_queue = DataLoader(
@@ -227,45 +212,57 @@ class DenseNASSearchTrial(PyTorchTrial):
             s = self.s
             r = self.hparams["sub"]
 
-            if self.hparams.train:
-                x_test = self.reader.read_field('coeff')[ntrain - ntest:ntrain, ::r, ::r][:, :s, :s]
-                y_test = self.reader.read_field('sol')[ntrain - ntest:ntrain, ::r, ::r][:, :s, :s]
+            x_test = self.reader.read_field('coeff')[ntrain - ntest:ntrain, ::r, ::r][:, :s, :s]
+            y_test = self.reader.read_field('sol')[ntrain - ntest:ntrain, ::r, ::r][:, :s, :s]
 
-                x_test = self.x_normalizer.encode(x_test)
-                x_test = torch.cat([x_test.reshape(ntest, s, s, 1), self.grid.repeat(ntest, 1, 1, 1)], dim=3)
+            x_test = self.x_normalizer.encode(x_test)
+            x_test = torch.cat([x_test.reshape(ntest, s, s, 1), self.grid.repeat(ntest, 1, 1, 1)], dim=3)
 
-            else:
-                TEST_PATH = os.path.join(self.download_directory, 'piececonst_r421_N1024_smooth1.mat')
-                reader = MatReader(TEST_PATH)
-                x_test = reader.read_field('coeff')[:ntest, ::r, ::r][:, :s, :s]
-                y_test = reader.read_field('sol')[:ntest, ::r, ::r][:, :s, :s]
-
-                x_test = self.x_normalizer.encode(x_test)
-                x_test = torch.cat([x_test.reshape(ntest, s, s, 1), self.grid.repeat(ntest, 1, 1, 1)], dim=3)
 
         elif self.hparams.task == 'protein':
             if self.hparams.train:
-                x_train = np.load('X_train.npz')
-                y_train = np.load('Y_train.npz')
-
-                x_train = torch.from_numpy(x_train.f.arr_0)
-                y_train = torch.from_numpy(y_train.f.arr_0)
-                x_test = x_train[:100]
-                y_test = y_train[:100]
-
-            else:
                 x_test = np.load('X_valid.npz')
                 y_test = np.load('Y_valid.npz')
                 x_test = torch.from_numpy(x_test.f.arr_0)
                 y_test = torch.from_numpy(y_test.f.arr_0)
+        
+            else:
+                raise NotImplementedError
+
         return DataLoader(torch.utils.data.TensorDataset(x_test, y_test),
                           batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=2,)
 
+
+    def build_test_data_loader(self) -> DataLoader:
+
+        if self.hparams.task == 'pde':
+            ntest = 100
+            s = self.s
+            r = self.hparams["sub"]
+
+            TEST_PATH = os.path.join(self.download_directory, 'piececonst_r421_N1024_smooth2.mat')
+            reader = MatReader(TEST_PATH)
+            x_test = reader.read_field('coeff')[:ntest, ::r, ::r][:, :s, :s]
+            y_test = reader.read_field('sol')[:ntest, ::r, ::r][:, :s, :s]
+
+            x_test = self.x_normalizer.encode(x_test)
+            x_test = torch.cat([x_test.reshape(ntest, s, s, 1), self.grid.repeat(ntest, 1, 1, 1)], dim=3)
+
+        elif self.hparams.task == 'protein':
+            raise NotImplementedError
+
+        return DataLoader(torch.utils.data.TensorDataset(x_test, y_test),
+                          batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=2,)
+
+        
     def train_batch(self, batch: TorchData, epoch_idx: int, batch_idx: int) -> Dict[str, torch.Tensor]:
     
         if epoch_idx != self.last_epoch:
             self.train_data.shuffle_val_inds()
         self.last_epoch = epoch_idx
+
+        if epoch_idx == 0 and self.test_loader == None:
+            self.test_loader = self.build_test_data_loader()
         
         search_stage = 1 if epoch_idx > self.config.search_params.arch_update_epoch else 0 
 
@@ -307,6 +304,21 @@ class DenseNASSearchTrial(PyTorchTrial):
                 sub_obj += subobj
                 error_sum += error
 
+        test_obj = 0.0
+        test_sub_obj = 0.0
+        test_error_sum = 0.0
+        test_num_batches = 0
+        with torch.no_grad():
+            for batch in self.test_loader:
+                batch = self.context.to_device(batch)
+                input, target = batch
+                logits, loss, subobj, error = self.valid_step(input, target, self.model)
+
+                test_num_batches += 1
+                test_obj += loss
+                test_sub_obj += subobj
+                test_error_sum += error
+        
         betas, head_alphas, stack_alphas = self.model.display_arch_params()
         derived_arch = self.arch_gener.derive_archs(betas, head_alphas, stack_alphas)
         derived_arch_str = '|\n'.join(map(str, derived_arch))
@@ -317,12 +329,14 @@ class DenseNASSearchTrial(PyTorchTrial):
         print("Derived Model Num Params = %.2fMB" % derived_params)
         print(derived_arch_str)
         print('num batches is: ', num_batches)
-        print(obj)
         
         return {
                 'validation_loss': obj / num_batches,
                 'validation_subloss': sub_obj / num_batches,
                 'MAE': error_sum / num_batches,
+                'test_loss': test_obj / test_num_batches,
+                'test_subloss': test_sub_obj / test_num_batches,
+                'test_MAE': test_error_sum / test_num_batches,
                 }
         
 
