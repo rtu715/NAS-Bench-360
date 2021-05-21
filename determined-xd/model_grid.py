@@ -12,6 +12,8 @@ import torch
 import torchvision
 from torch import nn
 from torchvision import transforms
+import torch.nn.functional as F
+
 
 from determined.pytorch import DataLoader, PyTorchTrial, PyTorchTrialContext, LRScheduler
 
@@ -224,12 +226,31 @@ class XDTrial(PyTorchTrial):
 
         elif self.hparams.task == 'protein':
             os.chdir(self.download_directory)
-            x_train = np.load('X_train.npz')
-            y_train = np.load('Y_train.npz')
 
-            x_train = torch.from_numpy(x_train.f.arr_0)
-            y_train = torch.from_numpy(y_train.f.arr_0)
-            train_data = torch.utils.data.TensorDataset(x_train, y_train)
+            if self.hparams.train:
+                x_train = np.load('X_train.npz')
+                y_train = np.load('Y_train.npz')
+
+                x_train = torch.from_numpy(x_train.f.arr_0)
+                y_train = torch.from_numpy(y_train.f.arr_0)
+                train_data = torch.utils.data.TensorDataset(x_train, y_train)
+
+            else:
+                x_train = np.load('X_train.npz')
+                y_train = np.load('Y_train.npz')
+                x_train = torch.from_numpy(x_train.f.arr_0)
+                y_train = torch.from_numpy(y_train.f.arr_0)
+
+                x_val = np.load('X_valid.npz')
+                y_val = np.load('Y_valid.npz')
+                x_val = torch.from_numpy(x_val.f.arr_0)
+                y_val = torch.from_numpy(y_val.f.arr_0)
+
+                x_combined = torch.cat([x_train, x_val], dim=0)
+                y_combined = torch.cat([y_train, y_val], dim=0)
+
+                train_data = torch.utils.data.TensorDataset(x_combined, y_combined)
+
 
         else:
             print('no such dataset')
@@ -310,12 +331,16 @@ class XDTrial(PyTorchTrial):
 
         elif self.hparams.task == 'protein':
             loss = self.criterion(logits, y_train.squeeze())
+            print(logits.shape)
+            print(y_train.shape)
+            mae = F.l1_loss(logits, y_train.squeeze(), reduction='mean').item()
 
         self.context.backward(loss)
         self.context.step_optimizer(self.opt)
 
         return {
             'loss': loss,
+            'MAE': mae,
         }
 
 
@@ -343,14 +368,16 @@ class XDTrial(PyTorchTrial):
                     logits = logits.squeeze()
                     target = target.squeeze()
                     loss = self.criterion(logits, target)
-                    loss = loss/ logits.size(0)
+                    loss = loss / logits.size(0)
 
-                    target, logits, num = filter_MAE(target, logits, 8.0)
-                    error = self.error(logits, target)
-                    error = error / num
+                    mae = F.l1_loss(logits, target, reduction='mean')
+                    error_sum += mae.item()
+                    #target, logits, num = filter_MAE(target, logits, 8.0)
+                    #error = self.error(logits, target)
+                    #error = error / num
 
                 loss_sum += loss
-                error_sum += error
+
 
         results = {
             "validation_loss": loss_sum / num_batches,

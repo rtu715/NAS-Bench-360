@@ -7,6 +7,8 @@ from typing import Any, Dict, Sequence, Union
 import torch
 import torch.backends.cudnn as cudnn
 import torch.nn as nn
+import torch.nn.functional as F
+
 import numpy as np
 from torch.optim.lr_scheduler import CosineAnnealingLR
 
@@ -278,11 +280,12 @@ class DenseNASSearchTrial(PyTorchTrial):
             arch_logits, arch_loss, arch_subobj = self.arch_step(x_val, y_val, self.model, search_stage)
         
         self.set_param_grad_state('Weights')
-        logits, loss, subobj = self.weight_step(x_train, y_train, self.model, search_stage)
+        logits, loss, subobj, mae = self.weight_step(x_train, y_train, self.model, search_stage)
 
         return {
                 'loss': loss,
                 'arch_loss': arch_loss,
+                'MAE': mae,
                 }
 
 
@@ -355,12 +358,15 @@ class DenseNASSearchTrial(PyTorchTrial):
             loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1))
 
         elif self.hparams.task == 'protein':
+            print(logits.shape)
+            print(target_train.shape)
             loss = self.criterion(logits, target_train.squeeze())
+            mae = F.l1_loss(logits, target_train, reduction='mean')
 
         loss.backward()
         self.weight_optimizer.step()
 
-        return logits.detach(), loss.item(), sub_obj.item()
+        return logits.detach(), loss.item(), sub_obj.item(), mae.item()
 
     def set_param_grad_state(self, stage):
         def set_grad_state(params, state):
@@ -400,6 +406,7 @@ class DenseNASSearchTrial(PyTorchTrial):
             loss_sub_obj = torch.log(sub_obj) / torch.log(torch.tensor(self.config.optim.sub_obj.log_base))
             sub_loss_factor = self.config.optim.sub_obj.sub_loss_factor
             loss += loss_sub_obj * sub_loss_factor
+
         loss.backward()
         self.arch_optimizer.step()
 
@@ -453,17 +460,18 @@ class DenseNASSearchTrial(PyTorchTrial):
             loss = self.criterion(logits.view(logits.size(0), -1), target_valid.view(target_valid.size(0), -1))
             loss = loss / self.context.get_per_slot_batch_size()
             
-            error = 0
+            mae = 0
 
         elif self.hparams.task == 'protein':
             loss = self.criterion(logits, target_valid.squeeze())
             loss = loss / self.context.get_per_slot_batch_size()
-                                                                
-            target_valid, logits, num = filter_MAE(target_valid.squeeze(), logits.squeeze(), 8.0)
-            error = self.error(logits, target_valid).item()
-            if num and error:
-                error = error / num
-            else:
-                error = 0
+            mae = F.l1_loss(logits, target_valid.squeeze(), reduction='mean').item()
 
-        return logits, loss.item(), sub_obj.item(), error
+            #target_valid, logits, num = filter_MAE(target_valid.squeeze(), logits.squeeze(), 8.0)
+            #error = self.error(logits, target_valid).item()
+            #if num and error:
+            #    error = error / num
+            #else:
+            #    error = 0
+
+        return logits, loss.item(), sub_obj.item(), mae

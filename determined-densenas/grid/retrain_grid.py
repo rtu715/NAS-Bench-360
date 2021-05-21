@@ -7,6 +7,8 @@ from typing import Any, Dict, Sequence, Union
 import torch
 import torch.backends.cudnn as cudnn
 import torch.nn as nn
+import torch.nn.functional as F
+
 import numpy as np
 from torch.optim.lr_scheduler import CosineAnnealingLR
 
@@ -136,17 +138,18 @@ class DenseNASTrainTrial(PyTorchTrial):
             os.chdir(self.download_directory)
             x_train = np.load('X_train.npz')
             y_train = np.load('Y_train.npz')
-
             x_train = torch.from_numpy(x_train.f.arr_0)
             y_train = torch.from_numpy(y_train.f.arr_0)
 
-            #include this for retrain?
-            x_test = np.load('X_valid.npz')
-            y_test = np.load('Y_valid.npz')
-            x_test = torch.from_numpy(x_test.f.arr_0)
-            y_test = torch.from_numpy(y_test.f.arr_0)
-            
-            train_data = torch.utils.data.TensorDataset(x_train, y_train)
+            x_val = np.load('X_valid.npz')
+            y_val = np.load('Y_valid.npz')
+            x_val = torch.from_numpy(x_val.f.arr_0)
+            y_val = torch.from_numpy(y_val.f.arr_0)
+
+            x_combined = torch.cat([x_train, x_val], dim=0)
+            y_combined = torch.cat([y_train, y_val], dim=0)
+
+            train_data = torch.utils.data.TensorDataset(x_combined, y_combined)
 
         train_queue = DataLoader(
             train_data,
@@ -194,12 +197,15 @@ class DenseNASTrainTrial(PyTorchTrial):
 
         elif self.hparams.task == 'protein':
             loss = self.criterion(logits, y_train.squeeze())
+            mae = F.l1_loss(logits, y_train.squeeze(), reduction='mean').item()
+
 
         self.context.backward(loss)
         self.context.step_optimizer(self.optimizer)
 
         return {
             'loss': loss,
+            'MAE': mae,
         }
 
 
@@ -221,20 +227,24 @@ class DenseNASTrainTrial(PyTorchTrial):
                     logits = self.y_normalizer.decode(logits)
                     loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1)).item()
                     loss = loss / logits.size(0)
-                    error = 0
 
                 elif self.hparams.task == 'protein':
+                    print(target.shape)
+                    print(logits.shape)
+
                     target = target.squeeze()
                     logits = logits.squeeze()
                     loss = self.criterion(logits, target)
-                    loss = loss/ self.context.get_per_slot_batch_size()
+                    loss = loss / self.context.get_per_slot_batch_size()
 
-                    target, logits, num = filter_MAE(target, logits, 8.0)
-                    error = self.error(logits, target)
-                    error = error / num
+                    mae = F.l1_loss(logits, logits, reduction='mean').item()
+
+                    #target, logits, num = filter_MAE(target, logits, 8.0)
+                    #error = self.error(logits, target)
+                    #error = error / num
+                    error_sum += mae
 
                 loss_sum += loss
-                error_sum += error
 
         results = {
             "validation_loss": loss_sum / num_batches,

@@ -233,19 +233,36 @@ class GAEASearchTrial(PyTorchTrial):
 
         elif self.hparams.task == 'protein':
             os.chdir(self.download_directory)
-            x_train = np.load('X_train.npz')
-            y_train = np.load('Y_train.npz')
-            
-            x_train = torch.from_numpy(x_train.f.arr_0)
-            y_train = torch.from_numpy(y_train.f.arr_0)
-            
-            train_data = torch.utils.data.TensorDataset(x_train, y_train)
-        
+
+            if self.hparams.train:
+                x_train = np.load('X_train.npz')
+                y_train = np.load('Y_train.npz')
+
+                x_train = torch.from_numpy(x_train.f.arr_0)
+                y_train = torch.from_numpy(y_train.f.arr_0)
+
+                train_data = torch.utils.data.TensorDataset(x_train, y_train)
+
+            else:
+                x_train = np.load('X_train.npz')
+                y_train = np.load('Y_train.npz')
+                x_train = torch.from_numpy(x_train.f.arr_0)
+                y_train = torch.from_numpy(y_train.f.arr_0)
+
+                x_val = np.load('X_valid.npz')
+                y_val = np.load('Y_valid.npz')
+                x_val = torch.from_numpy(x_val.f.arr_0)
+                y_val = torch.from_numpy(y_val.f.arr_0)
+
+                x_combined = torch.cat([x_train, x_val], dim=0)
+                y_combined = torch.cat([y_train, y_val], dim=0)
+
+                train_data = torch.utils.data.TensorDataset(x_combined, y_combined)
+
         print(x_train.shape)
         print(y_train.shape)
-        bilevel_data = BilevelDataset(train_data)
 
-        self.train_data = bilevel_data if self.hparams.train else train_data
+        self.train_data = BilevelDataset(train_data) if self.hparams.train else train_data
 
         train_queue = DataLoader(
             self.train_data,
@@ -299,7 +316,6 @@ class GAEASearchTrial(PyTorchTrial):
     def build_test_data_loader(self) -> DataLoader:
         
         if self.hparams.task == 'pde':
-            ntrain= 1000
             ntest = 100
             s = self.s
             r = self.hparams["sub"]
@@ -358,8 +374,10 @@ class GAEASearchTrial(PyTorchTrial):
                 loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1))
             
             elif self.hparams.task == 'protein':
-                #logits = torch.clamp(logits, min=0.01)        
                 loss = self.criterion(logits, y_train.squeeze())
+                print(logits.shape)
+                print(y_train.shape)
+                mae = F.l1_loss(logits, y_train.squeeze(), reduction='mean')
 
             else:
                 raise NotImplementedError
@@ -400,12 +418,13 @@ class GAEASearchTrial(PyTorchTrial):
                 target = self.y_normalizer.decode(y_train)
                 logits = self.y_normalizer.decode(logits)
                 loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1))
+
             elif self.hparams.task =='protein':
                 logits = self.model(x_train)
                 loss = self.criterion(logits, y_train.squeeze())
+                mae = F.l1_loss(logits, y_train.squeeze(), reduction='mean')
             
             self.context.backward(loss)
-            #self.context.step_optimizer(self.optimizer)
             self.context.step_optimizer(
                 optimizer=self.optimizer,
                 clip_grads=lambda params: torch.nn.utils.clip_grad_norm_(
@@ -418,6 +437,7 @@ class GAEASearchTrial(PyTorchTrial):
         return {
             "loss": loss,
             "arch_loss": arch_loss,
+            "MAE": mae.item(),
         }
 
     def evaluate_full_dataset(
@@ -438,7 +458,6 @@ class GAEASearchTrial(PyTorchTrial):
                     logits = self.y_normalizer.decode(logits)
                     loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1)).item()
                     loss = loss / logits.size(0)
-                    error = 0 
 
                 elif self.hparams.task == 'protein':
                     logits = logits.squeeze()
@@ -446,13 +465,15 @@ class GAEASearchTrial(PyTorchTrial):
                     loss = self.criterion(logits, target)
                     loss = loss / logits.size(0)
                     
-                    #filter the matrixes
-                    target, logits, num = utils.filter_MAE(target, logits, 8.0)
-                    error = self.error(logits, target)
-                    error = error / num
+                    #filter the matrices
+                    #target, logits, num = utils.filter_MAE(target, logits, 8.0)
+                    #error = self.error(logits, target)
+                    #error = error / num
+                    error = F.l1_loss(logits, target, reduction='mean')
+                    error_sum += error.item()
 
-                loss_sum += loss
-                error_sum += error
+                loss_sum += loss.item()
+
 
 
         test_loss_sum = 0
