@@ -117,12 +117,15 @@ class GAEASearchTrial(PyTorchTrial):
         else:
             if self.hparams.task == 'pde':
                 #the genotype that works
-                searched_genotype=Genotype(normal=[('sep_conv_3x3', 0), ('sep_conv_5x5', 1), ('dil_conv_5x5', 2), ('sep_conv_3x3', 1), ('dil_conv_5x5', 3), ('dil_conv_5x5', 2), ('dil_conv_5x5', 4), ('dil_conv_3x3', 2)], normal_concat=range(2, 6), reduce=[('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1)], reduce_concat=range(2, 6))
+                #searched_genotype=Genotype(normal=[('sep_conv_3x3', 0), ('sep_conv_5x5', 1), ('dil_conv_5x5', 2), ('sep_conv_3x3', 1), ('dil_conv_5x5', 3), ('dil_conv_5x5', 2), ('dil_conv_5x5', 4), ('dil_conv_3x3', 2)], normal_concat=range(2, 6), reduce=[('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1)], reduce_concat=range(2, 6))
                 #from search without expansion
                 #searched_genotype= Genotype(normal=[('dil_conv_5x5', 1), ('sep_conv_3x3', 0), ('dil_conv_5x5', 2), ('sep_conv_5x5', 1), ('sep_conv_5x5', 3), ('dil_conv_3x3', 1), ('dil_conv_5x5', 4), ('dil_conv_3x3', 2)], normal_concat=range(5, 6), reduce=[('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1)], reduce_concat=range(5, 6))
 
                 #searched with expansion
                 #searched_genotype = Genotype(normal=[('sep_conv_5x5', 1), ('dil_conv_3x3', 0), ('dil_conv_5x5', 2), ('sep_conv_3x3', 0), ('dil_conv_5x5', 3), ('dil_conv_5x5', 2), ('dil_conv_5x5', 4), ('sep_conv_5x5', 3)], normal_concat=range(2, 6), reduce=[('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1)], reduce_concat=range(2, 6))
+            
+                #newest 5/21 
+                searched_genotype = Genotype(normal=[('sep_conv_5x5', 0), ('sep_conv_3x3', 1), ('sep_conv_3x3', 2), ('sep_conv_5x5', 1), ('sep_conv_3x3', 1), ('sep_conv_3x3', 0), ('dil_conv_5x5', 3), ('max_pool_3x3', 0)], normal_concat=range(2, 6), reduce=[('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1)], reduce_concat=range(2, 6))
             
             else:
                 raise ValueError
@@ -328,7 +331,7 @@ class GAEASearchTrial(PyTorchTrial):
             self.last_epoch = epoch_idx
             x_train, y_train, x_val, y_val = batch
         
-            if epoch_idx == 0 and self.test_loader == None:
+            if self.test_loader == None:
                 #build test dataloader to eval supernet
                 self.test_loader = self.build_test_data_loader()
         
@@ -454,25 +457,27 @@ class GAEASearchTrial(PyTorchTrial):
 
         test_loss_sum = 0
         test_error_sum = 0
-        test_num_batches = 0
+        test_num_batches = 100
+        
+        if self.hparams.train:
+            test_num_batches = 0 
+            with torch.no_grad():
+                for batch in self.test_loader:
+                    batch = self.context.to_device(batch)
+                    input, target = batch
+                    test_num_batches += 1
+                    logits = self.model(input)
+                    if self.hparams.task == 'pde':
+                        logits = self.y_normalizer.decode(logits)
+                        loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1)).item()
+                        loss = loss / logits.size(0)
+                        error = 0 
 
-        with torch.no_grad():
-            for batch in self.test_loader:
-                batch = self.context.to_device(batch)
-                input, target = batch
-                test_num_batches += 1
-                logits = self.model(input)
-                if self.hparams.task == 'pde':
-                    logits = self.y_normalizer.decode(logits)
-                    loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1)).item()
-                    loss = loss / logits.size(0)
-                    error = 0 
+                    else:
+                        raise NotImplementedError
 
-                else:
-                    raise NotImplementedError
-
-                test_loss_sum += loss
-                test_error_sum += error
+                    test_loss_sum += loss
+                    test_error_sum += error
 
         results = {
             "validation_error": loss_sum / num_batches,

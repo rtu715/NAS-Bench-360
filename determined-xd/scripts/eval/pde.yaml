@@ -1,4 +1,4 @@
-description: pde_xd_eval
+description: pde_xd_eval_warmup
 environment:
   image: "renbotu/xd-nas:determined1.8"
   registry_auth:
@@ -21,12 +21,12 @@ hyperparameters:
   weight_decay: 1e-4
 
   #tuned
-  arch_lr: 0.0001342674436038013
+  arch_lr: 0.0002351681338577184 
 
   arch_momentum: 0.5
 
   #tuned
-  arch_adam: false
+  arch_adam: true
   
   global_batch_size: 4
 
@@ -38,13 +38,12 @@ hyperparameters:
   kmatrix_depth: 1
   max_kernel_size: 1
 
-  warmup_epochs: 0
+  warmup_epochs: 50
   cooldown_epochs: 0
   sub: 5
 
 resources:
   slots_per_trial: 1
-  max_slots: 4
 
 records_per_epoch: 1000
 
