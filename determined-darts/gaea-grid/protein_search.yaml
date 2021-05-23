@@ -6,6 +6,9 @@ environment:
     username: renbotu
     password: 980715tutubo
 
+reproducibility:
+  experiment_seed: 0 
+
 data:
   download_dir: /data
   type: s3

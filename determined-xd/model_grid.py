@@ -328,11 +328,10 @@ class XDTrial(PyTorchTrial):
             target = self.y_normalizer.decode(y_train)
             logits = self.y_normalizer.decode(logits)
             loss = self.criterion(logits.view(logits.size(0), -1), target.view(logits.size(0), -1))
+            mae = 0.0
 
         elif self.hparams.task == 'protein':
             loss = self.criterion(logits, y_train.squeeze())
-            print(logits.shape)
-            print(y_train.shape)
             mae = F.l1_loss(logits, y_train.squeeze(), reduction='mean').item()
 
         self.context.backward(loss)
@@ -359,6 +358,7 @@ class XDTrial(PyTorchTrial):
                 num_batches += 1
                 logits = self.model(input)
                 if self.hparams.task == 'pde':
+                    self.y_normalizer.cuda()
                     logits = self.y_normalizer.decode(logits)
                     loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1)).item()
                     loss = loss / logits.size(0)
@@ -368,7 +368,6 @@ class XDTrial(PyTorchTrial):
                     logits = logits.squeeze()
                     target = target.squeeze()
                     loss = self.criterion(logits, target)
-                    loss = loss / logits.size(0)
 
                     mae = F.l1_loss(logits, target, reduction='mean')
                     error_sum += mae.item()

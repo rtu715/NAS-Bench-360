@@ -169,8 +169,8 @@ class RES_Net(nn.Module):
                     nn.init.constant_(m.bias, 0)
 
     def forward(self, x):
-        if x.size(3) != 85:
-            x = x.permute(0, 3, 1, 2).contiguous()
+        #if x.size(3) != 85:
+        #    x = x.permute(0, 3, 1, 2).contiguous()
         block_data = self.input_block(x)
         for i, block in enumerate(self.blocks):
             block_data = block(block_data)

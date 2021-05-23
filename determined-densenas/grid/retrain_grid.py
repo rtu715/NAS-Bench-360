@@ -224,6 +224,7 @@ class DenseNASTrainTrial(PyTorchTrial):
                 num_batches += 1
                 logits = self.model(input)
                 if self.hparams.task == 'pde':
+                    self.y_normalizer.cuda()
                     logits = self.y_normalizer.decode(logits)
                     loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1)).item()
                     loss = loss / logits.size(0)
@@ -235,7 +236,6 @@ class DenseNASTrainTrial(PyTorchTrial):
                     target = target.squeeze()
                     logits = logits.squeeze()
                     loss = self.criterion(logits, target)
-                    loss = loss / self.context.get_per_slot_batch_size()
 
                     mae = F.l1_loss(logits, logits, reduction='mean').item()
 

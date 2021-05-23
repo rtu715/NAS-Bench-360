@@ -104,7 +104,11 @@ class XDTrial(PyTorchTrial):
         '''
         Definition of optimizer 
         '''
-        momentum = partial(torch.optim.SGD, momentum=self.hparams.momentum, nesterov=self.hparams.nesterov)
+        if self.hparams.momentum: 
+            momentum = partial(torch.optim.SGD, momentum=self.hparams.momentum, nesterov=self.hparams.nesterov)
+        else:
+            momentum = partial(torch.optim.SGD)
+
         opts = [
             momentum(self.model.model_weights(), lr=self.hparams.learning_rate, weight_decay=self.hparams.weight_decay)]
 
@@ -192,22 +196,21 @@ class XDTrial(PyTorchTrial):
 
     def train_batch(self, batch: TorchData, epoch_idx: int, batch_idx: int
                     ) -> Dict[str, torch.Tensor]:
-        '''
-        if epoch_idx != self.last_epoch:
-            self.train_data.shuffle_val_inds()
-        self.last_epoch = epoch_idx
-        '''
 
         x_train, y_train = batch
         self.model.train()
         output = self.model(x_train)
         loss = self.criterion(output, y_train)
+        top1, top5 = utils_pt.accuracy(output, y_train, topk=(1, 5))
+
 
         self.context.backward(loss)
         self.context.step_optimizer(self.opt)
 
         return {
             'loss': loss,
+            'top1_accuracy': top1.item(),
+            'top5_accuracy': top5.item(),
         }
     '''
     def evaluate_batch(self, batch: TorchData) -> Dict[str, Any]:

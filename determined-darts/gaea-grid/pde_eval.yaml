@@ -1,10 +1,13 @@
-description: pde_gaea_eval
+description: pde_gaea_eval_seed1
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
   registry_auth:
     username: renbotu
     password: 980715tutubo
+
+reproducibility:
+  experiment_seed: 1
 
 data:
   download_dir: /data
@@ -30,7 +33,6 @@ hyperparameters:
     scheduler_epochs: 600
     weight_decay: 3e-4
     arch_learning_rate: 0.0
-    #init_channels: 16
     init_channels: 36 #from pde
     layers: 20
     nodes: 4

@@ -251,8 +251,12 @@ class DenseNASSearchTrial(PyTorchTrial):
             x_test = torch.cat([x_test.reshape(ntest, s, s, 1), self.grid.repeat(ntest, 1, 1, 1)], dim=3)
 
         elif self.hparams.task == 'protein':
-            raise NotImplementedError
-
+            #for now test set of protein is the validation set 
+            x_test = np.load('X_valid.npz')
+            y_test = np.load('Y_valid.npz')
+            x_test = torch.from_numpy(x_test.f.arr_0)
+            y_test = torch.from_numpy(y_test.f.arr_0)
+        
         return DataLoader(torch.utils.data.TensorDataset(x_test, y_test),
                           batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=2,)
 
@@ -358,10 +362,8 @@ class DenseNASSearchTrial(PyTorchTrial):
             loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1))
 
         elif self.hparams.task == 'protein':
-            print(logits.shape)
-            print(target_train.shape)
             loss = self.criterion(logits, target_train.squeeze())
-            mae = F.l1_loss(logits, target_train, reduction='mean')
+            mae = F.l1_loss(logits, target_train.squeeze(), reduction='mean')
 
         loss.backward()
         self.weight_optimizer.step()
@@ -458,15 +460,12 @@ class DenseNASSearchTrial(PyTorchTrial):
             logits = self.y_normalizer.decode(logits) 
             
             loss = self.criterion(logits.view(logits.size(0), -1), target_valid.view(target_valid.size(0), -1))
-            loss = loss / self.context.get_per_slot_batch_size()
-            
+            loss = loss / logits.size(0)
             mae = 0
 
         elif self.hparams.task == 'protein':
             loss = self.criterion(logits, target_valid.squeeze())
-            loss = loss / self.context.get_per_slot_batch_size()
             mae = F.l1_loss(logits, target_valid.squeeze(), reduction='mean').item()
-
             #target_valid, logits, num = filter_MAE(target_valid.squeeze(), logits.squeeze(), 8.0)
             #error = self.error(logits, target_valid).item()
             #if num and error:

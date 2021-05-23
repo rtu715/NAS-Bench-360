@@ -43,7 +43,7 @@ hyperparameters:
   patch: true
   from_scratch: false
   kmatrix_depth: 1
-  max_kernel_size: 1
+  max_kernel_size: 5
 
   warmup_epochs: 0
   cooldown_epochs: 0
@@ -51,7 +51,7 @@ hyperparameters:
 
 resources:
   slots_per_trial: 1
-  max_slots: 4
+  max_slots: 3
 
 records_per_epoch: 900
 
@@ -64,7 +64,7 @@ searcher:
   mode: aggressive
   divisor: 4
   max_rungs: 5
-  max_concurrent_trials: 4
+  max_concurrent_trials: 3
   
 
 min_validation_period:

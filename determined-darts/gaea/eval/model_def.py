@@ -212,10 +212,12 @@ class GAEAEvalTrial(PyTorchTrial):
         if batch_idx == 0 or self.last_epoch_idx < epoch_idx:
             current_lr = self.lr_scheduler.get_last_lr()[0]
             print("Epoch: {} lr {}".format(epoch_idx, current_lr))
+       
+            self.model.drop_path_prob = self.context.get_hparam("drop_path_prob") * epoch_idx / 600.0
+            print('current drop prob is {}'.format(self.model.drop_path_prob))
+        
         self.last_epoch_idx = epoch_idx
 
-        self.model.drop_path_prob = self.context.get_hparam("drop_path_prob") * epoch_idx / 600.0
-        print('current drop prob is {}'.format(self.model.drop_path_prob))
         
         input, target = batch
 

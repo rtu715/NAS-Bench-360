@@ -1,7 +1,7 @@
 # NOTE: this config uses randomly generated data on single GPU.
 # Please use distributed.yaml if you want to run on the
 # the actual imagenet data.
-description: ninapro_gaea_eval
+description: ninapro_gaea_eval_seed1
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -10,7 +10,7 @@ environment:
     password: 980715tutubo
 
 reproducibility:
-  experiment_seed: 0
+  experiment_seed: 1
 
 data:
   download_dir: /data

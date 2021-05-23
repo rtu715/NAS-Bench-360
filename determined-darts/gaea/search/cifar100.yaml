@@ -1,4 +1,4 @@
-description: cifar100_gaea_search
+description: gaea_search_seed1
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -7,7 +7,7 @@ environment:
     password: 980715tutubo
 
 reproducibility:
-  experiment_seed: 0 
+  experiment_seed: 1 
 
 data:
   download_dir: /data
@@ -22,7 +22,7 @@ bind_mounts:
 
 hyperparameters:
     task: cifar100
-    permute: false
+    permute: true
 
     # Channel shuffle factor.  1 / shuffle_factor channels are activated at a given time.
     shuffle_factor: 4
