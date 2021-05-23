@@ -419,9 +419,25 @@ def load_sEMG_data(path, train):
 '''sEMG ninapro data'''
 def load_ninapro_data(path, train=True):
 
-    data = np.load(os.path.join(path, "ninapro_data.npy"),
+    trainset = load_ninapro(path, 'train')
+    valset = load_ninapro(path, 'val')
+    testset = load_ninapro(path, 'test')
+
+    if train:
+        return trainset, valset, testset
+
+    else:
+        trainset = data_utils.ConcatDataset([trainset, valset])
+
+    return trainset, None, testset
+
+def load_ninapro(path, whichset):
+    data_str = 'ninapro_' + whichset + '.npy'
+    label_str = 'label_' + whichset + '.npy'
+
+    data = np.load(os.path.join(path, data_str),
                              encoding="bytes", allow_pickle=True)
-    labels = np.load(os.path.join(path, "ninapro_label.npy"), encoding="bytes", allow_pickle=True)
+    labels = np.load(os.path.join(path, label_str), encoding="bytes", allow_pickle=True)
 
     data = np.transpose(data, (0, 2, 1))
     data = data[:, None, :, :]
@@ -430,19 +446,5 @@ def load_ninapro_data(path, train=True):
     data = torch.from_numpy(data.astype(np.float32))
     labels = torch.from_numpy(labels.astype(np.int64))
 
-    total_size = data.shape[0]
     all_data = data_utils.TensorDataset(data, labels)
-    
-    if train:
-        train_size = int(total_size * 0.8)
-        val_size = int(total_size * 0.1)
-        test_size = total_size - train_size - val_size
-        trainset, valset, testset = data_utils.random_split(all_data, [train_size, val_size, test_size])
-
-        return trainset, valset, testset
-
-    train_size = int(total_size * 0.9)
-    test_size = total_size - train_size
-    trainset, testset = data_utils.random_split(all_data, [train_size, test_size])
-    
-    return trainset, None, testset
+    return all_data

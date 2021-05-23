@@ -19,7 +19,8 @@ def download_from_s3(s3_bucket, task, download_dir):
         s3_folder = 'Myo'
 
     elif task == 'ninapro':
-        data_files = ['ninapro_data.npy', 'ninapro_label.npy']
+        data_files = ['ninapro_train.npy', 'ninapro_val.npy', 'ninapro_test.npy',
+                      'label_train.npy', 'label_val.npy', 'label_test.npy']
         s3_folder = 'ninapro'
 
     elif task =='cifar10' or task =='cifar100': 
