@@ -4,7 +4,8 @@ from functools import partial, reduce
 import operator
 
 import boto3
-import os 
+import os
+import json
 
 import numpy as np
 import torch
@@ -172,7 +173,8 @@ class XDTrial(PyTorchTrial):
             s3_path = None
 
         elif self.hparams.task == 'protein':
-            data_files = ['X_train.npz', 'X_valid.npz', 'Y_train.npz', 'Y_valid.npz']
+            data_files = ['X_train.npz', 'X_valid.npz', 'Y_train.npz',
+                          'Y_valid.npz', 'X_test.npz', 'Y_test.npz', 'psicov.json']
             s3_path = 'protein'
 
         else:
@@ -294,13 +296,24 @@ class XDTrial(PyTorchTrial):
             if self.hparams.train:
                 x_test = np.load('X_valid.npz')
                 y_test = np.load('Y_valid.npz')
-                x_test = torch.from_numpy(x_test.f.arr_0)
-                y_test = torch.from_numpy(y_test.f.arr_0)
-                valid_queue = DataLoader(torch.utils.data.TensorDataset(x_test, y_test), batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=2)
 
             else:
-                print('no test data yet')
+                x_test = np.load('X_test.npz')
+                y_test = np.load('Y_test.npz')
+
+                f = open('psicov.json', )
+                psicov = json.load(f)
+                self.my_list = psicov['my_list']
+                self.length_dict = psicov['length_dict']
+
+                print('test fn not implemented')
                 raise NotImplementedError
+
+            #note, when testing batch size should be different
+            x_test = torch.from_numpy(x_test.f.arr_0)
+            y_test = torch.from_numpy(y_test.f.arr_0)
+            valid_queue = DataLoader(torch.utils.data.TensorDataset(x_test, y_test), batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=2)
+
 
         else:
             print('no such dataset')

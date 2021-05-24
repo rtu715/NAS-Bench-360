@@ -17,13 +17,13 @@ hyperparameters:
   task: protein
   train: false
 
-  learning_rate: 0.0001
-  weight_decay: 1e-4
+  learning_rate: 0.1
+  momentum: 0.9
+  weight_decay: 5e-4
+  nesterov: true
 
   #tuned
   arch_lr: 0.0
-
-  arch_momentum: 0.5
 
   #tuned
   arch_adam: false
@@ -31,7 +31,7 @@ hyperparameters:
   global_batch_size: 8
 
   start_epoch: 0
-  epochs: 100
+  epochs: 200
 
   patch: false 
   from_scratch: false
@@ -54,7 +54,7 @@ searcher:
   name: single
   metric: mae
   max_length:
-    epochs: 100
+    epochs: 200
   
 
 min_validation_period:

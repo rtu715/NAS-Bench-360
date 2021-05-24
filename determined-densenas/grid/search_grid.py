@@ -2,6 +2,7 @@ import importlib
 import os
 import pprint
 import boto3
+import json
 from typing import Any, Dict, Sequence, Union
 
 import torch
@@ -145,7 +146,8 @@ class DenseNASSearchTrial(PyTorchTrial):
             s3_path = None
 
         elif self.hparams.task == 'protein':
-            data_files = ['X_train.npz', 'X_valid.npz', 'Y_train.npz', 'Y_valid.npz']
+            data_files = ['X_train.npz', 'X_valid.npz', 'Y_train.npz',
+                          'Y_valid.npz', 'X_test.npz', 'Y_test.npz', 'psicov.json']
             s3_path = 'protein'
 
         else:
@@ -222,14 +224,13 @@ class DenseNASSearchTrial(PyTorchTrial):
 
 
         elif self.hparams.task == 'protein':
-            if self.hparams.train:
-                x_test = np.load('X_valid.npz')
-                y_test = np.load('Y_valid.npz')
-                x_test = torch.from_numpy(x_test.f.arr_0)
-                y_test = torch.from_numpy(y_test.f.arr_0)
-        
-            else:
-                raise NotImplementedError
+            x_test = np.load('X_valid.npz')
+            y_test = np.load('Y_valid.npz')
+            x_test = torch.from_numpy(x_test.f.arr_0)
+            y_test = torch.from_numpy(y_test.f.arr_0)
+
+        else:
+            raise NotImplementedError
 
         return DataLoader(torch.utils.data.TensorDataset(x_test, y_test),
                           batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=2,)
@@ -251,11 +252,15 @@ class DenseNASSearchTrial(PyTorchTrial):
             x_test = torch.cat([x_test.reshape(ntest, s, s, 1), self.grid.repeat(ntest, 1, 1, 1)], dim=3)
 
         elif self.hparams.task == 'protein':
-            #for now test set of protein is the validation set 
-            x_test = np.load('X_valid.npz')
-            y_test = np.load('Y_valid.npz')
+            x_test = np.load('X_test.npz')
+            y_test = np.load('Y_test.npz')
             x_test = torch.from_numpy(x_test.f.arr_0)
             y_test = torch.from_numpy(y_test.f.arr_0)
+
+            f = open('psicov.json', )
+            psicov = json.load(f)
+            self.my_list = psicov['my_list']
+            self.length_dict = psicov['length_dict']
         
         return DataLoader(torch.utils.data.TensorDataset(x_test, y_test),
                           batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=2,)

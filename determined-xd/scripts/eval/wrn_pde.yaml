@@ -1,4 +1,4 @@
-description: protein_backbone_eval
+description: pde_xd_eval
 environment:
   image: "renbotu/xd-nas:determined1.8"
   registry_auth:
@@ -14,31 +14,29 @@ data:
   bucket: pde-xd
 
 hyperparameters:
-  task: protein
+  task: pde
   train: false
 
-  learning_rate: 0.0001
-  weight_decay: 1e-4
+  learning_rate: 0.1
+  momentum: 0.9
+  weight_decay: 5e-4
+  nesterov: true
 
   #tuned
-  arch_lr: 0.0
-
-  arch_momentum: 0.5
+  arch_lr: 0.000007348546010248473 
 
   #tuned
   arch_adam: false
   
-  global_batch_size: 8
+  global_batch_size: 4
 
   start_epoch: 0
-  epochs: 100
+  epochs: 200
 
-  patch: false 
+  patch: true
   from_scratch: false
-
-  #tuned
-  kmatrix_depth: 1
-  max_kernel_size: 1
+  kmatrix_depth: 5
+  max_kernel_size: 5
 
   warmup_epochs: 0
   cooldown_epochs: 0
@@ -46,15 +44,14 @@ hyperparameters:
 
 resources:
   slots_per_trial: 1
-  max_slots: 4
 
-records_per_epoch: 3356
+records_per_epoch: 1000
 
 searcher:
   name: single
-  metric: mae
+  metric: validation_loss
   max_length:
-    epochs: 100
+    epochs: 200
   
 
 min_validation_period:

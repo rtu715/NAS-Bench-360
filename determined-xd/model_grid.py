@@ -5,7 +5,8 @@ from functools import partial, reduce
 import operator
 
 import boto3
-import os 
+import os
+import json
 
 import numpy as np
 import torch
@@ -22,7 +23,7 @@ from backbone_grid_unet import Backbone_Grid, Tiny_Backbone_Grid
 from backbone_grid_wrn import Backbone
 
 from utils_grid import LpLoss, MatReader, UnitGaussianNormalizer, LogCoshLoss
-from utils_grid import create_grid, filter_MAE
+from utils_grid import create_grid, calculate_mae
 
 from xd.chrysalis import Chrysalis
 from xd.darts import Supernet
@@ -189,7 +190,8 @@ class XDTrial(PyTorchTrial):
             s3_path = None
 
         elif self.hparams.task == 'protein':
-            data_files = ['X_train.npz', 'X_valid.npz', 'Y_train.npz', 'Y_valid.npz']
+            data_files = ['X_train.npz', 'X_valid.npz', 'Y_train.npz',
+                          'Y_valid.npz', 'X_test.npz', 'Y_test.npz', 'psicov.json']
             s3_path = 'protein'
 
         else:
@@ -311,13 +313,21 @@ class XDTrial(PyTorchTrial):
             if self.hparams.train:
                 x_test = np.load('X_valid.npz')
                 y_test = np.load('Y_valid.npz')
-                x_test = torch.from_numpy(x_test.f.arr_0)
-                y_test = torch.from_numpy(y_test.f.arr_0)
-                valid_queue = DataLoader(torch.utils.data.TensorDataset(x_test, y_test), batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=2)
 
             else:
-                print('no test data yet')
-                raise NotImplementedError
+                x_test = np.load('X_test.npz')
+                y_test = np.load('Y_test.npz')
+
+                f = open('psicov.json', )
+                psicov = json.load(f)
+                self.my_list = psicov['my_list']
+                self.length_dict = psicov['length_dict']
+
+            #note, when testing batch size should be different
+            x_test = torch.from_numpy(x_test.f.arr_0)
+            y_test = torch.from_numpy(y_test.f.arr_0)
+            valid_queue = DataLoader(torch.utils.data.TensorDataset(x_test, y_test), batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=2)
+
 
         else:
             print('no such dataset')
@@ -363,6 +373,10 @@ class XDTrial(PyTorchTrial):
         self, data_loader: torch.utils.data.DataLoader
     ) -> Dict[str, Any]:
 
+        #evaluate on test proteins, not validation procedures
+        if self.hparams.task == 'protein' and not self.hparams.train:
+            return self.evaluate_test_protein(data_loader)
+
         loss_sum = 0
         error_sum = 0
         num_batches = 0
@@ -400,5 +414,60 @@ class XDTrial(PyTorchTrial):
         }
 
         return results
+
+    def evaluate_test_protein(
+            self, data_loader: torch.utils.data.DataLoader
+    ) -> Dict[str, Any]:
+        '''performs evaluation on protein'''
+
+        LMAX = 512 #psicov constant
+        pad_size = 10
+
+        with torch.no_grad():
+            P = []
+            targets = []
+            for batch in data_loader:
+                data, target = batch
+                for i in range(data.size(0)):
+                    #no need to permute here since already did that
+                    targets.append(
+                        np.expand_dims(
+                            target.cpu().numpy()[i], axis=0))
+
+                out = self.model.forward_window(data, 128)
+
+                #no transpose here since out is [bs, size, size, 1] already
+                P.append(out.cpu().numpy())
+
+            # Combine P, convert to numpy
+            P = np.concatenate(P, axis=0)
+
+        Y = np.full((len(targets), LMAX, LMAX, 1), np.nan)
+        for i, xy in enumerate(targets):
+            Y[i, :, :, 0] = xy[0, :, :, 0]
+
+        # Average the predictions from both triangles
+        for j in range(0, len(P[0, :, 0, 0])):
+            for k in range(j, len(P[0, :, 0, 0])):
+                P[:, j, k, :] = (P[:, k, j, :] + P[:, j, k, :]) / 2.0
+        P[P < 0.01] = 0.01
+
+        # Remove padding, i.e. shift up and left by int(pad_size/2)
+        P[:, :LMAX - pad_size, :LMAX - pad_size, :] = P[:, int(pad_size / 2): LMAX - int(pad_size / 2),
+                                                      int(pad_size / 2): LMAX - int(pad_size / 2), :]
+        Y[:, :LMAX - pad_size, :LMAX - pad_size, :] = Y[:, int(pad_size / 2): LMAX - int(pad_size / 2),
+                                                      int(pad_size / 2): LMAX - int(pad_size / 2), :]
+
+        print('')
+        print('Evaluating distances..')
+        lr8, mlr8, lr12, mlr12 = calculate_mae(P, Y, self.my_list, self.length_dict)
+
+        return {
+            'mae': lr8,
+            'mlr8': mlr8,
+            'mae12': lr12,
+            'mlr12': mlr12,
+        }
+
 
 

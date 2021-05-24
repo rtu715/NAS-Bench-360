@@ -92,6 +92,7 @@ class Backbone(nn.Module):
                 m.bias.data.zero_()
             elif isinstance(m, nn.Linear):
                 m.bias.data.zero_()
+
     def forward(self, x):
         pde = False
         if x.size(3) == 3:
@@ -110,5 +111,17 @@ class Backbone(nn.Module):
         out = self.pool(out)
         return self.out_conv(out).squeeze()
 
+    def forward_window(self, x, L, stride=-1):
+        _, _, s_length, _ = x.shape
 
+        if stride == -1:  # Default to window size
+            stride = L
+            assert (s_length % L == 0)
 
+        y = torch.zeros_like(x)[:, :, :, :1]
+        for i in range(0, s_length, stride):
+            for j in range(0, s_length, stride):
+                out = self.forward(x[:, i:i + L, j:j + L, :])
+                y[:, i:i + L, j:j + L, :] = out
+
+        return y
