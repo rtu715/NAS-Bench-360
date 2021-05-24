@@ -1,4 +1,4 @@
-description: scifar100_backbone_eval
+description: ninapro_backbone_eval
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -21,7 +21,7 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-  task: scifar100
+  task: ninapro
   train: false
 
   #Number of classes in dataset
@@ -54,7 +54,7 @@ hyperparameters:
 resources:
   slots_per_trial: 1
 
-records_per_epoch: 50000
+records_per_epoch: 3297
 # 50000 if cifar
 
 searcher:

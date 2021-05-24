@@ -59,8 +59,17 @@ hyperparameters:
 
   patch: true
   from_scratch: false
-  kmatrix_depth: 1
-  max_kernel_size: 1
+  kmatrix_depth:
+    type: categorical
+    vals:
+      - 1
+      - 3
+      - 5
+    
+  max_kernel_size: 
+    type: int
+    minval: 1
+    maxval: 5
 
   warmup_epochs: 0 
  
@@ -84,7 +93,7 @@ searcher:
   mode: aggressive
   divisor: 4
   max_rungs: 5
-  max_concurrent_trials: 3
+  max_concurrent_trials: 4
 
 min_validation_period:
   epochs: 1

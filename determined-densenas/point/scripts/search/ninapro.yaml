@@ -24,7 +24,7 @@ hyperparameters:
   task: ninapro 
   train: true
   permute: false
-  #num_examples: 50000
+  num_examples: 527
 
   net_type: res
   global_batch_size: 64
@@ -38,7 +38,7 @@ min_validation_period:
 min_checkpoint_period:
   epochs: 2
 
-records_per_epoch: 3164
+records_per_epoch: 527
 searcher:
   name: single
   metric: validation_accuracy

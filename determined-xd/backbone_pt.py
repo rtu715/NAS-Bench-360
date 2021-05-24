@@ -6,7 +6,8 @@ Parameter count 28-10: 36.5M
 Parameter count for 40-4: 8.9M
 """
 
-import math 
+import math
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

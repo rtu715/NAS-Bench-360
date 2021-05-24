@@ -24,11 +24,15 @@ hyperparameters:
   task: ninapro
   train: false
   permute: false
-
+  num_examples: 3297 
   net_type: res
-  net_config: "[[32, 64], 'basic_block', [], 0, 1]|[[64, 112], 'basic_block', [], 0, 2]|[[112, 176], 'basic_block', [], 0, 2]|[[176, 224], 'basic_block', [], 0, 1]" 
-  
-  global_batch_size: 64
+  #seed 0
+  net_config: "[[32, 64], 'basic_block', [], 0, 1]|
+[[64, 112], 'basic_block', ['basic_block', 'basic_block'], 2, 2]|
+[[112, 176], 'basic_block', ['basic_block'], 1, 2]|
+[[176, 224], 'basic_block', [], 0, 1]"
+
+  global_batch_size: 256
 
 resources:
   slots_per_trial: 1
@@ -39,7 +43,7 @@ min_validation_period:
 min_checkpoint_period:
   epochs: 2
 
-records_per_epoch: 3560 
+records_per_epoch: 3297 
 searcher:
   name: single
   metric: validation_accuracy

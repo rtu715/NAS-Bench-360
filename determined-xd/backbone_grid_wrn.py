@@ -6,7 +6,8 @@ Parameter count 28-10: 36.5M
 Parameter count for 40-4: 8.9M
 """
 
-import math 
+import math
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -60,16 +61,15 @@ class Backbone(nn.Module):
     '''
     wide resnet 50
     '''
-    def __init__(self, depth, num_classes, widen_factor=2, dropRate=0.0):
+    def __init__(self, depth, num_classes, widen_factor=2, in_channels=3, dropRate=0.0):
         super(Backbone, self).__init__()
         nChannels = [16, 16*widen_factor, 32*widen_factor, 64*widen_factor]
-        assert((depth - 2) % 6 == 0)
-        n = (depth - 2) / 6
+        assert((depth - 4) % 6 == 0)
+        n = (depth - 4) / 6
         block = BasicBlock
         # 1st conv before any network block
-        self.conv1 = nn.Conv2d(3, nChannels[0], kernel_size=3, stride=1,
+        self.conv1 = nn.Conv2d(in_channels, nChannels[0], kernel_size=3, stride=1,
                                padding=1, bias=False)
-        #self.conv1 = nn.Linear(3, nChannels[0])
         # 1st block
         self.block1 = NetworkBlock(n, nChannels[0], nChannels[1], block, 1, dropRate)
         # 2nd block
@@ -77,13 +77,12 @@ class Backbone(nn.Module):
         # 3rd block
         self.block3 = NetworkBlock(n, nChannels[2], nChannels[3], block, 2, dropRate)
         # global average pooling and classifier
-        #self.bn1 = nn.BatchNorm2d(nChannels[3])
+        self.bn1 = nn.BatchNorm2d(nChannels[3])
         self.relu = nn.ReLU(inplace=True)
+        
         self.fc = nn.Linear(nChannels[3], num_classes)
         self.out_conv = nn.Conv2d(nChannels[3], num_classes, kernel_size=1)
         self.nChannels = nChannels[3]
-
-        self.restore_fc = nn.Linear(nChannels[3]*2*2, 85*85)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -94,22 +93,22 @@ class Backbone(nn.Module):
             elif isinstance(m, nn.Linear):
                 m.bias.data.zero_()
     def forward(self, x):
-        out = self.conv1(x.permute(0,3,1,2).contiguous())    
-        #out = self.conv1(x).permute(0, 3, 1, 2).contiguous()
+        pde = False
+        if x.size(3) == 3:
+            pde = True
+            #pde input needs to be permuted
+        x = x.permute(0,3,1,2).contiguous()
+        out = self.conv1(x)    
         out = self.block1(out)
         out = self.block2(out)
         out = self.block3(out)
-        out = self.relu(out)
-        out = F.avg_pool2d(out, 8)
-        out = out.reshape((out.shape[0], -1))
-        #out = out.permute(0, 2, 3, 1).contiguous() 
-        #out = out.view(-1, self.nChannels)
-        print(out.shape)
-        out = self.restore_fc(out)
-        out = out.reshape((out.shape[0], 85, 85))
-        print(out.shape)
-        #return self.out_conv(out).squeeze()
-        return out
+        out = self.relu(self.bn1(out))
+        if pde:
+            self.pool= nn.AdaptiveAvgPool2d(85)
+        else:
+            self.pool = nn.AdaptiveAvgPool2d(128)
+        out = self.pool(out)
+        return self.out_conv(out).squeeze()
 
 
 

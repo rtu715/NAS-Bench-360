@@ -35,7 +35,7 @@ hyperparameters:
 
   patch: true
   from_scratch: false
-  kmatrix_depth: 1
+  kmatrix_depth: 5
   max_kernel_size: 5
 
   warmup_epochs: 50

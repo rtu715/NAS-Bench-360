@@ -45,8 +45,10 @@ hyperparameters:
 
   patch: true
   from_scratch: false
+
+  #tuned
   kmatrix_depth: 3
-  max_kernel_size: 1
+  max_kernel_size: 5
 
   warmup_epochs: 50
   cooldown_epochs: 0

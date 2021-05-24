@@ -29,7 +29,7 @@ hyperparameters:
   net_config: "[[32, 64], 'basic_block', ['basic_block'], 1, 1]| 
 [[64, 96], 'basic_block', [], 0, 1]" 
 
-  global_batch_size: 10
+  global_batch_size: 8
   #bs = 4 * 5 = 20 same as search
 
 resources:

@@ -1,4 +1,3 @@
-
 import tempfile
 from typing import Any, Dict, Sequence, Tuple, Union, cast
 from functools import partial, reduce
@@ -19,7 +18,7 @@ from determined.pytorch import DataLoader, PyTorchTrial, PyTorchTrialContext, LR
 
 #from backbone_grid_pde import Backbone_Grid
 from backbone_grid_unet import Backbone_Grid, Tiny_Backbone_Grid
-from backbone_grid_wrn import Backbone
+#from backbone_grid_wrn import Backbone
 
 from utils_grid import LpLoss, MatReader, UnitGaussianNormalizer, LogCoshLoss
 from utils_grid import create_grid, filter_MAE
@@ -70,8 +69,8 @@ class XDTrial(PyTorchTrial):
 
         # Changing our backbone
         #self.backbone = Backbone_Grid(12, 32, 5) 
-        #self.backbone = Backbone_Grid(self.in_channels, 32, 1)
-        self.backbone = Backbone(16, 1, 2, self.in_channels, 0.0)
+        self.backbone = Backbone_Grid(self.in_channels, 32, 1)
+        #self.backbone = Backbone(8, 1, 4, 0.0)
 
         self.chrysalis, self.original = Chrysalis.metamorphosize(self.backbone), self.backbone
         
@@ -122,21 +121,13 @@ class XDTrial(PyTorchTrial):
         Definition of optimizers, no Adam implementation
         '''
         #momentum = partial(torch.optim.SGD, momentum=self.hparams.momentum)
-        #for unet
-        #opts = [torch.optim.Adam(self.model.model_weights(), lr=self.hparams.learning_rate)]
+        opts = [torch.optim.Adam(self.model.model_weights(), lr=self.hparams.learning_rate)]
         #opts = [torch.optim.Adam([{'params': list(self.model.xd_weights())},
         #                  {'params': list(self.model.nonxd_weights())}],
         #                  lr=self.hparams.learning_rate)]
-        if self.hparams.momentum: 
-            momentum = partial(torch.optim.SGD, momentum=self.hparams.momentum, nesterov=self.hparams.nesterov)
-        else:
-            momentum = partial(torch.optim.SGD)
-
-        opts = [
-            momentum(self.model.model_weights(), lr=self.hparams.learning_rate, weight_decay=self.hparams.weight_decay)]
 
         if self.hparams.arch_lr:
-            arch_opt = torch.optim.Adam if self.hparams.arch_adam else momentum
+            arch_opt = torch.optim.Adam if self.hparams.arch_adam else partial(torch.optim.SGD, momentum=self.hparams.arch_momentum)
             opts.append(arch_opt(self.model.arch_params(), lr=self.hparams.arch_lr, weight_decay=0.0 if self.hparams.arch_adam else self.hparams.weight_decay))
 
         optimizer = MixedOptimizer(opts)
@@ -157,17 +148,9 @@ class XDTrial(PyTorchTrial):
     def weight_sched(self, epoch) -> Any:
         # deleted scheduling for different architectures
         return 0.1 ** (epoch >= int(0.5 * self.hparams.epochs)) * 0.1 ** (epoch >= int(0.75 * self.hparams.epochs))
-    
-    def weight_sched(self, epoch) -> Any:
-        return 0.5 ** (epoch // 100)
     '''
     def weight_sched(self, epoch) -> Any:
-        # deleted scheduling for different architectures
-        if self.hparams.epochs != 200:
-            return 0.2 ** (epoch >= int(0.3 * self.hparams.epochs)) * 0.2 ** (epoch > int(0.6 * self.hparams.epochs)) * 0.2 ** (epoch > int(0.8 * self.hparams.epochs))
-        print('using original weight schedule') 
-        return 0.2 ** (epoch >= 60) * 0.2 ** (epoch >= 120) * 0.2 ** (epoch >=160)
-
+        return 0.5 ** (epoch // 100)
 
     def arch_sched(self, epoch) -> Any:
         return 0.0 if epoch < self.hparams.warmup_epochs or epoch > self.hparams.epochs-self.hparams.cooldown_epochs else self.weight_sched(epoch)
@@ -400,5 +383,6 @@ class XDTrial(PyTorchTrial):
         }
 
         return results
+
 
 

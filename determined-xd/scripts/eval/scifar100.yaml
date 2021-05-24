@@ -28,7 +28,7 @@ hyperparameters:
   #NN architecture backbone
   #layers: 16
   #widen_factor: 4
-  backbone: 40,2
+  backbone: 16,4
   droprate: 0.0
 
   learning_rate: 0.1
@@ -46,8 +46,9 @@ hyperparameters:
 
   patch: true
   from_scratch: false
-  kmatrix_depth: 1
-  max_kernel_size: 1
+  
+  kmatrix_depth: 3
+  max_kernel_size: 5
 
   warmup_epochs: 50 
   cooldown_epochs: 0

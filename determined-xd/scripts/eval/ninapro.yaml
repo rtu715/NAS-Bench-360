@@ -56,7 +56,7 @@ hyperparameters:
 resources:
   slots_per_trial: 1
 
-records_per_epoch: 3560 
+records_per_epoch: 3297 
 
 
 searcher:

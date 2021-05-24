@@ -194,6 +194,7 @@ class DenseNASTrainTrial(PyTorchTrial):
             target = self.y_normalizer.decode(y_train)
             logits = self.y_normalizer.decode(logits)
             loss = self.criterion(logits.view(logits.size(0), -1), target.view(logits.size(0), -1))
+            mae = 0.0
 
         elif self.hparams.task == 'protein':
             loss = self.criterion(logits, y_train.squeeze())

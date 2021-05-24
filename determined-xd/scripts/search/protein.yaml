@@ -34,15 +34,15 @@ hyperparameters:
       - true
       - false
 
-  global_batch_size: 2
+  global_batch_size: 8
 
   start_epoch: 0
   epochs: 100
 
   patch: true
   from_scratch: false
-  kmatrix_depth: 1
-  max_kernel_size: 1
+  kmatrix_depth: 5
+  max_kernel_size: 5
 
   warmup_epochs: 0
   cooldown_epochs: 0
