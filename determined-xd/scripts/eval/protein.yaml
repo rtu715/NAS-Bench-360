@@ -29,6 +29,7 @@ hyperparameters:
   arch_adam: false
   
   global_batch_size: 8
+  eval_batch_size: 2
 
   start_epoch: 0
   epochs: 100

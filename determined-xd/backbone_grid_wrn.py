@@ -122,6 +122,7 @@ class Backbone(nn.Module):
         for i in range(0, s_length, stride):
             for j in range(0, s_length, stride):
                 out = self.forward(x[:, i:i + L, j:j + L, :])
+                out = torch.unsqueeze(out, 3)
                 y[:, i:i + L, j:j + L, :] = out
 
         return y

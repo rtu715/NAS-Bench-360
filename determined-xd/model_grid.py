@@ -313,10 +313,12 @@ class XDTrial(PyTorchTrial):
             if self.hparams.train:
                 x_test = np.load('X_valid.npz')
                 y_test = np.load('Y_valid.npz')
+                batch_size = self.context.get_per_slot_batch_size()
 
             else:
                 x_test = np.load('X_test.npz')
                 y_test = np.load('Y_test.npz')
+                batch_size = self.hparams.eval_batch_size
 
                 f = open('psicov.json', )
                 psicov = json.load(f)
@@ -326,7 +328,7 @@ class XDTrial(PyTorchTrial):
             #note, when testing batch size should be different
             x_test = torch.from_numpy(x_test.f.arr_0)
             y_test = torch.from_numpy(y_test.f.arr_0)
-            valid_queue = DataLoader(torch.utils.data.TensorDataset(x_test, y_test), batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=2)
+            valid_queue = DataLoader(torch.utils.data.TensorDataset(x_test, y_test), batch_size=batch_size, shuffle=False, num_workers=2)
 
 
         else:
@@ -427,6 +429,7 @@ class XDTrial(PyTorchTrial):
             P = []
             targets = []
             for batch in data_loader:
+                batch = self.context.to_device(batch)
                 data, target = batch
                 for i in range(data.size(0)):
                     #no need to permute here since already did that
