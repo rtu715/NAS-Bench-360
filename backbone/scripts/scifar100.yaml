@@ -1,4 +1,4 @@
-description: permuted_xd_eval_depth3
+description: scifar100_backbone_eval
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -21,54 +21,49 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-  task: cifar100
-  train: false
-
-  #Number of classes in dataset
-  permute: true
+  task: scifar100
+  train: false  
+  permute: false 
 
   #NN architecture backbone
+  #layers: 16
+  #widen_factor: 4
   backbone: 16,4
   droprate: 0.0
 
   learning_rate: 0.1
   momentum: 0.9
-  weight_decay: 5e-4
+  weight_decay: 5e-4 
   nesterov: true
-  arch_lr: 0.0023203017992040964
-  arch_adam: true
 
-  global_batch_size: 128
+  global_batch_size: 64
 
   start_epoch: 0
   epochs: 200
 
-  patch: true
-  from_scratch: false
-
-  #tuned
-  kmatrix_depth: 3
-  max_kernel_size: 3
-
-  warmup_epochs: 50
-  cooldown_epochs: 0
 
 resources:
   slots_per_trial: 1
+  max_slots: 4
 
 records_per_epoch: 50000
 # 50000 if cifar, 60000 if spherical
 
+
 searcher:
   name: single
   metric: top1_accuracy
-  smaller_is_better: false 
+  smaller_is_better: false
   max_length:
     epochs: 200
 
 min_validation_period:
   epochs: 1
 
+min_checkpoint_period:
+  epochs: 5
+         
+
 max_restarts: 100
 
-entrypoint: model_point:XDTrial
+entrypoint: model_point:BackboneTrial

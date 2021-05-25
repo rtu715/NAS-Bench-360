@@ -1,4 +1,4 @@
-description: permuted_xd_eval_depth3
+description: scifar100_backbone_tuning
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -21,54 +21,65 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-  task: cifar100
+  task: scifar100
   train: false
-
-  #Number of classes in dataset
-  permute: true
+  permute: false
 
   #NN architecture backbone
   backbone: 16,4
-  droprate: 0.0
+  droprate: 
+    type: categorical
+    vals:
+      - 0.0
+      - 0.3
 
-  learning_rate: 0.1
-  momentum: 0.9
-  weight_decay: 5e-4
+  learning_rate:
+    type: log
+    minval: -4.0
+    maxval: 0.0
+    base: 10.0
+ 
+  momentum:
+    type: categorical
+    vals:
+      - 0.0
+      - 0.9
+  
+  weight_decay:
+    type: log
+    minval: -5.0
+    maxval: -1.0
+    base: 10.0
+  
   nesterov: true
-  arch_lr: 0.0023203017992040964
-  arch_adam: true
 
   global_batch_size: 128
 
   start_epoch: 0
   epochs: 200
 
-  patch: true
-  from_scratch: false
-
-  #tuned
-  kmatrix_depth: 3
-  max_kernel_size: 3
-
-  warmup_epochs: 50
-  cooldown_epochs: 0
 
 resources:
   slots_per_trial: 1
 
 records_per_epoch: 50000
-# 50000 if cifar, 60000 if spherical
+# 50000 if cifar
 
 searcher:
-  name: single
+  name: adaptive_asha
   metric: top1_accuracy
-  smaller_is_better: false 
+  smaller_is_better: false
   max_length:
     epochs: 200
+  max_trials: 16
+  mode: aggressive
+  divisor: 4
+  max_rungs: 5
+  max_concurrent_trials: 4
 
 min_validation_period:
   epochs: 1
 
 max_restarts: 100
 
-entrypoint: model_point:XDTrial
+entrypoint: model_point:BackboneTrial

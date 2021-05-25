@@ -1,35 +1,19 @@
-
-import os
-import numpy as np
 import torch
-import shutil
-import torchvision.transforms as transforms
-from torch.autograd import Variable
-
+import numpy as np
 import scipy.io
 import h5py
+import torch.nn as nn
+from scipy.ndimage import gaussian_filter
+
+
+#################################################
+#
+# Utilities
+#
+#################################################
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # reading data
-'''
-def load_pde_data(path, split=0.1, train=True, **kwargs):
-    if train:
-        ntrain = 1000
-        ntest = split * ntrain
-        r = kwargs['r']
-        s = kwargs['s']
-        
-        file_path = os.path.join(path, 'piececonst_r421_N1024_smooth1.mat')
-        reader = MatReader(file_path)
-        x_train = reader.read_field('coeff')[:ntrain-ntest, ::r, ::r][:, :s, :s]
-        y_train = reader.read_field('sol')[:ntrain-ntest, ::r, ::r][:, :s, :s]
-'''
-
-
-class AttrDict(dict):
-    def __init__(self, *args, **kwargs):
-        super(AttrDict, self).__init__(*args, **kwargs)
-        self.__dict__ = self
-
 class MatReader(object):
     def __init__(self, file_path, to_torch=True, to_cuda=False, to_float=True):
         super(MatReader, self).__init__()
@@ -121,6 +105,55 @@ class UnitGaussianNormalizer(object):
         self.mean = self.mean.cpu()
         self.std = self.std.cpu()
 
+# normalization, Gaussian
+class GaussianNormalizer(object):
+    def __init__(self, x, eps=0.00001):
+        super(GaussianNormalizer, self).__init__()
+
+        self.mean = torch.mean(x)
+        self.std = torch.std(x)
+        self.eps = eps
+
+    def encode(self, x):
+        x = (x - self.mean) / (self.std + self.eps)
+        return x
+
+    def decode(self, x, sample_idx=None):
+        x = (x * (self.std + self.eps)) + self.mean
+        return x
+
+    def cuda(self):
+        self.mean = self.mean.cuda()
+        self.std = self.std.cuda()
+
+    def cpu(self):
+        self.mean = self.mean.cpu()
+        self.std = self.std.cpu()
+
+
+# normalization, scaling by range
+class RangeNormalizer(object):
+    def __init__(self, x, low=0.0, high=1.0):
+        super(RangeNormalizer, self).__init__()
+        mymin = torch.min(x, 0)[0].view(-1)
+        mymax = torch.max(x, 0)[0].view(-1)
+
+        self.a = (high - low)/(mymax - mymin)
+        self.b = -self.a*mymax + high
+
+    def encode(self, x):
+        s = x.size()
+        x = x.view(s[0], -1)
+        x = self.a*x + self.b
+        x = x.view(s)
+        return x
+
+    def decode(self, x):
+        s = x.size()
+        x = x.view(s[0], -1)
+        x = (x - self.b)/self.a
+        x = x.view(s)
+        return x
 
 #loss function with rel/abs Lp loss
 class LpLoss(object):
@@ -168,86 +201,28 @@ class LpLoss(object):
     def __call__(self, x, y):
         return self.rel(x, y)
 
-
-class AvgrageMeter(object):
+#Loss for protein folding task
+'''
+class LogCoshLoss(torch.nn.Module):
     def __init__(self):
-        self.reset()
+        super().__init__()
 
-    def reset(self):
-        self.avg = 0
-        self.sum = 0
-        self.cnt = 0
+    def forward(self, y_t, y_prime_t):
+        ey_t = y_t - y_prime_t
+        x = ey_t
+        return torch.mean(torch.log(torch.cosh(ey_t + 1e-12)))
+        #return torch.mean(torch.log((torch.exp(x) + torch.exp(-x)) / 2))
+'''
+def LogCoshLoss(y_t, y_prime_t, reduction='mean', eps=1e-12):
+    if reduction == 'mean':
+        reduce_fn = torch.mean
+    elif reduction == 'sum':
+        reduce_fn = torch.sum
+    else:
+        reduce_fn = lambda x: x
+    x = y_prime_t - y_t
+    return reduce_fn(torch.log((torch.exp(x) + torch.exp(-x)) / 2))
 
-    def update(self, val, n=1):
-        self.sum += val * n
-        self.cnt += n
-        self.avg = self.sum / self.cnt
-
-
-def accuracy(output, target, topk=(1,)):
-    maxk = max(topk)
-    batch_size = target.size(0)
-
-    _, pred = output.topk(maxk, 1, True, True)
-    pred = pred.t()
-    correct = pred.eq(target.contiguous().view(1, -1).expand_as(pred))
-
-    res = []
-    for k in topk:
-        correct_k = correct[:k].contiguous().view(-1).float().sum(0)
-        res.append(correct_k.mul_(100.0 / batch_size))
-    return res
-
-
-
-def count_parameters_in_MB(model):
-    return (
-        np.sum(
-            np.prod(v.size())
-            for name, v in model.named_parameters()
-            if "auxiliary" not in name
-        )
-        / 1e6
-    )
-
-
-def save_checkpoint(state, is_best, save):
-    filename = os.path.join(save, "checkpoint.pth.tar")
-    torch.save(state, filename)
-    if is_best:
-        best_filename = os.path.join(save, "model_best.pth.tar")
-        shutil.copyfile(filename, best_filename)
-
-
-def save(model, model_path):
-    torch.save(model.state_dict(), model_path)
-
-
-def load(model, model_path):
-    model.load_state_dict(torch.load(model_path))
-
-
-def drop_path(x, drop_prob):
-    if drop_prob > 0.0:
-        keep_prob = 1.0 - drop_prob
-        mask = Variable(
-            torch.cuda.FloatTensor(x.size(0), 1, 1, 1).bernoulli_(keep_prob)
-        )
-        x.div_(keep_prob)
-        x.mul_(mask)
-    return x
-
-
-def create_exp_dir(path, scripts_to_save=None):
-    if not os.path.exists(path):
-        os.mkdir(path)
-    print("Experiment dir : {}".format(path))
-
-    if scripts_to_save is not None:
-        os.mkdir(os.path.join(path, "scripts"))
-        for script in scripts_to_save:
-            dst_file = os.path.join(path, "scripts", os.path.basename(script))
-            shutil.copyfile(script, dst_file)
 
 def create_grid(sub):
     '''construct a grid for pde data'''
@@ -261,21 +236,8 @@ def create_grid(sub):
 
     return grid, s
 
-#Loss for protein folding task
-class LogCoshLoss(torch.nn.Module):
-    def __init__(self):
-        super().__init__()
-
-    def forward(self, y_t, y_prime_t):
-        
-        #inv_pred = 100.0 / (y_t + 1e-8)
-        #inv_target = 100.0/ (y_prime_t + 1e-8)
-        #return torch.mean(torch.log(torch.cosh(inv_target - inv_pred)))
-        ey_t = y_t - y_prime_t
-        return torch.mean(torch.log(torch.cosh(ey_t + 1e-12)))
-
 def filter_MAE(mat1, mat2, threshold):
-    #where mat1>threshold, the values are converted to 0 
+    #where mat1>threshold, the values are converted to 0
     a = torch.ones_like(mat1)
     b = torch.zeros_like(mat1)
     mask = torch.where(mat1 < threshold, a, b)

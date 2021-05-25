@@ -177,7 +177,22 @@ class Network(nn.Module):
         #out = self.global_pooling(s1)
         out = s1
         logits = self.classifier(out.permute(0, 2, 3, 1).contiguous())
-        return logits.squeeze()
+        return logits
+
+    def forward_window(self, x, L, stride=-1):
+        _, _, s_length, _ = x.shape
+
+        if stride == -1: # Default to window size
+            stride = L
+            assert(s_length % L == 0)
+        
+        y = torch.zeros_like(x)[:, :, :, :1] # TODO Use nans? Use numpy?
+        for i in range(0, s_length, stride):
+            for j in range(0, s_length, stride):
+                out = self.forward(x[:, i:i+L, j:j+L, :])
+                y[:,i:i+L, j:j+L, :] = out
+        return y
+
 
     def _loss(self, input, target):
         logits = self(input)

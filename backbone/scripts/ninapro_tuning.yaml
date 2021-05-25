@@ -1,0 +1,86 @@
+description: ninapro_backbone_tuning
+
+environment:
+  image: "renbotu/xd-nas:determined1.8"
+  registry_auth:
+    username: renbotu
+    password: 980715tutubo
+
+reproducibility:
+  experiment_seed: 0
+
+data:
+  download_dir: /data
+  type: s3
+  bucket: pde-xd
+
+bind_mounts:
+  - host_path: /tmp
+    container_path: /data
+    read_only: false
+
+hyperparameters:
+  task: ninapro
+  train: false
+  permute: false
+
+  #NN architecture backbone
+  backbone: 16,4
+
+  droprate: 
+    type: categorical
+    vals:
+      - 0.0
+      - 0.3
+
+  learning_rate:
+    type: log
+    minval: -4.0
+    maxval: 0.0
+    base: 10.0
+ 
+  momentum:
+    type: categorical
+    vals:
+      - 0.0
+      - 0.9
+  
+  weight_decay:
+    type: log
+    minval: -5.0
+    maxval: -1.0
+    base: 10.0
+  
+  nesterov: true
+
+  global_batch_size: 128
+
+  start_epoch: 0
+  epochs: 200
+
+
+resources:
+  slots_per_trial: 1
+  max_slots: 3
+
+records_per_epoch: 3297
+
+
+searcher:
+  name: adaptive_asha
+  metric: top1_accuracy
+  smaller_is_better: false
+  max_length:
+    epochs: 200
+  max_trials: 16
+  mode: aggressive
+  divisor: 4
+  max_rungs: 5
+  max_concurrent_trials: 3
+
+min_validation_period:
+  epochs: 1
+
+max_restarts: 100
+
+entrypoint: model_point:BackboneTrial

@@ -26,7 +26,7 @@ from model_eval import DiscretizedNetwork
 #from model_eval_expansion import DiscretizedNetwork
 from optimizer import EG
 from utils import AttrDict, LpLoss, MatReader, UnitGaussianNormalizer
-from utils import LogCoshLoss
+from utils import LogCoshLoss, calculate_mae
 import utils
 
 TorchData = Union[Dict[str, torch.Tensor], Sequence[torch.Tensor], torch.Tensor]
@@ -117,19 +117,15 @@ class GAEASearchTrial(PyTorchTrial):
 
         else:
             if self.hparams.task == 'pde':
-                #the genotype that works
-                #searched_genotype=Genotype(normal=[('sep_conv_3x3', 0), ('sep_conv_5x5', 1), ('dil_conv_5x5', 2), ('sep_conv_3x3', 1), ('dil_conv_5x5', 3), ('dil_conv_5x5', 2), ('dil_conv_5x5', 4), ('dil_conv_3x3', 2)], normal_concat=range(2, 6), reduce=[('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1)], reduce_concat=range(2, 6))
-                #from search without expansion
-                #searched_genotype= Genotype(normal=[('dil_conv_5x5', 1), ('sep_conv_3x3', 0), ('dil_conv_5x5', 2), ('sep_conv_5x5', 1), ('sep_conv_5x5', 3), ('dil_conv_3x3', 1), ('dil_conv_5x5', 4), ('dil_conv_3x3', 2)], normal_concat=range(5, 6), reduce=[('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1)], reduce_concat=range(5, 6))
-
-                #searched with expansion
-                #searched_genotype = Genotype(normal=[('sep_conv_5x5', 1), ('dil_conv_3x3', 0), ('dil_conv_5x5', 2), ('sep_conv_3x3', 0), ('dil_conv_5x5', 3), ('dil_conv_5x5', 2), ('dil_conv_5x5', 4), ('sep_conv_5x5', 3)], normal_concat=range(2, 6), reduce=[('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1)], reduce_concat=range(2, 6))
             
                 #newest 5/21 seed 2^31-1 
                 #searched_genotype = Genotype(normal=[('sep_conv_5x5', 0), ('sep_conv_3x3', 1), ('sep_conv_3x3', 2), ('sep_conv_5x5', 1), ('sep_conv_3x3', 1), ('sep_conv_3x3', 0), ('dil_conv_5x5', 3), ('max_pool_3x3', 0)], normal_concat=range(2, 6), reduce=[('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1)], reduce_concat=range(2, 6))
             
                 #seed 1
-                searched_genotype = Genotype(normal=[('dil_conv_5x5', 1), ('sep_conv_5x5', 0), ('sep_conv_5x5', 1), ('dil_conv_5x5', 2), ('dil_conv_5x5', 3), ('sep_conv_3x3', 2), ('dil_conv_3x3', 3), ('dil_conv_3x3', 2)], normal_concat=range(2, 6), reduce=[('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1)], reduce_concat=range(2, 6))
+                #searched_genotype = Genotype(normal=[('dil_conv_5x5', 1), ('sep_conv_5x5', 0), ('sep_conv_5x5', 1), ('dil_conv_5x5', 2), ('dil_conv_5x5', 3), ('sep_conv_3x3', 2), ('dil_conv_3x3', 3), ('dil_conv_3x3', 2)], normal_concat=range(2, 6), reduce=[('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1)], reduce_concat=range(2, 6))
+                
+                #seed 2
+                searched_genotype = Genotype(normal=[('dil_conv_3x3', 1), ('dil_conv_3x3', 0), ('dil_conv_3x3', 2), ('dil_conv_3x3', 0), ('dil_conv_5x5', 3), ('sep_conv_5x5', 1), ('dil_conv_5x5', 4), ('max_pool_3x3', 1)], normal_concat=range(2, 6), reduce=[('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1)], reduce_concat=range(2, 6))
 
             else:
                 raise ValueError
@@ -279,6 +275,7 @@ class GAEASearchTrial(PyTorchTrial):
 
     def build_validation_data_loader(self) -> DataLoader:
         
+        protein_test = False
         if self.hparams.task == 'pde':
             ntrain= 1000
             ntest = 100
@@ -305,8 +302,9 @@ class GAEASearchTrial(PyTorchTrial):
             if self.hparams.train:
                 x_test = np.load('X_valid.npz')
                 y_test = np.load('Y_valid.npz')
-
+            
             else:
+                protein_test = True
                 x_test = np.load('X_test.npz')
                 y_test = np.load('Y_test.npz')
 
@@ -320,8 +318,12 @@ class GAEASearchTrial(PyTorchTrial):
             y_test = torch.from_numpy(y_test.f.arr_0)
 
             print(x_test.shape)
+        
+        #special batch size for protein test
+        batch_size = self.context.get_per_slot_batch_size() if not protein_test else 2
+
         return DataLoader(torch.utils.data.TensorDataset(x_test, y_test),
-                          batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=2,)
+                          batch_size=batch_size, shuffle=False, num_workers=2,)
 
 
 
@@ -339,16 +341,23 @@ class GAEASearchTrial(PyTorchTrial):
 
             x_test = self.x_normalizer.encode(x_test)
             x_test = torch.cat([x_test.reshape(ntest, s, s, 1), self.grid.repeat(ntest, 1, 1, 1)], dim=3)
-
+            batch_size=self.context.get_per_slot_batch_size()
+            
         elif self.hparams.task == 'protein': 
             x_test = np.load('X_test.npz')
             y_test = np.load('Y_test.npz')
+
+            f = open('psicov.json', )
+            psicov = json.load(f)
+            self.my_list = psicov['my_list']
+            self.length_dict = psicov['length_dict']
             x_test = torch.from_numpy(x_test.f.arr_0)
             y_test = torch.from_numpy(y_test.f.arr_0)
-        
+            batch_size = 2
+
         print(x_test.shape)
         return DataLoader(torch.utils.data.TensorDataset(x_test, y_test),
-                          batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=2,)
+                          batch_size=batch_size, shuffle=False, num_workers=2,)
 
     def train_batch(
         self, batch: TorchData, epoch_idx: int, batch_idx: int
@@ -381,6 +390,7 @@ class GAEASearchTrial(PyTorchTrial):
             logits = self.model(x_train)
             
             if self.hparams.task =='pde':
+                logits = logits.squeeze()
                 self.y_normalizer.cuda()
                 target = self.y_normalizer.decode(y_train)
                 logits = self.y_normalizer.decode(logits)
@@ -388,8 +398,8 @@ class GAEASearchTrial(PyTorchTrial):
                 mae = 0
 
             elif self.hparams.task == 'protein':
-                loss = self.criterion(logits, y_train.squeeze())
-                mae = F.l1_loss(logits, y_train.squeeze(), reduction='mean').item()
+                loss = self.criterion(logits.squeeze(), y_train.squeeze())
+                mae = F.l1_loss(logits.squeeze(), y_train.squeeze(), reduction='mean').item()
 
             else:
                 raise NotImplementedError
@@ -414,11 +424,12 @@ class GAEASearchTrial(PyTorchTrial):
 
                 logits = self.model(x_val)
                 if self.hparams.task =='pde':
+                    logits = logits.squeeze()
                     target = self.y_normalizer.decode(y_val)
                     logits = self.y_normalizer.decode(logits)
                     arch_loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1))
                 elif self.hparams.task =='protein': 
-                    arch_loss = self.criterion(logits, y_val.squeeze())
+                    arch_loss = self.criterion(logits.squeeze(), y_val.squeeze())
 
                 self.context.backward(arch_loss)
                 self.context.step_optimizer(self.arch_opt)
@@ -427,6 +438,7 @@ class GAEASearchTrial(PyTorchTrial):
             if self.hparams.task =='pde':
                 self.y_normalizer.cuda()
                 logits = self.model(x_train)
+                logits = logits.squeeze()
                 target = self.y_normalizer.decode(y_train)
                 logits = self.y_normalizer.decode(logits)
                 loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1))
@@ -434,7 +446,7 @@ class GAEASearchTrial(PyTorchTrial):
 
             elif self.hparams.task =='protein':
                 logits = self.model(x_train)
-                loss = self.criterion(logits, y_train.squeeze())
+                loss = self.criterion(logits.squeeze(), y_train.squeeze())
                 mae = F.l1_loss(logits, y_train.squeeze(), reduction='mean').item()
             
             self.context.backward(loss)
@@ -457,6 +469,10 @@ class GAEASearchTrial(PyTorchTrial):
         self, data_loader: torch.utils.data.DataLoader
     ) -> Dict[str, Any]:
 
+        #evaluate protein if eval
+        if not self.hparams.train and self.hparams.task=='protein':
+            return self.evaluate_test_protein(data_loader)
+
         loss_sum = 0
         error_sum = 0
         num_batches = 0
@@ -469,6 +485,7 @@ class GAEASearchTrial(PyTorchTrial):
                 logits = self.model(input)
                 if self.hparams.task == 'pde':
                     self.y_normalizer.cuda()
+                    logits = logits.squeeze()
                     logits = self.y_normalizer.decode(logits)
                     loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1)).item()
                     loss = loss / logits.size(0)
@@ -493,7 +510,7 @@ class GAEASearchTrial(PyTorchTrial):
         test_error_sum = 0
         test_num_batches = 100
         
-        if self.hparams.train:
+        if self.hparams.train and self.hparams.task=='pde':
             test_num_batches = 0 
             with torch.no_grad():
                 for batch in self.test_loader:
@@ -501,19 +518,13 @@ class GAEASearchTrial(PyTorchTrial):
                     input, target = batch
                     test_num_batches += 1
                     logits = self.model(input)
-                    if self.hparams.task == 'pde':
-                        self.y_normalizer.cuda()
-                        logits = self.y_normalizer.decode(logits)
-                        loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1)).item()
-                        loss = loss / logits.size(0)
-                        error = 0 
+                    self.y_normalizer.cuda()
+                    logits = logits.squeeze()
+                    logits = self.y_normalizer.decode(logits)
+                    loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1)).item()
+                    loss = loss / logits.size(0)
+                    error = 0 
 
-                    else:
-                        logits = logits.squeeze()
-                        target = target.squeeze()
-                        loss = self.criterion(logits, target).item()
-                        error = F.l1_loss(logits, target, reduction='mean').item()
-                        
                     
                     test_loss_sum += loss
                     test_error_sum += error
@@ -524,8 +535,71 @@ class GAEASearchTrial(PyTorchTrial):
             "test_error": test_loss_sum / test_num_batches,
             "test_MAE": test_error_sum / test_num_batches,
         }
+        
+        if self.hparams.train and self.hparams.task =='protein':
+            maes = self.evaluate_test_protein(self.test_loader)
+            mae_8 = maes['lr8']     
+            results['lr8'] = mae_8
+        
+
 
         return results
+
+    def evaluate_test_protein(
+            self, data_loader: torch.utils.data.DataLoader
+    ) -> Dict[str, Any]:
+        '''performs evaluation on protein'''
+
+        LMAX = 512 #psicov constant
+        pad_size = 10
+
+        with torch.no_grad():
+            P = []
+            targets = []
+            for batch in data_loader:
+                batch = self.context.to_device(batch)
+                data, target = batch
+                for i in range(2):
+                    #no need to permute here since already did that
+                    targets.append(
+                        np.expand_dims(
+                            target.cpu().numpy()[i], axis=0))
+
+                out = self.model.forward_window(data, 128)
+
+                #no transpose here since out is [bs, size, size, 1] already
+                P.append(out.cpu().numpy())
+
+            # Combine P, convert to numpy
+            P = np.concatenate(P, axis=0)
+
+        Y = np.full((len(targets), LMAX, LMAX, 1), np.nan)
+        for i, xy in enumerate(targets):
+            Y[i, :, :, 0] = xy[0, :, :, 0]
+
+        # Average the predictions from both triangles
+        for j in range(0, len(P[0, :, 0, 0])):
+            for k in range(j, len(P[0, :, 0, 0])):
+                P[:, j, k, :] = (P[:, k, j, :] + P[:, j, k, :]) / 2.0
+        P[P < 0.01] = 0.01
+
+        # Remove padding, i.e. shift up and left by int(pad_size/2)
+        P[:, :LMAX - pad_size, :LMAX - pad_size, :] = P[:, int(pad_size / 2): LMAX - int(pad_size / 2),
+                                                      int(pad_size / 2): LMAX - int(pad_size / 2), :]
+        Y[:, :LMAX - pad_size, :LMAX - pad_size, :] = Y[:, int(pad_size / 2): LMAX - int(pad_size / 2),
+                                                      int(pad_size / 2): LMAX - int(pad_size / 2), :]
+
+        print('')
+        print('Evaluating distances..')
+        lr8, mlr8, lr12, mlr12 = calculate_mae(P, Y, self.my_list, self.length_dict)
+
+        return {
+            'lr8': lr8,
+            'mlr8': mlr8,
+            'mae12': lr12,
+            'mlr12': mlr12,
+        }
+
 
     def build_callbacks(self):
         return {"genotype": GenotypeCallback(self.context)}

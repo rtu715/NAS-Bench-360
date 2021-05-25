@@ -1,7 +1,4 @@
-# NOTE: this config uses randomly generated data on single GPU.
-# Please use distributed.yaml if you want to run on the
-# the actual imagenet data.
-description: cifar100_gaea_eval_seed1
+description: cifar100_gaea_eval_seed2
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -10,7 +7,7 @@ environment:
     password: 980715tutubo
 
 reproducibility:
-  experiment_seed: 1
+  experiment_seed: 2
 
 data:
   download_dir: /data

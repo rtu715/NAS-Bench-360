@@ -109,7 +109,22 @@ class Backbone_Grid(nn.Module):
         x = self.up4(x, x1)
         logits = self.outc(x)
         return logits.squeeze()
+    
+    def forward_window(self, x, L, stride=-1):
+        _, _, s_length, _ = x.shape
 
+        if stride == -1:  # Default to window size
+            stride = L
+            assert (s_length % L == 0)
+
+        y = torch.zeros_like(x)[:, :, :, :1]
+        for i in range(0, s_length, stride):
+            for j in range(0, s_length, stride):
+                out = self.forward(x[:, i:i + L, j:j + L, :])
+                out = torch.unsqueeze(out, 3)
+                y[:, i:i + L, j:j + L, :] = out
+
+        return y
 
 
 class Tiny_Backbone_Grid(nn.Module):

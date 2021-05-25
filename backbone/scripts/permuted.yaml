@@ -1,4 +1,4 @@
-description: permuted_xd_eval_depth3
+description: permuted_backbone_eval
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -35,23 +35,12 @@ hyperparameters:
   momentum: 0.9
   weight_decay: 5e-4
   nesterov: true
-  arch_lr: 0.0023203017992040964
-  arch_adam: true
 
   global_batch_size: 128
 
   start_epoch: 0
   epochs: 200
 
-  patch: true
-  from_scratch: false
-
-  #tuned
-  kmatrix_depth: 3
-  max_kernel_size: 3
-
-  warmup_epochs: 50
-  cooldown_epochs: 0
 
 resources:
   slots_per_trial: 1
@@ -71,4 +60,4 @@ min_validation_period:
 
 max_restarts: 100
 
-entrypoint: model_point:XDTrial
+entrypoint: model_point:BackboneTrial

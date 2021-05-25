@@ -1,5 +1,4 @@
-description: permuted_xd_eval_depth3
-
+description: pde_xd_eval
 environment:
   image: "renbotu/xd-nas:determined1.8"
   registry_auth:
@@ -14,61 +13,50 @@ data:
   type: s3
   bucket: pde-xd
 
-  
-bind_mounts:
-  - host_path: /tmp
-    container_path: /data
-    read_only: false
-
 hyperparameters:
-  task: cifar100
+  task: pde
   train: false
-
-  #Number of classes in dataset
-  permute: true
-
-  #NN architecture backbone
-  backbone: 16,4
-  droprate: 0.0
 
   learning_rate: 0.1
   momentum: 0.9
   weight_decay: 5e-4
   nesterov: true
-  arch_lr: 0.0023203017992040964
-  arch_adam: true
 
-  global_batch_size: 128
+  #tuned
+  arch_lr: 0.000007348546010248473 
+
+  #tuned
+  arch_adam: false
+  
+  global_batch_size: 4
 
   start_epoch: 0
   epochs: 200
 
   patch: true
   from_scratch: false
+  kmatrix_depth: 5
+  max_kernel_size: 5
 
-  #tuned
-  kmatrix_depth: 3
-  max_kernel_size: 3
-
-  warmup_epochs: 50
+  warmup_epochs: 0
   cooldown_epochs: 0
+  sub: 5
 
 resources:
   slots_per_trial: 1
 
-records_per_epoch: 50000
-# 50000 if cifar, 60000 if spherical
+records_per_epoch: 1000
 
 searcher:
   name: single
-  metric: top1_accuracy
-  smaller_is_better: false 
+  metric: validation_loss
   max_length:
     epochs: 200
+  
 
 min_validation_period:
   epochs: 1
 
 max_restarts: 100
 
-entrypoint: model_point:XDTrial
+entrypoint: model_grid:XDTrial
