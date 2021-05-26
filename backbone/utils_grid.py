@@ -202,7 +202,7 @@ class LpLoss(object):
         return self.rel(x, y)
 
 #Loss for protein folding task
-'''
+
 class LogCoshLoss(torch.nn.Module):
     def __init__(self):
         super().__init__()
@@ -211,7 +211,7 @@ class LogCoshLoss(torch.nn.Module):
         ey_t = y_t - y_prime_t
         x = ey_t
         return torch.mean(torch.log(torch.cosh(ey_t + 1e-12)))
-        #return torch.mean(torch.log((torch.exp(x) + torch.exp(-x)) / 2))
+
 '''
 def LogCoshLoss(y_t, y_prime_t, reduction='mean', eps=1e-12):
     if reduction == 'mean':
@@ -222,7 +222,7 @@ def LogCoshLoss(y_t, y_prime_t, reduction='mean', eps=1e-12):
         reduce_fn = lambda x: x
     x = y_prime_t - y_t
     return reduce_fn(torch.log((torch.exp(x) + torch.exp(-x)) / 2))
-
+'''
 
 def create_grid(sub):
     '''construct a grid for pde data'''

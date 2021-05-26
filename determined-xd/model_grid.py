@@ -71,8 +71,8 @@ class XDTrial(PyTorchTrial):
 
         # Changing our backbone
         #self.backbone = Backbone_Grid(12, 32, 5) 
-        #self.backbone = Backbone_Grid(self.in_channels, 32, 1)
-        self.backbone = Backbone(16, 1, 2, self.in_channels, 0.0)
+        self.backbone = Backbone_Grid(self.in_channels, 32, 1)
+        #self.backbone = Backbone(16, 1, 2, self.in_channels, 0.0)
 
         self.chrysalis, self.original = Chrysalis.metamorphosize(self.backbone), self.backbone
         
@@ -159,7 +159,7 @@ class XDTrial(PyTorchTrial):
     
     
     def weight_sched(self, epoch) -> Any:
-        return 0.5 ** (epoch // 10)
+        return 0.5 ** (epoch // 100)
     
     '''
     def weight_sched(self, epoch) -> Any:
@@ -359,9 +359,8 @@ class XDTrial(PyTorchTrial):
             mae = 0.0
 
         elif self.hparams.task == 'protein':
-            logits = logits.permute(0, 2, 3, 1).contiguous()
-            loss = self.criterion(logits, y_train)
-            mae = F.l1_loss(logits, y_train, reduction='mean').item()
+            loss = self.criterion(logits.squeeze(), y_train.squeeze())
+            mae = F.l1_loss(logits.squeeze(), y_train.squeeze(), reduction='mean').item()
 
         self.context.backward(loss)
         self.context.step_optimizer(self.opt)
@@ -398,8 +397,8 @@ class XDTrial(PyTorchTrial):
                     error = 0
 
                 elif self.hparams.task == 'protein':
-
-                    logits = logits.permute(0, 2, 3, 1).contiguous()
+                    logits = logits.squeeze()
+                    target = target.squeeze()
                     loss = self.criterion(logits, target)
 
                     mae = F.l1_loss(logits, target, reduction='mean')
@@ -425,7 +424,7 @@ class XDTrial(PyTorchTrial):
 
         LMAX = 512 #psicov constant
         pad_size = 10
-
+        self.model.cuda()
         with torch.no_grad():
             P = []
             targets = []

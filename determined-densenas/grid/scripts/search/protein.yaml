@@ -24,6 +24,7 @@ hyperparameters:
   task: protein
   train: true
   sub: 5
+  num_examples: 335
 
   net_type: res
   

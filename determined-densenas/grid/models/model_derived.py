@@ -169,12 +169,26 @@ class RES_Net(nn.Module):
                     nn.init.constant_(m.bias, 0)
 
     def forward(self, x):
-        if x.size(3) == 3:
-            x = x.permute(0, 3, 1, 2).contiguous()
+        x = x.permute(0, 3, 1, 2).contiguous()
         block_data = self.input_block(x)
         for i, block in enumerate(self.blocks):
             block_data = block(block_data)
         out = block_data
         out = out.permute(0, 2, 3, 1).contiguous()
         logits = self.classifier(out)
-        return logits.squeeze()
+        return logits
+
+    def forward_window(self, x, L, stride=-1):
+        _, _, s_length, _ = x.shape
+
+        if stride == -1:  # Default to window size
+            stride = L
+            assert (s_length % L == 0)
+
+        y = torch.zeros_like(x)[:, :, :, :1]
+        for i in range(0, s_length, stride):
+            for j in range(0, s_length, stride):
+                out = self.forward(x[:, i:i + L, j:j + L, :])
+                y[:, i:i + L, j:j + L, :] = out
+
+        return y

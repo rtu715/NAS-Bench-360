@@ -24,6 +24,7 @@ hyperparameters:
   task: pde
   train: true
   sub: 5
+  num_examples: 180
 
   net_type: res
   global_batch_size: 2

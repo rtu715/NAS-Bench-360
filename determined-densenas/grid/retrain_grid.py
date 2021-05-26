@@ -11,7 +11,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import numpy as np
-from torch.optim.lr_scheduler import CosineAnnealingLR
+from tools.lr_scheduler import get_lr_scheduler
 
 from determined.pytorch import (
     PyTorchTrial,
@@ -24,7 +24,7 @@ from configs.grid_train_cfg import cfg as config
 from models import model_derived
 from tools import utils
 from utils_grid import LpLoss, MatReader, UnitGaussianNormalizer, LogCoshLoss
-from utils_grid import create_grid, filter_MAE
+from utils_grid import create_grid, calculate_mae
 
 TorchData = Union[Dict[str, torch.Tensor], Sequence[torch.Tensor], torch.Tensor]
 
@@ -79,10 +79,10 @@ class DenseNASTrainTrial(PyTorchTrial):
         )
         self.optimizer = self.context.wrap_optimizer(optimizer)
 
-        # scheduler = get_lr_scheduler(config, self.weight_optimizer, self.hparams.num_examples)
-        # scheduler.last_step = 0
-        scheduler = CosineAnnealingLR(self.optimizer, config.train_params.epochs, config.optim.min_lr)
-        self.scheduler = self.context.wrap_lr_scheduler(scheduler, step_mode=LRScheduler.StepMode.STEP_EVERY_EPOCH)
+        scheduler = get_lr_scheduler(config, self.optimizer, self.hparams.num_examples, self.context.get_per_slot_batch_size())
+        scheduler.last_step = 0
+
+        self.scheduler = self.context.wrap_lr_scheduler(scheduler, step_mode=LRScheduler.StepMode.MANUAL_STEP)
 
         self.config = config
         self.download_directory = self.download_data_from_s3()
@@ -176,6 +176,7 @@ class DenseNASTrainTrial(PyTorchTrial):
 
             x_test = self.x_normalizer.encode(x_test)
             x_test = torch.cat([x_test.reshape(ntest, s, s, 1), self.grid.repeat(ntest, 1, 1, 1)], dim=3)
+            batch_size = self.context.get_per_slot_batch_size()
 
         elif self.hparams.task == 'protein':
             x_test = np.load('X_test.npz')
@@ -187,28 +188,30 @@ class DenseNASTrainTrial(PyTorchTrial):
             psicov = json.load(f)
             self.my_list = psicov['my_list']
             self.length_dict = psicov['length_dict']
+            batch_size = 2
 
         return DataLoader(torch.utils.data.TensorDataset(x_test, y_test),
-                          batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=2,)
+                          batch_size=batch_size, shuffle=False, num_workers=2,)
 
     def train_batch(self, batch: TorchData, epoch_idx: int, batch_idx: int
                     ) -> Dict[str, torch.Tensor]:
 
 
         x_train, y_train = batch
+        self.scheduler.step()
         self.model.train()
         logits = self.model(x_train)
 
         if self.hparams.task == 'pde':
             self.y_normalizer.cuda()
-            target = self.y_normalizer.decode(y_train)
-            logits = self.y_normalizer.decode(logits)
+            target = self.y_normalizer.decode(y_train.squeeze())
+            logits = self.y_normalizer.decode(logits.squeeze())
             loss = self.criterion(logits.view(logits.size(0), -1), target.view(logits.size(0), -1))
             mae = 0.0
 
         elif self.hparams.task == 'protein':
-            loss = self.criterion(logits, y_train.squeeze())
-            mae = F.l1_loss(logits, y_train.squeeze(), reduction='mean').item()
+            loss = self.criterion(logits.squeeze(), y_train.squeeze())
+            mae = F.l1_loss(logits.squeeze(), y_train.squeeze(), reduction='mean').item()
 
 
         self.context.backward(loss)
@@ -224,6 +227,9 @@ class DenseNASTrainTrial(PyTorchTrial):
         self, data_loader: torch.utils.data.DataLoader
     ) -> Dict[str, Any]:
 
+        if self.hparams.task == 'protein':
+            return self.evaluate_test_protein(data_loader)
+
         loss_sum = 0
         error_sum = 0
         num_batches = 0
@@ -236,31 +242,82 @@ class DenseNASTrainTrial(PyTorchTrial):
                 logits = self.model(input)
                 if self.hparams.task == 'pde':
                     self.y_normalizer.cuda()
-                    logits = self.y_normalizer.decode(logits)
+                    logits = self.y_normalizer.decode(logits.squeeze())
                     loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1)).item()
                     loss = loss / logits.size(0)
 
-                elif self.hparams.task == 'protein':
-                    print(target.shape)
-                    print(logits.shape)
+                #elif self.hparams.task == 'protein':
+                #    print(target.shape)
+                #    print(logits.shape)
 
-                    target = target.squeeze()
-                    logits = logits.squeeze()
-                    loss = self.criterion(logits, target)
+                #    target = target.squeeze()
+                #    logits = logits.squeeze()
+                #    loss = self.criterion(logits, target)
 
-                    mae = F.l1_loss(logits, logits, reduction='mean').item()
+                #    mae = F.l1_loss(logits, logits, reduction='mean').item()
 
                     #target, logits, num = filter_MAE(target, logits, 8.0)
                     #error = self.error(logits, target)
                     #error = error / num
-                    error_sum += mae
+                    #error_sum += mae
 
                 loss_sum += loss
 
         results = {
             "validation_loss": loss_sum / num_batches,
-            "MAE": error_sum / num_batches,
         }
 
         return results
 
+    def evaluate_test_protein(
+            self, data_loader: torch.utils.data.DataLoader
+    ) -> Dict[str, Any]:
+        '''performs evaluation on protein'''
+
+        LMAX = 512  # psicov constant
+        pad_size = 10
+        self.model.cuda()
+        with torch.no_grad():
+            P = []
+            targets = []
+            for batch in data_loader:
+                batch = self.context.to_device(batch)
+                data, target = batch
+                for i in range(data.size(0)):
+                    # no need to permute here since already did that
+                    targets.append(
+                        np.expand_dims(
+                            target.cpu().numpy()[i], axis=0))
+
+                out = self.model.forward_window(data, 128)
+
+                P.append(out.cpu().numpy())
+
+            # Combine P, convert to numpy
+            P = np.concatenate(P, axis=0)
+
+        Y = np.full((len(targets), LMAX, LMAX, 1), np.nan)
+        for i, xy in enumerate(targets):
+            Y[i, :, :, 0] = xy[0, :, :, 0]
+        # Average the predictions from both triangles
+        for j in range(0, len(P[0, :, 0, 0])):
+            for k in range(j, len(P[0, :, 0, 0])):
+                P[:, j, k, :] = (P[:, k, j, :] + P[:, j, k, :]) / 2.0
+        P[P < 0.01] = 0.01
+
+        # Remove padding, i.e. shift up and left by int(pad_size/2)
+        P[:, :LMAX - pad_size, :LMAX - pad_size, :] = P[:, int(pad_size / 2): LMAX - int(pad_size / 2),
+                                                      int(pad_size / 2): LMAX - int(pad_size / 2), :]
+        Y[:, :LMAX - pad_size, :LMAX - pad_size, :] = Y[:, int(pad_size / 2): LMAX - int(pad_size / 2),
+                                                      int(pad_size / 2): LMAX - int(pad_size / 2), :]
+
+        print('')
+        print('Evaluating distances..')
+        lr8, mlr8, lr12, mlr12 = calculate_mae(P, Y, self.my_list, self.length_dict)
+
+        return {
+            'mae': lr8,
+            'mlr8': mlr8,
+            'mae12': lr12,
+            'mlr12': mlr12,
+        }

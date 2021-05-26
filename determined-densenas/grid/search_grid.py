@@ -26,10 +26,11 @@ from models import model_derived
 from models.dropped_model import Dropped_Network
 from tools import utils
 from tools.config_yaml import merge_cfg_from_file, update_cfg_from_cfg
+from tools.lr_scheduler import get_lr_scheduler
 from tools.multadds_count import comp_multadds
 from data import BilevelDataset
 from utils_grid import LpLoss, MatReader, UnitGaussianNormalizer, LogCoshLoss
-from utils_grid import create_grid, filter_MAE
+from utils_grid import create_grid, calculate_mae
 
 TorchData = Union[Dict[str, torch.Tensor], Sequence[torch.Tensor], torch.Tensor]
 
@@ -128,8 +129,11 @@ class DenseNASSearchTrial(PyTorchTrial):
                             weight_decay=config.optim.arch.weight_decay))
 
 
-        scheduler = CosineAnnealingLR(self.weight_optimizer, config.train_params.epochs, config.optim.min_lr)
-        self.scheduler = self.context.wrap_lr_scheduler(scheduler, step_mode=LRScheduler.StepMode.STEP_EVERY_EPOCH)
+        #scheduler = CosineAnnealingLR(self.weight_optimizer, config.train_params.epochs, config.optim.min_lr)
+        scheduler = get_lr_scheduler(config, self.weight_optimizer, self.hparams.num_examples, self.context.get_per_slot_batch_size())
+        scheduler.last_step = 0
+
+        self.scheduler = self.context.wrap_lr_scheduler(scheduler, step_mode=LRScheduler.StepMode.MANUAL_STEP)
 
         self.config = config 
         self.download_directory = self.download_data_from_s3()
@@ -250,6 +254,7 @@ class DenseNASSearchTrial(PyTorchTrial):
 
             x_test = self.x_normalizer.encode(x_test)
             x_test = torch.cat([x_test.reshape(ntest, s, s, 1), self.grid.repeat(ntest, 1, 1, 1)], dim=3)
+            batch_size = self.context.get_per_slot_batch_size()
 
         elif self.hparams.task == 'protein':
             x_test = np.load('X_test.npz')
@@ -261,9 +266,10 @@ class DenseNASSearchTrial(PyTorchTrial):
             psicov = json.load(f)
             self.my_list = psicov['my_list']
             self.length_dict = psicov['length_dict']
+            batch_size = 2
         
         return DataLoader(torch.utils.data.TensorDataset(x_test, y_test),
-                          batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=2,)
+                          batch_size=batch_size, shuffle=False, num_workers=2,)
 
         
     def train_batch(self, batch: TorchData, epoch_idx: int, batch_idx: int) -> Dict[str, torch.Tensor]:
@@ -287,9 +293,11 @@ class DenseNASSearchTrial(PyTorchTrial):
         if search_stage:
             self.set_param_grad_state('Arch')
             arch_logits, arch_loss, arch_subobj = self.arch_step(x_val, y_val, self.model, search_stage)
-        
+
+        self.scheduler.step()
         self.set_param_grad_state('Weights')
         logits, loss, subobj, mae = self.weight_step(x_train, y_train, self.model, search_stage)
+
 
         return {
                 'loss': loss,
@@ -319,18 +327,74 @@ class DenseNASSearchTrial(PyTorchTrial):
         test_obj = 0.0
         test_sub_obj = 0.0
         test_error_sum = 0.0
-        test_num_batches = 0
-        with torch.no_grad():
-            for batch in self.test_loader:
-                batch = self.context.to_device(batch)
-                input, target = batch
-                logits, loss, subobj, error = self.valid_step(input, target, self.model)
+        test_num_batches = 100
+        lr8, mlr8, lr12, mlr12 = 0.0
+        if self.hparams.task == 'pde':
+            test_num_batches = 0
+            with torch.no_grad():
+                for batch in self.test_loader:
+                    batch = self.context.to_device(batch)
+                    input, target = batch
+                    logits, loss, subobj, error = self.valid_step(input, target, self.model)
 
-                test_num_batches += 1
-                test_obj += loss
-                test_sub_obj += subobj
-                test_error_sum += error
-        
+                    test_num_batches += 1
+                    test_obj += loss
+                    test_sub_obj += subobj
+                    test_error_sum += error
+
+        elif self.hparams.task == 'protein':
+            LMAX = 512  # psicov constant
+            L = 128
+            pad_size = 10
+            dropped_model = self.Dropped_Network(self.model)
+
+            with torch.no_grad():
+                P = []
+                targets = []
+                for batch in self.test_loader:
+                    batch = self.context.to_device(batch)
+                    data, target = batch
+                    for i in range(data.size(0)):
+                        # no need to permute here since already did that
+                        targets.append(
+                            np.expand_dims(
+                                target.cpu().numpy()[i], axis=0))
+
+                    _, _, s_length, _ = data.shape
+                    stride = L
+                    y = torch.zeros_like(data)[:, :, :, :1]
+                    for i in range(0, s_length, stride):
+                        for j in range(0, s_length, stride):
+                            out, _ = dropped_model(data[:, i:i + L, j:j + L, :])
+                            y[:, i:i + L, j:j + L, :] = out
+
+                    out = y
+                    # no transpose here since out is [bs, size, size, 1] already
+                    P.append(out.cpu().numpy())
+
+                # Combine P, convert to numpy
+                P = np.concatenate(P, axis=0)
+
+            Y = np.full((len(targets), LMAX, LMAX, 1), np.nan)
+            for i, xy in enumerate(targets):
+                Y[i, :, :, 0] = xy[0, :, :, 0]
+
+            # Average the predictions from both triangles
+            for j in range(0, len(P[0, :, 0, 0])):
+                for k in range(j, len(P[0, :, 0, 0])):
+                    P[:, j, k, :] = (P[:, k, j, :] + P[:, j, k, :]) / 2.0
+            P[P < 0.01] = 0.01
+
+            # Remove padding, i.e. shift up and left by int(pad_size/2)
+            P[:, :LMAX - pad_size, :LMAX - pad_size, :] = P[:, int(pad_size / 2): LMAX - int(pad_size / 2),
+                                                          int(pad_size / 2): LMAX - int(pad_size / 2), :]
+            Y[:, :LMAX - pad_size, :LMAX - pad_size, :] = Y[:, int(pad_size / 2): LMAX - int(pad_size / 2),
+                                                          int(pad_size / 2): LMAX - int(pad_size / 2), :]
+
+            print('')
+            print('Evaluating distances..')
+            lr8, mlr8, lr12, mlr12 = calculate_mae(P, Y, self.my_list, self.length_dict)
+
         betas, head_alphas, stack_alphas = self.model.display_arch_params()
         derived_arch = self.arch_gener.derive_archs(betas, head_alphas, stack_alphas)
         derived_arch_str = '|\n'.join(map(str, derived_arch))
@@ -349,6 +413,10 @@ class DenseNASSearchTrial(PyTorchTrial):
                 'test_loss': test_obj / test_num_batches,
                 'test_subloss': test_sub_obj / test_num_batches,
                 'test_MAE': test_error_sum / test_num_batches,
+                'lr8': lr8,
+                'lr12': lr12,
+                'mlr8': mlr8,
+                'mlr12': mlr12,
                 }
         
 
@@ -468,9 +536,9 @@ class DenseNASSearchTrial(PyTorchTrial):
             loss = loss / logits.size(0)
             mae = 0
 
-        elif self.hparams.task == 'protein':
-            loss = self.criterion(logits, target_valid.squeeze())
-            mae = F.l1_loss(logits, target_valid.squeeze(), reduction='mean').item()
+        #elif self.hparams.task == 'protein':
+            #loss = self.criterion(logits, target_valid.squeeze())
+            #mae = F.l1_loss(logits, target_valid.squeeze(), reduction='mean').item()
             #target_valid, logits, num = filter_MAE(target_valid.squeeze(), logits.squeeze(), 8.0)
             #error = self.error(logits, target_valid).item()
             #if num and error:

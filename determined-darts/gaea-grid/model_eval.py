@@ -138,7 +138,7 @@ class DiscretizedNetwork(nn.Module):
             stride = L
             assert(s_length % L == 0)
         
-        y = torch.zeros_like(x)[:, :, :, :1] # TODO Use nans? Use numpy?
+        y = torch.zeros_like(x)[:, :, :, :1]
         for i in range(0, s_length, stride):
             for j in range(0, s_length, stride):
                 out = self.forward(x[:, i:i+L, j:j+L, :])

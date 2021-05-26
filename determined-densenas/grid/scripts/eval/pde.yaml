@@ -24,6 +24,7 @@ hyperparameters:
   task: pde
   train: false
   sub: 5
+  num_examples: 1000
 
   net_type: res
   net_config: "[[32, 64], 'basic_block', ['basic_block'], 1, 1]| 

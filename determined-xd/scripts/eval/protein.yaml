@@ -51,7 +51,7 @@ resources:
   slots_per_trial: 1
   max_slots: 4
 
-records_per_epoch: 3356
+records_per_epoch: 3456
 
 searcher:
   name: single

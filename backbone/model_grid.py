@@ -56,8 +56,7 @@ class BackboneTrial(PyTorchTrial):
             self.in_channels = 3
 
         elif self.hparams.task == 'protein':
-            self.criterion= lambda x,y: LogCoshLoss(x,y)
-            #self.criterion = LogCoshLoss()
+            self.criterion= LogCoshLoss()
             #error is reported via MAE
             self.error = nn.L1Loss(reduction='sum')
             self.in_channels = 57
@@ -302,15 +301,13 @@ class BackboneTrial(PyTorchTrial):
         if self.hparams.task == 'pde':
             self.y_normalizer.cuda()
             target = self.y_normalizer.decode(y_train)
-            logits = self.y_normalizer.decode(logits)
+            logits = self.y_normalizer.decode(logits.squeeze())
             loss = self.criterion(logits.view(logits.size(0), -1), target.view(logits.size(0), -1))
             mae = 0.0
 
         elif self.hparams.task == 'protein':
-            #for rdd
-            y_train = y_train.permute(0, 3, 1, 2).contiguous()
-            loss = self.criterion(logits, y_train)
-            mae = F.l1_loss(logits, y_train, reduction='mean').item()
+            loss = self.criterion(logits.squeeze(), y_train.squeeze())
+            mae = F.l1_loss(logits.squeeze(), y_train.squeeze(), reduction='mean').item()
 
         self.context.backward(loss)
         self.context.step_optimizer(self.opt)
@@ -327,68 +324,7 @@ class BackboneTrial(PyTorchTrial):
 
         #evaluate on test proteins, not validation procedures
         if self.hparams.task == 'protein' and not self.hparams.train:
-            self.model.eval()
-            LMAX = 512 #psicov constant
-            pad_size = 10
-            with torch.no_grad():
-                P = []
-                targets = []
-                for batch in data_loader:
-                    batch = self.context.to_device(batch)
-                    data, target = batch
-
-                    for i in range(data.size(0)):
-                        #no need to permute here since already did that
-                        targets.append(
-                            np.expand_dims(
-                                target.cpu().numpy()[i], axis=0))
-
-                    #out = self.model.forward_window(data, 128)
-                    #no transpose here since out is [bs, size, size, 1] already
-                    
-                    _, _, s_length, _ = data.shape
-                    L = 128
-                    stride = 128
-                    y = torch.zeros_like(data)[:, :, :, :1]
-                    for i in range(0, s_length, stride):
-                        for j in range(0, s_length, stride):
-                            output = self.model(data[:, i:i + L, j:j + L, :])
-                            #print(output)
-                            #for rdd
-                            output = output.permute(0,2,3,1).contiguous()
-                            y[:, i:i + L, j:j + L, :] = output
-                    out = y
-                    
-                    P.append(out.cpu().numpy())
-                    
-                # Combine P, convert to numpy
-                P = np.concatenate(P, axis=0)
-
-            Y = np.full((len(targets), LMAX, LMAX, 1), np.nan)
-            for i, xy in enumerate(targets):
-                Y[i, :, :, 0] = xy[0, :, :, 0]
-
-            # Average the predictions from both triangles
-            for j in range(0, len(P[0, :, 0, 0])):
-                for k in range(j, len(P[0, :, 0, 0])):
-                    P[:, j, k, :] = (P[:, k, j, :] + P[:, j, k, :]) / 2.0
-            P[P < 0.01] = 0.01
-
-            # Remove padding, i.e. shift up and left by int(pad_size/2)
-            P[:, :LMAX - pad_size, :LMAX - pad_size, :] = P[:, int(pad_size / 2): LMAX - int(pad_size / 2),
-                                                          int(pad_size / 2): LMAX - int(pad_size / 2), :]
-            Y[:, :LMAX - pad_size, :LMAX - pad_size, :] = Y[:, int(pad_size / 2): LMAX - int(pad_size / 2),
-                                                          int(pad_size / 2): LMAX - int(pad_size / 2), :]
-
-            print('')
-            print('Evaluating distances..')
-            lr8, mlr8, lr12, mlr12 = calculate_mae(P, Y, self.my_list, self.length_dict)
-            return {
-                'mae': lr8,
-                'mlr8': mlr8,
-                'mae12': lr12,
-                'mlr12': mlr12,
-            }
+            return self.evaluate_test_protein(data_loader)
         
         loss_sum = 0
         error_sum = 0
@@ -402,7 +338,7 @@ class BackboneTrial(PyTorchTrial):
                 logits = self.model(input)
                 if self.hparams.task == 'pde':
                     self.y_normalizer.cuda()
-                    logits = self.y_normalizer.decode(logits)
+                    logits = self.y_normalizer.decode(logits.squeeze())
                     loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1)).item()
                     loss = loss / logits.size(0)
                     error = 0
@@ -448,20 +384,7 @@ class BackboneTrial(PyTorchTrial):
                         np.expand_dims(
                             target.cpu().numpy()[i], axis=0))
 
-                #out = self.model.forward_window(data, 128)
-                #no transpose here since out is [bs, size, size, 1] already
-                
-                _, _, s_length, _ = data.shape
-                L = 128
-                stride = 128
-                y = torch.zeros_like(data)[:, :, :, :1]
-                for i in range(0, s_length, stride):
-                    for j in range(0, s_length, stride):
-                        output = self.model(data[:, i:i + L, j:j + L, :])
-                        print(output)
-                        output = torch.unsqueeze(output, 3)
-                        y[:, i:i + L, j:j + L, :] = output
-                out = y
+                out = self.model.forward_window(data, 128)
                 
                 P.append(out.cpu().numpy())
                 
@@ -471,7 +394,6 @@ class BackboneTrial(PyTorchTrial):
         Y = np.full((len(targets), LMAX, LMAX, 1), np.nan)
         for i, xy in enumerate(targets):
             Y[i, :, :, 0] = xy[0, :, :, 0]
-
         # Average the predictions from both triangles
         for j in range(0, len(P[0, :, 0, 0])):
             for k in range(j, len(P[0, :, 0, 0])):

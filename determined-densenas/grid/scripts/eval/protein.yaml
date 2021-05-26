@@ -24,12 +24,13 @@ hyperparameters:
   task: protein
   train: false
   sub: 5
+  num_examples: 3456
 
   net_type: res
   net_config: "
  [[32, 48], 'basic_block', ['basic_block'], 1, 1]|
 [[48, 72], 'basic_block', [], 0, 1]" 
-  global_batch_size: 5
+  global_batch_size: 8
 
 resources:
   slots_per_trial: 1
@@ -40,7 +41,7 @@ min_validation_period:
 min_checkpoint_period:
   epochs: 5
 
-records_per_epoch: 3356
+records_per_epoch: 3456
 searcher:
   name: single
   metric: validation_loss
