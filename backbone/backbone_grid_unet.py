@@ -108,7 +108,7 @@ class Backbone_Grid(nn.Module):
         x = self.up3(x, x2)
         x = self.up4(x, x1)
         logits = self.outc(x)
-        return logits.squeeze()
+        return logits
     
     def forward_window(self, x, L, stride=-1):
         _, _, s_length, _ = x.shape
@@ -121,7 +121,7 @@ class Backbone_Grid(nn.Module):
         for i in range(0, s_length, stride):
             for j in range(0, s_length, stride):
                 out = self.forward(x[:, i:i + L, j:j + L, :])
-                out = torch.unsqueeze(out, 3)
+                out = out.permute(0, 2, 3, 1).contiguous() 
                 y[:, i:i + L, j:j + L, :] = out
 
         return y

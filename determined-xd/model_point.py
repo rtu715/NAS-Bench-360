@@ -53,8 +53,8 @@ class XDTrial(PyTorchTrial):
         self.last_epoch = 0
 
         self.download_directory = self.download_data_from_s3()
-        self.results = {"loss": float("inf"), "top1_accuracy": 0, "top5_accuracy": 0, "test_loss": float("inf"),
-                        "test_top1_accuracy": 0, "test_top5_accuracy": 0}
+        #self.results = {"loss": float("inf"), "top1_accuracy": 0, "top5_accuracy": 0, "test_loss": float("inf"),
+        #                "test_top1_accuracy": 0, "test_top5_accuracy": 0}
 
         self.criterion = nn.CrossEntropyLoss().cuda()
 
@@ -272,7 +272,5 @@ class XDTrial(PyTorchTrial):
 
             results.update(results2)
 
-        if results["top1_accuracy"] > self.results["top1_accuracy"]:
-            self.results = results
 
-        return self.results
+        return results

@@ -22,14 +22,6 @@ hyperparameters:
   weight_decay: 1e-4
   nesterov: true
 
-  #tuned
-  arch_lr: 0.0
-
-  arch_momentum: 0.5
-
-  #tuned
-  arch_adam: false
-  
   global_batch_size: 8
   eval_batch_size: 2
 

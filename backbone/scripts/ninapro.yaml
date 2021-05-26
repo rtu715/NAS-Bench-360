@@ -28,16 +28,13 @@ hyperparameters:
   #NN architecture backbone
   #layers: 16
   #widen_factor: 4
-  backbone: 40,2 
+  backbone: 16,4
   droprate: 0.0
 
   learning_rate: 0.1
   momentum: 0.9
   weight_decay: 5e-4 
   nesterov: true
-
-  arch_lr: 0.0013246974647468438 
-  arch_adam: false
 
   global_batch_size: 128
 

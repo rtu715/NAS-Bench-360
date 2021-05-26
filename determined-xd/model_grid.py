@@ -71,8 +71,8 @@ class XDTrial(PyTorchTrial):
 
         # Changing our backbone
         #self.backbone = Backbone_Grid(12, 32, 5) 
-        self.backbone = Backbone_Grid(self.in_channels, 32, 1)
-        #self.backbone = Backbone(16, 1, 2, self.in_channels, 0.0)
+        #self.backbone = Backbone_Grid(self.in_channels, 32, 1)
+        self.backbone = Backbone(16, 1, 2, self.in_channels, 0.0)
 
         self.chrysalis, self.original = Chrysalis.metamorphosize(self.backbone), self.backbone
         
@@ -354,13 +354,14 @@ class XDTrial(PyTorchTrial):
         if self.hparams.task == 'pde':
             self.y_normalizer.cuda()
             target = self.y_normalizer.decode(y_train)
-            logits = self.y_normalizer.decode(logits)
+            logits = self.y_normalizer.decode(logits.squeeze())
             loss = self.criterion(logits.view(logits.size(0), -1), target.view(logits.size(0), -1))
             mae = 0.0
 
         elif self.hparams.task == 'protein':
-            loss = self.criterion(logits, y_train.squeeze())
-            mae = F.l1_loss(logits, y_train.squeeze(), reduction='mean').item()
+            logits = logits.permute(0, 2, 3, 1).contiguous()
+            loss = self.criterion(logits, y_train)
+            mae = F.l1_loss(logits, y_train, reduction='mean').item()
 
         self.context.backward(loss)
         self.context.step_optimizer(self.opt)
@@ -391,14 +392,14 @@ class XDTrial(PyTorchTrial):
                 logits = self.model(input)
                 if self.hparams.task == 'pde':
                     self.y_normalizer.cuda()
-                    logits = self.y_normalizer.decode(logits)
+                    logits = self.y_normalizer.decode(logits.squeeze())
                     loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1)).item()
                     loss = loss / logits.size(0)
                     error = 0
 
                 elif self.hparams.task == 'protein':
-                    logits = logits.squeeze()
-                    target = target.squeeze()
+
+                    logits = logits.permute(0, 2, 3, 1).contiguous()
                     loss = self.criterion(logits, target)
 
                     mae = F.l1_loss(logits, target, reduction='mean')

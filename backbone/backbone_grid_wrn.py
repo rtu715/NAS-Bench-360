@@ -68,20 +68,24 @@ class Backbone(nn.Module):
         n = (depth - 4) / 6
         block = BasicBlock
         # 1st conv before any network block
-        self.conv1 = nn.Conv2d(in_channels, nChannels[0], kernel_size=3, stride=1,
-                               padding=1, bias=False)
+        self.conv1 = nn.Conv2d(in_channels, nChannels[0], kernel_size=1, stride=1,
+                               padding=0, bias=False)
+        self.in_layer = nn.Sequential(
+                nn.BatchNorm2d(in_channels),
+                nn.ReLU(),
+                self.conv1)
         # 1st block
         self.block1 = NetworkBlock(n, nChannels[0], nChannels[1], block, 1, dropRate)
         # 2nd block
-        self.block2 = NetworkBlock(n, nChannels[1], nChannels[2], block, 2, dropRate)
+        self.block2 = NetworkBlock(n, nChannels[1], nChannels[2], block, 1, dropRate)
         # 3rd block
-        self.block3 = NetworkBlock(n, nChannels[2], nChannels[3], block, 2, dropRate)
+        self.block3 = NetworkBlock(n, nChannels[2], nChannels[3], block, 1, dropRate)
         # global average pooling and classifier
         self.bn1 = nn.BatchNorm2d(nChannels[3])
         self.relu = nn.ReLU(inplace=True)
         
         self.fc = nn.Linear(nChannels[3], num_classes)
-        self.out_conv = nn.Conv2d(nChannels[3], num_classes, kernel_size=1)
+        self.out_conv = nn.Conv2d(nChannels[3], num_classes, kernel_size=3, stride=1, padding=1)
         self.nChannels = nChannels[3]
 
         for m in self.modules():
@@ -99,7 +103,8 @@ class Backbone(nn.Module):
             pde = True
             #pde input needs to be permuted
         x = x.permute(0,3,1,2).contiguous()
-        out = self.conv1(x)    
+        #out = self.conv1(x)    
+        out = self.in_layer(x)
         out = self.block1(out)
         out = self.block2(out)
         out = self.block3(out)
@@ -108,7 +113,7 @@ class Backbone(nn.Module):
             self.pool= nn.AdaptiveAvgPool2d(85)
         else:
             self.pool = nn.AdaptiveAvgPool2d(128)
-        out = self.pool(out)
+        #out = self.pool(out)
         return self.out_conv(out)
 
     def forward_window(self, x, L, stride=-1):

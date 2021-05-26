@@ -127,6 +127,9 @@ class GAEASearchTrial(PyTorchTrial):
                 #seed 2
                 searched_genotype = Genotype(normal=[('dil_conv_3x3', 1), ('dil_conv_3x3', 0), ('dil_conv_3x3', 2), ('dil_conv_3x3', 0), ('dil_conv_5x5', 3), ('sep_conv_5x5', 1), ('dil_conv_5x5', 4), ('max_pool_3x3', 1)], normal_concat=range(2, 6), reduce=[('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1)], reduce_concat=range(2, 6))
 
+            elif self.hparams.task =='protein':
+                #seed 0
+                searched_genotype = Genotype(normal=[('sep_conv_5x5', 1), ('dil_conv_5x5', 0), ('dil_conv_5x5', 1), ('dil_conv_5x5', 2), ('dil_conv_5x5', 3), ('max_pool_3x3', 2), ('dil_conv_5x5', 4), ('skip_connect', 1)], normal_concat=range(2, 6), reduce=[('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1)], reduce_concat=range(2, 6))
             else:
                 raise ValueError
 
@@ -447,7 +450,7 @@ class GAEASearchTrial(PyTorchTrial):
             elif self.hparams.task =='protein':
                 logits = self.model(x_train)
                 loss = self.criterion(logits.squeeze(), y_train.squeeze())
-                mae = F.l1_loss(logits, y_train.squeeze(), reduction='mean').item()
+                mae = F.l1_loss(logits.squeeze(), y_train.squeeze(), reduction='mean').item()
             
             self.context.backward(loss)
             self.context.step_optimizer(

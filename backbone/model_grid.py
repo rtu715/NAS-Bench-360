@@ -19,6 +19,8 @@ import torch.nn.functional as F
 from determined.pytorch import DataLoader, PyTorchTrial, PyTorchTrialContext, LRScheduler
 
 from backbone_rdd import DeepConRddDistances
+#from backbone_grid_wrn import Backbone
+from backbone_grid_unet import Backbone_Grid
 
 from utils_grid import LpLoss, MatReader, UnitGaussianNormalizer, LogCoshLoss
 from utils_grid import create_grid, calculate_mae
@@ -64,7 +66,9 @@ class BackboneTrial(PyTorchTrial):
             raise NotImplementedError
 
         # Changing our backbone
-        self.backbone=DeepConRddDistances()
+        #self.backbone=DeepConRddDistances()
+        #self.backbone=Backbone(10, 1, 2, self.in_channels, 0.0)
+        self.backbone = Backbone_Grid(self.in_channels, 32, 1)
 
         self.model = self.context.wrap_model(self.backbone)
         
@@ -81,6 +85,7 @@ class BackboneTrial(PyTorchTrial):
         #                  {'params': list(self.model.nonxd_weights())}],
         #                  lr=self.hparams.learning_rate)]
         
+        ''' 
         self.opt = self.context.wrap_optimizer(
             torch.optim.SGD(
                 self.model.parameters(),
@@ -88,6 +93,14 @@ class BackboneTrial(PyTorchTrial):
                 momentum=self.context.get_hparam("momentum"),
                 weight_decay=self.context.get_hparam("weight_decay"),
             )
+        )
+        '''
+        
+        self.opt = self.context.wrap_optimizer(
+                torch.optim.Adam(
+                    self.model.parameters(),
+                    lr=self.context.get_hparam("learning_rate"),
+                )
         )
 
         self.lr_scheduler = self.context.wrap_lr_scheduler(
@@ -99,18 +112,18 @@ class BackboneTrial(PyTorchTrial):
             step_mode=LRScheduler.StepMode.STEP_EVERY_EPOCH,
         )
 
-    '''
+    
     def weight_sched(self, epoch) -> Any:
         return 0.5 ** (epoch // 100)
+    
     '''
-
     def weight_sched(self, epoch) -> Any:
         # deleted scheduling for different architectures
         if self.hparams.epochs != 200:
             return 0.2 ** (epoch >= int(0.3 * self.hparams.epochs)) * 0.2 ** (epoch > int(0.6 * self.hparams.epochs)) * 0.2 ** (epoch > int(0.8 * self.hparams.epochs))
         print('using original weight schedule') 
         return 0.2 ** (epoch >= 60) * 0.2 ** (epoch >= 120) * 0.2 ** (epoch >=160)
-
+    '''
 
     def download_data_from_s3(self):
         '''Download pde data/protein data from s3 to store in temp directory'''
@@ -248,12 +261,12 @@ class BackboneTrial(PyTorchTrial):
                 x_test = np.load('X_valid.npz')
                 y_test = np.load('Y_valid.npz')
                 batch_size = self.context.get_per_slot_batch_size()
-
+            
             else:
                 x_test = np.load('X_test.npz')
                 y_test = np.load('Y_test.npz')
                 batch_size = self.hparams.eval_batch_size
-
+    
                 f = open('psicov.json', )
                 psicov = json.load(f)
                 self.my_list = psicov['my_list']
@@ -262,6 +275,7 @@ class BackboneTrial(PyTorchTrial):
             #note, when testing batch size should be different
             x_test = torch.from_numpy(x_test.f.arr_0)
             y_test = torch.from_numpy(y_test.f.arr_0)
+            print(y_test.shape)
             valid_queue = DataLoader(torch.utils.data.TensorDataset(x_test, y_test), batch_size=batch_size, shuffle=False, num_workers=2)
 
 
@@ -296,8 +310,7 @@ class BackboneTrial(PyTorchTrial):
             #for rdd
             y_train = y_train.permute(0, 3, 1, 2).contiguous()
             loss = self.criterion(logits, y_train)
-            mae = F.l1_loss(logits, y_train.squeeze(), reduction='mean').item()
-            print(loss)
+            mae = F.l1_loss(logits, y_train, reduction='mean').item()
 
         self.context.backward(loss)
         self.context.step_optimizer(self.opt)
