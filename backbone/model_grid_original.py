@@ -24,6 +24,12 @@ from backbone_grid_unet import Backbone_Grid
 
 from utils_grid import LpLoss, MatReader, UnitGaussianNormalizer, LogCoshLoss
 from utils_grid import create_grid, calculate_mae
+from data_utils.download_data import download_protein_folder
+from data_utils.protein_io import load_list
+from data_utils.protein_gen import PDNetDataset
+
+
+
 
 
 
@@ -130,21 +136,26 @@ class BackboneTrial(PyTorchTrial):
 
         s3_bucket = self.context.get_data_config()["bucket"]
         download_directory = f"/tmp/data-rank{self.context.distributed.get_rank()}"
+        os.makedirs(download_directory, exist_ok=True)
 
         if self.hparams.task == 'pde':
             data_files = ["piececonst_r421_N1024_smooth1.mat", "piececonst_r421_N1024_smooth2.mat"]
             s3_path = None
 
         elif self.hparams.task == 'protein':
-            data_files = ['X_train.npz', 'X_valid.npz', 'Y_train.npz',
-                          'Y_valid.npz', 'X_test.npz', 'Y_test.npz', 'psicov.json']
-            s3_path = 'protein'
+            download_protein_folder(s3_bucket, download_directory)
+            data_dir = download_directory
+            self.all_feat_paths = [data_dir + '/deepcov/features/',
+                              data_dir + '/psicov/features/', data_dir + '/cameo/features/']
+            self.all_dist_paths = [data_dir + '/deepcov/distance/',
+                              data_dir + '/psicov/distance/', data_dir + '/cameo/distance/']
+
+            return download_directory
 
         else:
             raise NotImplementedError
 
         s3 = boto3.client("s3")
-        os.makedirs(download_directory, exist_ok=True)
 
         for data_file in data_files:
             filepath = os.path.join(download_directory, data_file)
@@ -191,31 +202,27 @@ class BackboneTrial(PyTorchTrial):
 
         elif self.hparams.task == 'protein':
             os.chdir(self.download_directory)
+            self.deepcov_list = load_list('deepcov.lst', -1)
+
+            self.length_dict = {}
+            for pdb in self.deepcov_list:
+                (ly, seqy, cb_map) = np.load(
+                    'deepcov/distance/' + pdb + '-cb.npy',
+                    allow_pickle=True)
+                self.length_dict[pdb] = ly
 
             if self.hparams.train:
-                x_train = np.load('X_train.npz')
-                y_train = np.load('Y_train.npz')
+                train_pdbs = self.deepcov_list[100:]
 
-                x_train = torch.from_numpy(x_train.f.arr_0)
-                y_train = torch.from_numpy(y_train.f.arr_0)
-                train_data = torch.utils.data.TensorDataset(x_train, y_train)
+                train_data = PDNetDataset(train_pdbs, self.all_feat_paths, self.all_dist_paths,
+                                          128, 10, self.context.get_per_slot_batch_size(), 57,
+                                          label_engineering = '16.0')
 
             else:
-                x_train = np.load('X_train.npz')
-                y_train = np.load('Y_train.npz')
-                x_train = torch.from_numpy(x_train.f.arr_0)
-                y_train = torch.from_numpy(y_train.f.arr_0)
-
-                x_val = np.load('X_valid.npz')
-                y_val = np.load('Y_valid.npz')
-                x_val = torch.from_numpy(x_val.f.arr_0)
-                y_val = torch.from_numpy(y_val.f.arr_0)
-
-                x_combined = torch.cat([x_train, x_val], dim=0)
-                y_combined = torch.cat([y_train, y_val], dim=0)
-
-                train_data = torch.utils.data.TensorDataset(x_combined, y_combined)
-
+                train_pdbs = self.deepcov_list[:]
+                train_data = PDNetDataset(train_pdbs, self.all_feat_paths, self.all_dist_paths,
+                                          128, 10, self.context.get_per_slot_batch_size(), 57,
+                                          label_engineering = '16.0')
 
         else:
             print('no such dataset')
@@ -258,25 +265,29 @@ class BackboneTrial(PyTorchTrial):
 
         elif self.hparams.task == 'protein':
             if self.hparams.train:
-                x_test = np.load('X_valid.npz')
-                y_test = np.load('Y_valid.npz')
-                batch_size = self.context.get_per_slot_batch_size()
-            
-            else:
-                x_test = np.load('X_test.npz')
-                y_test = np.load('Y_test.npz')
-                batch_size = self.hparams.eval_batch_size
-    
-                f = open('psicov.json', )
-                psicov = json.load(f)
-                self.my_list = psicov['my_list']
-                self.length_dict = psicov['length_dict']
+                valid_pdbs = self.deepcov_list[:100]
+                valid_data = PDNetDataset(valid_pdbs, self.all_feat_paths, self.all_dist_paths,
+                                          128, 10, self.context.get_per_slot_batch_size(), 57,
+                                          label_engineering = '16.0')
+                valid_queue = DataLoader(valid_data, batch_size=self.hparams.eval_batch_size,
+                                         shuffle=True, num_workers=2)
 
-            #note, when testing batch size should be different
-            x_test = torch.from_numpy(x_test.f.arr_0)
-            y_test = torch.from_numpy(y_test.f.arr_0)
-            print(y_test.shape)
-            valid_queue = DataLoader(torch.utils.data.TensorDataset(x_test, y_test), batch_size=batch_size, shuffle=False, num_workers=2)
+
+            else:
+                psicov_list = load_list('psicov.lst')
+                psicov_length_dict = {}
+                for pdb in psicov_list:
+                    (ly, seqy, cb_map) = np.load('psicov/distance/' + pdb + '-cb.npy',
+                                                 allow_pickle=True)
+                    psicov_length_dict[pdb] = ly
+
+                self.my_list = psicov_list
+                self.length_dict = psicov_length_dict
+
+                #note, when testing batch size should be different
+                test_data = PDNetDataset(self.my_list, self.all_feat_paths, self.all_dist_paths,
+                                         512, 10, 1, 57, label_engineering = None)
+                valid_queue = DataLoader(test_data, batch_size=2, shuffle=True, num_workers=0)
 
 
         else:
@@ -292,11 +303,9 @@ class BackboneTrial(PyTorchTrial):
     def train_batch(self, batch: TorchData, epoch_idx: int, batch_idx: int
                     ) -> Dict[str, torch.Tensor]:
 
-
         x_train, y_train = batch
 
         self.model.train()
-
         logits = self.model(x_train)
 
         if self.hparams.task == 'pde':

@@ -40,3 +40,14 @@ def download_from_s3(s3_bucket, task, download_dir):
 
     return
 
+def download_protein_folder(bucket_name, local_dir=None):
+    s3 = boto3.resource('s3')
+    bucket = s3.Bucket(bucket_name)
+    for obj in bucket.objects.filter(Prefix='protein'):
+        target = obj.key if local_dir is None \
+            else os.path.join(local_dir, os.path.relpath(obj.key, 'protein'))
+        if not os.path.exists(os.path.dirname(target)):
+            os.makedirs(os.path.dirname(target))
+        if obj.key[-1] == '/':
+            continue
+        bucket.download_file(obj.key, target)

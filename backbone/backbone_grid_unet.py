@@ -97,7 +97,8 @@ class Backbone_Grid(nn.Module):
         self.outc = OutConv(base, n_classes)
 
     def forward(self, x):
-        x = x.permute(0, 3, 1, 2).contiguous()
+        if x.size(3) == 3:
+            x = x.permute(0, 3, 1, 2).contiguous()
         x1 = self.inc(x)
         x2 = self.down1(x1)
         x3 = self.down2(x2)
@@ -111,22 +112,21 @@ class Backbone_Grid(nn.Module):
         return logits
     
     def forward_window(self, x, L, stride=-1):
-        _, _, s_length, _ = x.shape
+        _, _, _, s_length = x.shape
 
         if stride == -1:  # Default to window size
             stride = L
             assert (s_length % L == 0)
 
-        y = torch.zeros_like(x)[:, :, :, :1]
-        counts = torch.zeros_like(x)[:, :, :, :1]
+        y = torch.zeros_like(x)[:, :1, :, :]
+        counts = torch.zeros_like(x)[:, :1, :, :]
         for i in range((((s_length - L) // stride)) + 1):
             ip = i * stride
             for j in range((((s_length - L) // stride)) + 1):
                 jp = j * stride
-                out = self.forward(x[:, ip:ip+L, jp:jp+L, :])
-                out = out.permute(0,2,3,1).contiguous()
-                y[:, ip:ip+L, jp:jp+L, :] += out
-                counts[:, ip:ip+L, jp:jp+L, :] += torch.ones_like(out)
+                out = self.forward(x[:, :, ip:ip + L, jp:jp + L])
+                y[:, :, ip:ip + L, jp:jp + L] += out
+                counts[:, :, ip:ip + L, jp:jp + L] += torch.ones_like(out)
         return y / counts
 
 
