@@ -169,7 +169,7 @@ class RES_Net(nn.Module):
                     nn.init.constant_(m.bias, 0)
 
     def forward(self, x):
-        if x.size(2) != x.size(3):
+        if x.size(3) == 3:
             x = x.permute(0, 3, 1, 2).contiguous()
         block_data = self.input_block(x)
         for i, block in enumerate(self.blocks):
@@ -180,16 +180,20 @@ class RES_Net(nn.Module):
         return logits
 
     def forward_window(self, x, L, stride=-1):
-        _, _, s_length, _ = x.shape
+        _, _, _, s_length = x.shape
 
         if stride == -1:  # Default to window size
             stride = L
             assert (s_length % L == 0)
 
-        y = torch.zeros_like(x)[:, :, :, :1]
-        for i in range(0, s_length, stride):
-            for j in range(0, s_length, stride):
-                out = self.forward(x[:, i:i + L, j:j + L, :])
-                y[:, i:i + L, j:j + L, :] = out
-
-        return y
+        y = torch.zeros_like(x)[:, :1, :, :]
+        counts = torch.zeros_like(x)[:, :1, :, :]
+        for i in range((((s_length - L) // stride)) + 1):
+            ip = i * stride
+            for j in range((((s_length - L) // stride)) + 1):
+                jp = j * stride
+                out = self.forward(x[:, :, ip:ip + L, jp:jp + L])
+                out = out.permute(0, 3, 1, 2)
+                y[:, :, ip:ip + L, jp:jp + L] += out
+                counts[:, :, ip:ip + L, jp:jp + L] += torch.ones_like(out)
+        return y / counts

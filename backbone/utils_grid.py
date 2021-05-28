@@ -208,7 +208,7 @@ class LogCoshLoss(torch.nn.Module):
         super().__init__()
 
     def forward(self, y_t, y_prime_t):
-        x = y_t - y_prime_t
+        x = y_t - y_prime_t + 1e-12
         return torch.mean(torch.log((torch.exp(x) + torch.exp(-x)) / 2))
 '''
 def LogCoshLoss(y_t, y_prime_t, reduction='mean', eps=1e-12):

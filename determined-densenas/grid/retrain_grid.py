@@ -25,6 +25,9 @@ from models import model_derived
 from tools import utils
 from utils_grid import LpLoss, MatReader, UnitGaussianNormalizer, LogCoshLoss
 from utils_grid import create_grid, calculate_mae
+from data_utils.protein_io import load_list
+from data_utils.protein_gen import PDNetDataset
+
 
 TorchData = Union[Dict[str, torch.Tensor], Sequence[torch.Tensor], torch.Tensor]
 
@@ -98,9 +101,13 @@ class DenseNASTrainTrial(PyTorchTrial):
             s3_path = None
 
         elif self.hparams.task == 'protein':
-            data_files = ['X_train.npz', 'X_valid.npz', 'Y_train.npz',
-                          'Y_valid.npz', 'X_test.npz', 'Y_test.npz', 'psicov.json']
-            s3_path = 'protein'
+            data_files = ['protein.zip']
+            data_dir = download_directory
+            self.all_feat_paths = [data_dir + '/deepcov/features/',
+                              data_dir + '/psicov/features/', data_dir + '/cameo/features/']
+            self.all_dist_paths = [data_dir + '/deepcov/distance/',
+                              data_dir + '/psicov/distance/', data_dir + '/cameo/distance/']
+            s3_path = None
 
         else:
             raise NotImplementedError
@@ -138,20 +145,24 @@ class DenseNASTrainTrial(PyTorchTrial):
 
         elif self.hparams.task == 'protein':
             os.chdir(self.download_directory)
-            x_train = np.load('X_train.npz')
-            y_train = np.load('Y_train.npz')
-            x_train = torch.from_numpy(x_train.f.arr_0)
-            y_train = torch.from_numpy(y_train.f.arr_0)
+            import zipfile
+            with zipfile.ZipFile('protein.zip', 'r') as zip_ref:
+                zip_ref.extractall()
 
-            x_val = np.load('X_valid.npz')
-            y_val = np.load('Y_valid.npz')
-            x_val = torch.from_numpy(x_val.f.arr_0)
-            y_val = torch.from_numpy(y_val.f.arr_0)
+            self.deepcov_list = load_list('deepcov.lst', -1)
 
-            x_combined = torch.cat([x_train, x_val], dim=0)
-            y_combined = torch.cat([y_train, y_val], dim=0)
+            self.length_dict = {}
+            for pdb in self.deepcov_list:
+                (ly, seqy, cb_map) = np.load(
+                    'deepcov/distance/' + pdb + '-cb.npy',
+                    allow_pickle=True)
+                self.length_dict[pdb] = ly
 
-            train_data = torch.utils.data.TensorDataset(x_combined, y_combined)
+            train_pdbs = self.deepcov_list[:]
+
+            train_data = PDNetDataset(train_pdbs, self.all_feat_paths, self.all_dist_paths,
+                                      128, 10, self.context.get_per_slot_batch_size(), 57,
+                                      label_engineering = '16.0')
 
         train_queue = DataLoader(
             train_data,
@@ -178,20 +189,26 @@ class DenseNASTrainTrial(PyTorchTrial):
             x_test = torch.cat([x_test.reshape(ntest, s, s, 1), self.grid.repeat(ntest, 1, 1, 1)], dim=3)
             batch_size = self.context.get_per_slot_batch_size()
 
+            test_queue = DataLoader(torch.utils.data.TensorDataset(x_test, y_test),
+                                    batch_size=batch_size, shuffle=False, num_workers=2, )
+
         elif self.hparams.task == 'protein':
-            x_test = np.load('X_test.npz')
-            y_test = np.load('Y_test.npz')
-            x_test = torch.from_numpy(x_test.f.arr_0)
-            y_test = torch.from_numpy(y_test.f.arr_0)
+            psicov_list = load_list('psicov.lst')
+            psicov_length_dict = {}
+            for pdb in psicov_list:
+                (ly, seqy, cb_map) = np.load('psicov/distance/' + pdb + '-cb.npy',
+                                             allow_pickle=True)
+                psicov_length_dict[pdb] = ly
 
-            f = open('psicov.json', )
-            psicov = json.load(f)
-            self.my_list = psicov['my_list']
-            self.length_dict = psicov['length_dict']
-            batch_size = 2
+            self.my_list = psicov_list
+            self.length_dict = psicov_length_dict
 
-        return DataLoader(torch.utils.data.TensorDataset(x_test, y_test),
-                          batch_size=batch_size, shuffle=False, num_workers=2,)
+            # note, when testing batch size should be different
+            test_data = PDNetDataset(self.my_list, self.all_feat_paths, self.all_dist_paths,
+                                     512, 10, 1, 57, label_engineering=None)
+            test_queue = DataLoader(test_data, batch_size=2, shuffle=True, num_workers=0)
+
+        return test_queue
 
     def train_batch(self, batch: TorchData, epoch_idx: int, batch_idx: int
                     ) -> Dict[str, torch.Tensor]:
@@ -212,7 +229,6 @@ class DenseNASTrainTrial(PyTorchTrial):
         elif self.hparams.task == 'protein':
             loss = self.criterion(logits.squeeze(), y_train.squeeze())
             mae = F.l1_loss(logits.squeeze(), y_train.squeeze(), reduction='mean').item()
-
 
         self.context.backward(loss)
         self.context.step_optimizer(self.optimizer)
@@ -284,14 +300,13 @@ class DenseNASTrainTrial(PyTorchTrial):
                 batch = self.context.to_device(batch)
                 data, target = batch
                 for i in range(data.size(0)):
-                    # no need to permute here since already did that
                     targets.append(
                         np.expand_dims(
-                            target.cpu().numpy()[i], axis=0))
+                            target.cpu().numpy()[i].transpose(1, 2, 0), axis=0))
 
                 out = self.model.forward_window(data, 128)
 
-                P.append(out.cpu().numpy())
+                P.append(out.cpu().numpy().transpose(0,2,3,1))
 
             # Combine P, convert to numpy
             P = np.concatenate(P, axis=0)

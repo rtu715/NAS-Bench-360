@@ -31,6 +31,9 @@ from tools.multadds_count import comp_multadds
 from data import BilevelDataset
 from utils_grid import LpLoss, MatReader, UnitGaussianNormalizer, LogCoshLoss
 from utils_grid import create_grid, calculate_mae
+from data_utils.protein_io import load_list
+from data_utils.protein_gen import PDNetDataset
+
 
 TorchData = Union[Dict[str, torch.Tensor], Sequence[torch.Tensor], torch.Tensor]
 
@@ -150,9 +153,13 @@ class DenseNASSearchTrial(PyTorchTrial):
             s3_path = None
 
         elif self.hparams.task == 'protein':
-            data_files = ['X_train.npz', 'X_valid.npz', 'Y_train.npz',
-                          'Y_valid.npz', 'X_test.npz', 'Y_test.npz', 'psicov.json']
-            s3_path = 'protein'
+            data_files = ['protein.zip']
+            data_dir = download_directory
+            self.all_feat_paths = [data_dir + '/deepcov/features/',
+                              data_dir + '/psicov/features/', data_dir + '/cameo/features/']
+            self.all_dist_paths = [data_dir + '/deepcov/distance/',
+                              data_dir + '/psicov/distance/', data_dir + '/cameo/distance/']
+            s3_path = None
 
         else:
             raise NotImplementedError
@@ -192,14 +199,25 @@ class DenseNASSearchTrial(PyTorchTrial):
 
         elif self.hparams.task == 'protein':
             os.chdir(self.download_directory)
-            x_train = np.load('X_train.npz')
-            y_train = np.load('Y_train.npz')
+            import zipfile
+            with zipfile.ZipFile('protein.zip', 'r') as zip_ref:
+                zip_ref.extractall()
 
-            x_train = torch.from_numpy(x_train.f.arr_0)
-            y_train = torch.from_numpy(y_train.f.arr_0)
+            self.deepcov_list = load_list('deepcov.lst', -1)
 
-            train_data = torch.utils.data.TensorDataset(x_train, y_train)
-        
+            self.length_dict = {}
+            for pdb in self.deepcov_list:
+                (ly, seqy, cb_map) = np.load(
+                    'deepcov/distance/' + pdb + '-cb.npy',
+                    allow_pickle=True)
+                self.length_dict[pdb] = ly
+
+            train_pdbs = self.deepcov_list[100:]
+
+            train_data = PDNetDataset(train_pdbs, self.all_feat_paths, self.all_dist_paths,
+                                      128, 10, self.context.get_per_slot_batch_size(), 57,
+                                      label_engineering = '16.0')
+
         print(x_train.shape)
         print(y_train.shape)
 
@@ -226,18 +244,22 @@ class DenseNASSearchTrial(PyTorchTrial):
             x_test = self.x_normalizer.encode(x_test)
             x_test = torch.cat([x_test.reshape(ntest, s, s, 1), self.grid.repeat(ntest, 1, 1, 1)], dim=3)
 
+            valid_queue = DataLoader(torch.utils.data.TensorDataset(x_test, y_test),
+                                     batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=2, )
+
 
         elif self.hparams.task == 'protein':
-            x_test = np.load('X_valid.npz')
-            y_test = np.load('Y_valid.npz')
-            x_test = torch.from_numpy(x_test.f.arr_0)
-            y_test = torch.from_numpy(y_test.f.arr_0)
+            valid_pdbs = self.deepcov_list[:100]
+            valid_data = PDNetDataset(valid_pdbs, self.all_feat_paths, self.all_dist_paths,
+                                      128, 10, self.context.get_per_slot_batch_size(), 57,
+                                      label_engineering='16.0')
+            valid_queue = DataLoader(valid_data, batch_size=2, shuffle=True, num_workers=2)
+
 
         else:
             raise NotImplementedError
 
-        return DataLoader(torch.utils.data.TensorDataset(x_test, y_test),
-                          batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=2,)
+        return valid_queue
 
 
     def build_test_data_loader(self) -> DataLoader:
@@ -256,20 +278,27 @@ class DenseNASSearchTrial(PyTorchTrial):
             x_test = torch.cat([x_test.reshape(ntest, s, s, 1), self.grid.repeat(ntest, 1, 1, 1)], dim=3)
             batch_size = self.context.get_per_slot_batch_size()
 
-        elif self.hparams.task == 'protein':
-            x_test = np.load('X_test.npz')
-            y_test = np.load('Y_test.npz')
-            x_test = torch.from_numpy(x_test.f.arr_0)
-            y_test = torch.from_numpy(y_test.f.arr_0)
+            test_queue = DataLoader(torch.utils.data.TensorDataset(x_test, y_test),
+                                    batch_size=batch_size, shuffle=False, num_workers=2, )
 
-            f = open('psicov.json', )
-            psicov = json.load(f)
-            self.my_list = psicov['my_list']
-            self.length_dict = psicov['length_dict']
-            batch_size = 2
+
+        elif self.hparams.task == 'protein':
+            psicov_list = load_list('psicov.lst')
+            psicov_length_dict = {}
+            for pdb in psicov_list:
+                (ly, seqy, cb_map) = np.load('psicov/distance/' + pdb + '-cb.npy',
+                                             allow_pickle=True)
+                psicov_length_dict[pdb] = ly
+
+            self.my_list = psicov_list
+            self.length_dict = psicov_length_dict
+
+            # note, when testing batch size should be different
+            test_data = PDNetDataset(self.my_list, self.all_feat_paths, self.all_dist_paths,
+                                     512, 10, 1, 57, label_engineering=None)
+            test_queue = DataLoader(test_data, batch_size=2, shuffle=True, num_workers=0)
         
-        return DataLoader(torch.utils.data.TensorDataset(x_test, y_test),
-                          batch_size=batch_size, shuffle=False, num_workers=2,)
+        return test_queue
 
         
     def train_batch(self, batch: TorchData, epoch_idx: int, batch_idx: int) -> Dict[str, torch.Tensor]:
@@ -355,23 +384,26 @@ class DenseNASSearchTrial(PyTorchTrial):
                     batch = self.context.to_device(batch)
                     data, target = batch
                     for i in range(data.size(0)):
-                        # no need to permute here since already did that
                         targets.append(
                             np.expand_dims(
-                                target.cpu().numpy()[i], axis=0))
+                                target.cpu().numpy()[i].transpose(1, 2, 0), axis=0))
 
                     _, _, s_length, _ = data.shape
                     stride = L
-                    y = torch.zeros_like(data)[:, :, :, :1]
-                    for i in range(0, s_length, stride):
-                        for j in range(0, s_length, stride):
-                            logits, _ = dropped_model(data[:, i:i + L, j:j + L, :])
+                    y = torch.zeros_like(data)[:, :1, :, :]
+                    counts = torch.zeros_like(data)[:, :1, :, :]
+                    for i in range((((s_length - L) // stride)) + 1):
+                        ip = i * stride
+                        for j in range((((s_length - L) // stride)) + 1):
+                            jp = j * stride
+                            logits, _ = dropped_model(data[:, :, ip:ip + L, jp:jp + L])
                             logits = logits.unsqueeze(3)
-                            y[:, i:i + L, j:j + L, :] = logits
+                            y[:, :, ip:ip + L, jp:jp + L] = logits
+                            counts[:, :, ip:ip + L, jp:jp + L] += torch.ones_like(logits)
 
-                    out = y
-                    # no transpose here since out is [bs, size, size, 1] already
-                    P.append(out.cpu().numpy())
+                    out = y / counts
+                    #transpose here since out is [bs,1, size, size]
+                    P.append(out.cpu().numpy().transpose(0, 2, 3, 1))
 
                 # Combine P, convert to numpy
                 P = np.concatenate(P, axis=0)

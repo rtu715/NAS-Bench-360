@@ -24,14 +24,8 @@ from backbone_grid_unet import Backbone_Grid
 
 from utils_grid import LpLoss, MatReader, UnitGaussianNormalizer, LogCoshLoss
 from utils_grid import create_grid, calculate_mae
-from data_utils.download_data import download_protein_folder
 from data_utils.protein_io import load_list
 from data_utils.protein_gen import PDNetDataset
-
-
-
-
-
 
 TorchData = Union[Dict[str, torch.Tensor], Sequence[torch.Tensor], torch.Tensor]
 
@@ -321,7 +315,7 @@ class BackboneTrial(PyTorchTrial):
         elif self.hparams.task == 'protein':
             loss = self.criterion(logits.squeeze(), y_train.squeeze())
             mae = F.l1_loss(logits.squeeze(), y_train.squeeze(), reduction='mean').item()
-            print(loss, mae)
+
         self.context.backward(loss)
         self.context.step_optimizer(self.opt)
 
@@ -392,7 +386,6 @@ class BackboneTrial(PyTorchTrial):
                 batch = self.context.to_device(batch)
                 data, target = batch
                 for i in range(data.size(0)):
-                    #no need to permute here since already did that
                     targets.append(
                         np.expand_dims(
                             target.cpu().numpy()[i].transpose(1,2,0), axis=0))

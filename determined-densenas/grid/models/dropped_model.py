@@ -141,8 +141,10 @@ class Dropped_Network(nn.Module):
         branch_weights = []
         for betas in self.beta_weights:
             branch_weights.append(F.softmax(betas / self.softmax_temp, dim=-1))
-        
-        x = x.permute(0, 3, 1, 2).contiguous()
+
+        if x.size(3) == 3:
+            x = x.permute(0, 3, 1, 2).contiguous()
+
         block_data = self.input_block(x)
         if hasattr(self, 'head_block'):
             block_data = self.head_block(block_data)

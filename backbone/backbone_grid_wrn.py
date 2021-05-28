@@ -68,8 +68,8 @@ class Backbone(nn.Module):
         n = (depth - 4) / 6
         block = BasicBlock
         # 1st conv before any network block
-        self.conv1 = nn.Conv2d(in_channels, nChannels[0], kernel_size=1, stride=1,
-                               padding=0, bias=False)
+        self.conv1 = nn.Conv2d(in_channels, nChannels[0], kernel_size=3, stride=1,
+                               padding=1, bias=False)
         self.in_layer = nn.Sequential(
                 nn.BatchNorm2d(in_channels),
                 nn.ReLU(),
@@ -114,7 +114,8 @@ class Backbone(nn.Module):
         else:
             self.pool = nn.AdaptiveAvgPool2d(128)
         #out = self.pool(out)
-        return self.out_conv(out)
+        #return self.out_conv(out)
+        return self.fc(out.permute(0,2,3,1).contiguous())
 
     def forward_window(self, x, L, stride=-1):
         _, _, _, s_length = x.shape
@@ -130,6 +131,7 @@ class Backbone(nn.Module):
             for j in range((((s_length - L) // stride)) + 1):
                 jp = j * stride
                 out = self.forward(x[:, :, ip:ip + L, jp:jp + L])
+                out = out.permute(0,3,1,2).contiguous()
                 y[:, :, ip:ip + L, jp:jp + L] += out
                 counts[:, :, ip:ip + L, jp:jp + L] += torch.ones_like(out)
         return y / counts
