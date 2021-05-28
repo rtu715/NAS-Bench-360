@@ -1,4 +1,4 @@
-description: ninapro_xd_eval
+description: ninapro_xd_eval_seed2
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -7,7 +7,7 @@ environment:
     password: 980715tutubo
 
 reproducibility:
-  experiment_seed: 0
+  experiment_seed: 2
 
 data:
   download_dir: /data
@@ -36,7 +36,7 @@ hyperparameters:
   weight_decay: 5e-4 
   nesterov: true
 
-  arch_lr: 0.000045566719139214714
+  arch_lr: 0.00018559937546941234
   arch_adam: true
 
   global_batch_size: 128

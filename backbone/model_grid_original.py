@@ -143,14 +143,13 @@ class BackboneTrial(PyTorchTrial):
             s3_path = None
 
         elif self.hparams.task == 'protein':
-            download_protein_folder(s3_bucket, download_directory)
+            data_files = ['protein.zip']
             data_dir = download_directory
             self.all_feat_paths = [data_dir + '/deepcov/features/',
                               data_dir + '/psicov/features/', data_dir + '/cameo/features/']
             self.all_dist_paths = [data_dir + '/deepcov/distance/',
                               data_dir + '/psicov/distance/', data_dir + '/cameo/distance/']
-
-            return download_directory
+            s3_path = None
 
         else:
             raise NotImplementedError
@@ -202,6 +201,10 @@ class BackboneTrial(PyTorchTrial):
 
         elif self.hparams.task == 'protein':
             os.chdir(self.download_directory)
+            import zipfile
+            with zipfile.ZipFile('protein.zip', 'r') as zip_ref:
+                zip_ref.extractall()
+
             self.deepcov_list = load_list('deepcov.lst', -1)
 
             self.length_dict = {}
@@ -392,11 +395,11 @@ class BackboneTrial(PyTorchTrial):
                     #no need to permute here since already did that
                     targets.append(
                         np.expand_dims(
-                            target.cpu().numpy()[i], axis=0))
+                            target.cpu().numpy()[i].transpose(1,2,0), axis=0))
 
                 out = self.model.forward_window(data, 128)
                 
-                P.append(out.cpu().numpy())
+                P.append(out.cpu().numpy().transpose(0,2,3,1))
                 
             # Combine P, convert to numpy
             P = np.concatenate(P, axis=0)

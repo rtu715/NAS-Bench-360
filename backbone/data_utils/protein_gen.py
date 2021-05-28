@@ -5,7 +5,7 @@ File: Contains the code to "generate" protein I/O using data generators
 
 import numpy as np
 from torch.utils.data import Dataset
-from protein_io import get_input_output_dist
+from .protein_io import get_input_output_dist
 
 
 class DistGenerator():

@@ -1,4 +1,4 @@
-description: permuted_xd_search_seed1
+description: permuted_xd_search_seed2
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -7,7 +7,7 @@ environment:
     password: 980715tutubo
 
 reproducibility:
-  experiment_seed: 1
+  experiment_seed: 2
 
 data:
   download_dir: /data
