@@ -196,6 +196,8 @@ class DenseNASSearchTrial(PyTorchTrial):
             x_train = torch.cat([x_train.reshape(ntrain, s, s, 1), self.grid.repeat(ntrain, 1, 1, 1)], dim=3)
             train_data = torch.utils.data.TensorDataset(x_train, y_train)
 
+            print(x_train.shape)
+            print(y_train.shape)
 
         elif self.hparams.task == 'protein':
             os.chdir(self.download_directory)
@@ -218,8 +220,6 @@ class DenseNASSearchTrial(PyTorchTrial):
                                       128, 10, self.context.get_per_slot_batch_size(), 57,
                                       label_engineering = '16.0')
 
-        print(x_train.shape)
-        print(y_train.shape)
 
         self.train_data = BilevelDataset(train_data)
         train_queue = DataLoader(
@@ -397,7 +397,7 @@ class DenseNASSearchTrial(PyTorchTrial):
                         for j in range((((s_length - L) // stride)) + 1):
                             jp = j * stride
                             logits, _ = dropped_model(data[:, :, ip:ip + L, jp:jp + L])
-                            logits = logits.unsqueeze(3)
+                            logits = logits.unsqueeze(3).permute(0,3,1,2)
                             y[:, :, ip:ip + L, jp:jp + L] = logits
                             counts[:, :, ip:ip + L, jp:jp + L] += torch.ones_like(logits)
 
@@ -466,15 +466,15 @@ class DenseNASSearchTrial(PyTorchTrial):
             target = self.y_normalizer.decode(target_train)
             logits = self.y_normalizer.decode(logits)
             loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1))
-
+            mae = 0.0
         elif self.hparams.task == 'protein':
             loss = self.criterion(logits, target_train.squeeze())
-            mae = F.l1_loss(logits, target_train.squeeze(), reduction='mean')
+            mae = F.l1_loss(logits, target_train.squeeze(), reduction='mean').item()
 
         loss.backward()
         self.weight_optimizer.step()
 
-        return logits.detach(), loss.item(), sub_obj.item(), mae.item()
+        return logits.detach(), loss.item(), sub_obj.item(), mae
 
     def set_param_grad_state(self, stage):
         def set_grad_state(params, state):

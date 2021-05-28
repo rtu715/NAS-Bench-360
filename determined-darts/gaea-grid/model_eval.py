@@ -121,7 +121,9 @@ class DiscretizedNetwork(nn.Module):
         self.load_state_dict(save_states["state_dict"])
 
     def forward(self, input, **kwargs):
-        s0 = s1 = self.stem(input.permute(0,3,1,2).contiguous())
+        if input.size(3) == 3:
+            input = input.permute(0, 3, 1, 2).contiguous()
+        s0 = s1 = self.stem(input)
         for i, cell in enumerate(self.cells):
             s0, s1 = s1, cell(s0, s1, self.drop_path_prob)
 

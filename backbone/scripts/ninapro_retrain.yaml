@@ -1,4 +1,4 @@
-description: ninapro_backbone_retrain_seed1
+description: ninapro_backbone_retrain_seed2
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -7,7 +7,7 @@ environment:
     password: 980715tutubo
 
 reproducibility:
-  experiment_seed: 1
+  experiment_seed: 2
 
 data:
   download_dir: /data
@@ -29,11 +29,11 @@ hyperparameters:
   #layers: 16
   #widen_factor: 4
   backbone: 16,4
-  droprate: 0.3
+  droprate: 0.0
 
-  learning_rate: 0.9744044165384413
-  momentum: 0.0
-  weight_decay: 0.000010010539860510488 
+  learning_rate: 0.1
+  momentum: 0.9
+  weight_decay: 5e-4
   nesterov: true
 
   global_batch_size: 128

@@ -22,7 +22,7 @@ hyperparameters:
   weight_decay: 5e-4
   nesterov: true
 
-  global_batch_size: 2
+  global_batch_size: 8
   eval_batch_size: 2
 
   start_epoch: 0

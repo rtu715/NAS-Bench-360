@@ -241,7 +241,9 @@ class GAEASearchTrial(PyTorchTrial):
 
                 x_train = torch.cat([x_train.reshape(ntrain, s, s, 1), self.grid.repeat(ntrain, 1, 1, 1)], dim=3)
                 train_data = torch.utils.data.TensorDataset(x_train, y_train)
-
+                print(x_train.shape)
+                print(y_train.shape)
+        
         elif self.hparams.task == 'protein':
             os.chdir(self.download_directory)
             import zipfile
@@ -270,8 +272,6 @@ class GAEASearchTrial(PyTorchTrial):
                                           128, 10, self.context.get_per_slot_batch_size(), 57,
                                           label_engineering = '16.0')
 
-        print(x_train.shape)
-        print(y_train.shape)
 
         self.train_data = BilevelDataset(train_data) if self.hparams.train else train_data
 
@@ -381,7 +381,6 @@ class GAEASearchTrial(PyTorchTrial):
                                      512, 10, 1, 57, label_engineering=None)
             test_queue = DataLoader(test_data, batch_size=2, shuffle=True, num_workers=0)
 
-        print(x_test.shape)
         return test_queue
 
     def train_batch(
