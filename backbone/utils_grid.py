@@ -208,10 +208,8 @@ class LogCoshLoss(torch.nn.Module):
         super().__init__()
 
     def forward(self, y_t, y_prime_t):
-        ey_t = y_t - y_prime_t
-        x = ey_t
-        return torch.mean(torch.log(torch.cosh(ey_t + 1e-12)))
-
+        x = y_t - y_prime_t
+        return torch.mean(torch.log((torch.exp(x) + torch.exp(-x)) / 2))
 '''
 def LogCoshLoss(y_t, y_prime_t, reduction='mean', eps=1e-12):
     if reduction == 'mean':
@@ -327,3 +325,9 @@ def calculate_mae(PRED, YTRUE, pdb_list, length_dict):
 
     return (np.nanmean(mae_lr_d8_list), np.nanmean(mae_mlr_d8_list),
             np.nanmean(mae_lr_d12_list), np.nanmean(mae_mlr_d12_list))
+
+
+def weight_init(m):
+    if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
+        nn.init.xavier_uniform_(m.weight, gain=nn.init.calculate_gain('relu'))
+        nn.init.zeros_(m.bias)

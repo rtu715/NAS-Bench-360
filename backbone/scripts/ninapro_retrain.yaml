@@ -1,4 +1,4 @@
-description: ninapro_xd_eval
+description: ninapro_backbone_retrain
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -36,27 +36,15 @@ hyperparameters:
   weight_decay: 5e-4 
   nesterov: true
 
-  arch_lr: 0.000045566719139214714
-  arch_adam: true
-
   global_batch_size: 128
 
   start_epoch: 0
   epochs: 200
 
-  patch: true
-  from_scratch: false
-  kmatrix_depth: 5
-  max_kernel_size: 1
-
-  warmup_epochs: 0 
- 
-  cooldown_epochs: 0
-
 resources:
   slots_per_trial: 1
 
-records_per_epoch: 3297 
+records_per_epoch: 3297
 
 
 searcher:
@@ -74,4 +62,4 @@ min_checkpoint_period:
 
 max_restarts: 100
 
-entrypoint: model_point:XDTrial
+entrypoint: model_point:BackboneTrial

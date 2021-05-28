@@ -18,12 +18,12 @@ import torch.nn.functional as F
 
 from determined.pytorch import DataLoader, PyTorchTrial, PyTorchTrialContext, LRScheduler
 
-from backbone_rdd import DeepConRddDistances, Net
-#from backbone_grid_wrn import Backbone
+from backbone_rdd import DeepConRddDistances
+from backbone_grid_wrn import Backbone
 from backbone_grid_unet import Backbone_Grid
 
 from utils_grid import LpLoss, MatReader, UnitGaussianNormalizer, LogCoshLoss
-from utils_grid import create_grid, calculate_mae, weight_init
+from utils_grid import create_grid, calculate_mae
 
 
 
@@ -56,7 +56,8 @@ class BackboneTrial(PyTorchTrial):
             self.in_channels = 3
 
         elif self.hparams.task == 'protein':
-            self.criterion= LogCoshLoss()
+            #self.criterion= LogCoshLoss()
+            self.criterion = nn.MSELoss(reduction='mean')
             #error is reported via MAE
             self.error = nn.L1Loss(reduction='sum')
             self.in_channels = 57
@@ -66,11 +67,11 @@ class BackboneTrial(PyTorchTrial):
 
         # Changing our backbone
         #self.backbone=DeepConRddDistances()
-        #self.backbone=Backbone(10, 1, 2, self.in_channels, 0.0)
+        self.backbone=Backbone(10, 1, 2, self.in_channels, 0.0)
         #self.backbone = Backbone_Grid(self.in_channels, 32, 1)
-        self.backbone=Net()
+
         self.model = self.context.wrap_model(self.backbone)
-        self.model.apply(weight_init)
+        
         total_params = sum(p.numel() for p in self.backbone.parameters() if p.requires_grad)/ 1e6
         print('Parameter size in MB: ', total_params)
         
@@ -84,7 +85,7 @@ class BackboneTrial(PyTorchTrial):
         #                  {'params': list(self.model.nonxd_weights())}],
         #                  lr=self.hparams.learning_rate)]
         
-        ''' 
+         
         self.opt = self.context.wrap_optimizer(
             torch.optim.SGD(
                 self.model.parameters(),
@@ -93,8 +94,8 @@ class BackboneTrial(PyTorchTrial):
                 weight_decay=self.context.get_hparam("weight_decay"),
             )
         )
+        '''
         
-        #unet
         self.opt = self.context.wrap_optimizer(
                 torch.optim.Adam(
                     self.model.parameters(),
@@ -102,10 +103,6 @@ class BackboneTrial(PyTorchTrial):
                 )
         )
         '''
-        self.opt = self.context.wrap_optimizer(
-                torch.optim.RMSprop(self.model.parameters(),lr=self.context.get_hparam("learning_rate"),alpha=0.7, eps=1e-7)
-        )
-
         self.lr_scheduler = self.context.wrap_lr_scheduler(
             lr_scheduler=torch.optim.lr_scheduler.LambdaLR(
                 self.opt,
@@ -116,18 +113,17 @@ class BackboneTrial(PyTorchTrial):
         )
 
     
-    def weight_sched(self, epoch) -> Any:
-        #return 0.5 ** (epoch // 100)
-        return 1.0
-
-    '''
+    #def weight_sched(self, epoch) -> Any:
+    #    return 0.5 ** (epoch // 100)
+    
+    
     def weight_sched(self, epoch) -> Any:
         # deleted scheduling for different architectures
         if self.hparams.epochs != 200:
             return 0.2 ** (epoch >= int(0.3 * self.hparams.epochs)) * 0.2 ** (epoch > int(0.6 * self.hparams.epochs)) * 0.2 ** (epoch > int(0.8 * self.hparams.epochs))
         print('using original weight schedule') 
         return 0.2 ** (epoch >= 60) * 0.2 ** (epoch >= 120) * 0.2 ** (epoch >=160)
-    '''
+    
 
     def download_data_from_s3(self):
         '''Download pde data/protein data from s3 to store in temp directory'''
@@ -210,16 +206,16 @@ class BackboneTrial(PyTorchTrial):
                 x_train = torch.from_numpy(x_train.f.arr_0)
                 y_train = torch.from_numpy(y_train.f.arr_0)
 
-                #x_val = np.load('X_valid.npz')
-                #y_val = np.load('Y_valid.npz')
-                #x_val = torch.from_numpy(x_val.f.arr_0)
-                #y_val = torch.from_numpy(y_val.f.arr_0)
+                x_val = np.load('X_valid.npz')
+                y_val = np.load('Y_valid.npz')
+                x_val = torch.from_numpy(x_val.f.arr_0)
+                y_val = torch.from_numpy(y_val.f.arr_0)
 
-                #x_combined = torch.cat([x_train, x_val], dim=0)
-                #y_combined = torch.cat([y_train, y_val], dim=0)
+                x_combined = torch.cat([x_train, x_val], dim=0)
+                y_combined = torch.cat([y_train, y_val], dim=0)
 
-                #train_data = torch.utils.data.TensorDataset(x_combined, y_combined)
-                train_data = torch.utils.data.TensorDataset(x_train, y_train)
+                train_data = torch.utils.data.TensorDataset(x_combined, y_combined)
+
 
         else:
             print('no such dataset')
@@ -275,6 +271,7 @@ class BackboneTrial(PyTorchTrial):
                 psicov = json.load(f)
                 self.my_list = psicov['my_list']
                 self.length_dict = psicov['length_dict']
+
             #note, when testing batch size should be different
             x_test = torch.from_numpy(x_test.f.arr_0)
             y_test = torch.from_numpy(y_test.f.arr_0)
@@ -299,10 +296,10 @@ class BackboneTrial(PyTorchTrial):
         x_train, y_train = batch
 
         self.model.train()
-        
+
+        logits = self.model(x_train)
 
         if self.hparams.task == 'pde':
-            logits = self.model(x_train)
             self.y_normalizer.cuda()
             target = self.y_normalizer.decode(y_train)
             logits = self.y_normalizer.decode(logits.squeeze())
@@ -310,10 +307,9 @@ class BackboneTrial(PyTorchTrial):
             mae = 0.0
 
         elif self.hparams.task == 'protein':
-            logits = self.model(x_train.permute(0,3,1,2))
-            loss = self.criterion(logits, y_train.permute(0,3,1,2))
-            mae = F.l1_loss(logits, y_train.permute(0,3,1,2), reduction='mean').item()
-
+            loss = self.criterion(logits.squeeze(), y_train.squeeze())
+            mae = F.l1_loss(logits.squeeze(), y_train.squeeze(), reduction='mean').item()
+            print(loss, mae)
         self.context.backward(loss)
         self.context.step_optimizer(self.opt)
 
@@ -349,7 +345,8 @@ class BackboneTrial(PyTorchTrial):
                     error = 0
 
                 elif self.hparams.task == 'protein':
-                    target = target.permute(0,3,1,2)
+                    logits = logits.squeeze()
+                    target = target.squeeze()
                     loss = self.criterion(logits, target)
 
                     mae = F.l1_loss(logits, target, reduction='mean')
@@ -389,10 +386,12 @@ class BackboneTrial(PyTorchTrial):
                             target.cpu().numpy()[i], axis=0))
 
                 out = self.model.forward_window(data, 128)
-                P.append(out.cpu().numpy().transpose(0,2,3,1))
+                
+                P.append(out.cpu().numpy())
                 
             # Combine P, convert to numpy
             P = np.concatenate(P, axis=0)
+
         Y = np.full((len(targets), LMAX, LMAX, 1), np.nan)
         for i, xy in enumerate(targets):
             Y[i, :, :, 0] = xy[0, :, :, 0]

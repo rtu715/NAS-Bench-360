@@ -21,9 +21,9 @@ search_params:
             48, 56, 64, 
             72, 96, 112
             ]
-        fm_sizes: [64,
-            64, 64, 64,
-            64, 64, 64]
+        fm_sizes: [128,
+            128, 128, 128,
+            128, 128, 128]
         stage: [0, 
             1, 1, 1, 
             2, 2, 2, 
@@ -63,7 +63,7 @@ optim:
 
 data:
     dataset: protein
-    input_size: (57, 64, 64)
+    input_size: (128, 128, 57)
     type_of_data_aug: random_sized
     color: False
     random_sized:

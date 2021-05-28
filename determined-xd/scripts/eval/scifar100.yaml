@@ -1,4 +1,4 @@
-description: scifar100_xd_eval_warmup
+description: scifar100_xd_eval
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -36,7 +36,7 @@ hyperparameters:
   weight_decay: 5e-4 
   nesterov: true
 
-  arch_lr: 0.00006677306766018307 
+  arch_lr:  0.0000035705227567182885 
   arch_adam: true
 
   global_batch_size: 64
@@ -48,9 +48,9 @@ hyperparameters:
   from_scratch: false
   
   kmatrix_depth: 3
-  max_kernel_size: 5
+  max_kernel_size: 1
 
-  warmup_epochs: 50 
+  warmup_epochs: 0 
   cooldown_epochs: 0
 
 resources:

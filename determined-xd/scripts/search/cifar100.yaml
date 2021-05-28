@@ -1,4 +1,4 @@
-description: cifar100_xd_search
+description: cifar100_xd_search_seed2
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -7,7 +7,7 @@ environment:
     password: 980715tutubo
 
 reproducibility:
-  experiment_seed: 0 
+  experiment_seed: 2
 
 data:
   download_dir: /data
@@ -77,7 +77,7 @@ hyperparameters:
 
 resources:
   slots_per_trial: 1
-  max_slots: 4
+  max_slots: 3
 
 records_per_epoch: 40000
 # 50000 if cifar, 60000 if spherical
@@ -93,10 +93,10 @@ searcher:
   mode: aggressive
   divisor: 4
   max_rungs: 5
-  max_concurrent_trials: 4
+  max_concurrent_trials: 3
 
 min_validation_period:
-  epochs: 1
+  epochs: 2
 
 min_checkpoint_period:
   epochs: 5

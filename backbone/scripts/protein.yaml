@@ -1,4 +1,4 @@
-description: protein_backbone_eval
+description: protein_wrn_L2
 environment:
   image: "renbotu/xd-nas:determined1.8"
   registry_auth:
@@ -19,28 +19,27 @@ hyperparameters:
 
   learning_rate: 0.001
   momentum: 0.9
-  weight_decay: 1e-4
+  weight_decay: 5e-4
   nesterov: true
 
-  global_batch_size: 8
+  global_batch_size: 2
   eval_batch_size: 2
 
   start_epoch: 0
-  epochs: 100
+  epochs: 200
 
   sub: 5
 
 resources:
   slots_per_trial: 1
-  max_slots: 4
 
-records_per_epoch: 3456
+records_per_epoch: 3356
 
 searcher:
   name: single
   metric: mae
   max_length:
-    epochs: 100
+    epochs: 200
   
 
 min_validation_period:
@@ -48,4 +47,4 @@ min_validation_period:
 
 max_restarts: 100
 
-entrypoint: model_grid:BackboneTrial
+entrypoint: model_grid_original:BackboneTrial

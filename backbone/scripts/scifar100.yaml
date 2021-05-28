@@ -22,7 +22,7 @@ bind_mounts:
 
 hyperparameters:
   task: scifar100
-  train: false  
+  train: true 
   permute: false 
 
   #NN architecture backbone
@@ -36,7 +36,7 @@ hyperparameters:
   weight_decay: 5e-4 
   nesterov: true
 
-  global_batch_size: 64
+  global_batch_size: 128
 
   start_epoch: 0
   epochs: 200
@@ -46,8 +46,7 @@ resources:
   slots_per_trial: 1
   max_slots: 4
 
-records_per_epoch: 50000
-# 50000 if cifar, 60000 if spherical
+records_per_epoch: 40000
 
 
 searcher:

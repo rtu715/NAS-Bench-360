@@ -21,7 +21,7 @@ bind_mounts:
 
 hyperparameters:
   task: ninapro
-  train: false
+  train: true
   permute: false
 
   #NN architecture backbone
@@ -63,7 +63,7 @@ resources:
   slots_per_trial: 1
   max_slots: 3
 
-records_per_epoch: 3297
+records_per_epoch: 2638
 
 
 searcher:

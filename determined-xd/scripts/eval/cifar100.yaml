@@ -1,4 +1,4 @@
-description: cifar100_xd_eval
+description: cifar100_xd_eval_seed1
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -7,7 +7,7 @@ environment:
     password: 980715tutubo
 
 reproducibility:
-  experiment_seed: 0 
+  experiment_seed: 1
 
 data:
   download_dir: /data
@@ -33,7 +33,9 @@ hyperparameters:
   momentum: 0.9
   weight_decay: 5e-4
   nesterov: true
-  arch_lr:  0.0000077
+
+  #tuned
+  arch_lr: 0.000001286916510781503 
   arch_adam: true
 
   global_batch_size: 128
@@ -43,7 +45,9 @@ hyperparameters:
 
   patch: true
   from_scratch: false
-  kmatrix_depth: 1
+  
+  #tuned
+  kmatrix_depth: 5
   max_kernel_size: 1
 
   warmup_epochs: 0

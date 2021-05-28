@@ -21,6 +21,28 @@ class Net(nn.Module):
         output = F.relu(x)
         return output
 
+    def forward_window(self, x, stride=32):
+        L = 128
+
+        _, _, s_length, _ = x.shape
+
+        if stride == -1: # Default to window size
+            stride = L
+            assert(s_length % L == 0)
+        
+
+        x = x.permute(0,3,1,2).contiguous()
+        y = torch.zeros_like(x)[:, :1, :, :] # TODO Use nans? Use numpy?
+        counts = torch.zeros_like(x)[:, :1, :, :]
+        for i in range((((s_length - L) // stride)) + 1):
+            ip = i * stride
+            for j in range((((s_length - L) // stride)) + 1):
+                jp = j * stride
+                out = self.forward(x[:, :, ip:ip+L, jp:jp+L])
+                y[:, :, ip:ip+L, jp:jp+L] += out
+                counts[:, :, ip:ip+L, jp:jp+L] += torch.ones_like(out)
+        return y / counts
+
 class DeepConRddDistances(nn.Module):
     def __init__(self, L=128, num_blocks=8, width=16, expected_n_channels=57,
             no_dilation=False):
@@ -71,7 +93,6 @@ class DeepConRddDistances(nn.Module):
             nn.ReLU(),)
 
     def forward(self, x):
-        x = x.permute(0,3,1,2).contiguous()
         tower = self.in_layer(x)
         for block in self.blocks:
             b = block(tower)
@@ -79,17 +100,58 @@ class DeepConRddDistances(nn.Module):
         output = self.out_layer(tower)
         return output
 
+    '''
     def forward_window(self, x, stride=-1):
         L = self.L
         _, _, _, s_length = x.shape
+        if stride == -1: # Default to window size
+            stride = L
+            assert(s_length % L == 0)
+        
+        y = torch.zeros_like(x)[:, :, :, :1] # TODO Use nans? Use numpy?
+        for i in range(0, s_length, stride):
+            for j in range(0, s_length, stride):
+                out = self.forward(x[:, i:i+L, j:j+L, :])
+                out = out.permute(0,2,3,1).contiguous()
+                y[:, i:i+L, j:j+L, :] = out
+        return y
+    def forward_window(self, x, stride=32):
+        L = self.L
+        _, _,s_length, _ = x.shape
+
+        if stride == -1: # Default to window size
+            stride = L
+            assert(s_length % L == 0)
+
+        y = torch.zeros_like(x)[:, :, :, :1] # TODO Use nans? Use numpy?
+        counts = torch.zeros_like(x)[:, :, :, :1]
+        for i in range((((s_length - L) // stride)) + 1):
+            ip = i * stride
+            for j in range((((s_length - L) // stride)) + 1):
+                jp = j * stride
+                out = self.forward(x[:,  ip:ip+L, jp:jp+L, :]).permute(0,2,3,1)
+                y[:, ip:ip+L, jp:jp+L, :] += out
+                counts[:, ip:ip+L, jp:jp+L, :] += torch.ones_like(out)
+        return y / counts
+    '''
+    
+    def forward_window(self, x, stride=32):
+        L = self.L
+        _, _, s_length, _ = x.shape
 
         if stride == -1: # Default to window size
             stride = L
             assert(s_length % L == 0)
         
+
+        x = x.permute(0,3,1,2).contiguous()
         y = torch.zeros_like(x)[:, :1, :, :] # TODO Use nans? Use numpy?
-        for i in range(0, s_length, stride):
-            for j in range(0, s_length, stride):
-                out = self.forward(x[:, :, i:i+L, j:j+L])
-                y[:, :, i:i+L, j:j+L] = out
-        return y
+        counts = torch.zeros_like(x)[:, :1, :, :]
+        for i in range((((s_length - L) // stride)) + 1):
+            ip = i * stride
+            for j in range((((s_length - L) // stride)) + 1):
+                jp = j * stride
+                out = self.forward(x[:, :, ip:ip+L, jp:jp+L])
+                y[:, :, ip:ip+L, jp:jp+L] += out
+                counts[:, :, ip:ip+L, jp:jp+L] += torch.ones_like(out)
+        return y / counts

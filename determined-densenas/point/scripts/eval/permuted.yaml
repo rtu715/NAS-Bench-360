@@ -1,4 +1,4 @@
-description: cifar100_permuted_densenas_eval
+description: permuted_densenas_eval_seed1
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -7,7 +7,7 @@ environment:
     password: 980715tutubo
 
 reproducibility:
-  experiment_seed: 0
+  experiment_seed: 1
 
 data:
   download_dir: /data
@@ -27,11 +27,18 @@ hyperparameters:
   num_examples: 50000
 
   net_type: res
-  net_config: "
-[[32, 64], 'basic_block', [], 0, 1]|
- [[64, 72], 'basic_block', [], 0, 2]|
-[[72, 176], 'basic_block', ['basic_block', 'basic_block', 'basic_block', 'basic_block'], 4, 2]|
+  #net_config: "
+  #[[32, 64], 'basic_block', [], 0, 1]|
+  #[[64, 72], 'basic_block', [], 0, 2]|
+  #[[72, 176], 'basic_block', ['basic_block', 'basic_block', 'basic_block', 'basic_block'], 4, 2]|
+  #[[176, 192], 'basic_block', [], 0, 1]"
+  
+  #seed1
+  net_config: "[[32, 64], 'basic_block', [], 0, 1]|
+[[64, 72], 'basic_block', [], 0, 2]|
+[[72, 176], 'basic_block', ['basic_block', 'basic_block', 'basic_block', 'basic_block', 'basic_block', 'basic_block', 'basic_block', 'basic_block', 'basic_block', 'basic_block', 'basic_block', 'basic_block'], 12, 2]|
 [[176, 192], 'basic_block', [], 0, 1]"
+
   global_batch_size: 256
 
 resources:

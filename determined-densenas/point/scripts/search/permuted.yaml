@@ -1,4 +1,4 @@
-description: ninapro_densenas_search_seed2
+description: permuted_densenas_search_seed2
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -21,10 +21,10 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-  task: ninapro 
+  task: cifar100 
   train: true
-  permute: false
-  num_examples: 527
+  permute: true
+  num_examples: 8000
 
   net_type: res
   global_batch_size: 64
@@ -36,9 +36,9 @@ min_validation_period:
   epochs: 1
 
 min_checkpoint_period:
-  epochs: 2
+  epochs: 5
 
-records_per_epoch: 527
+records_per_epoch: 8000 
 searcher:
   name: single
   metric: validation_accuracy
@@ -51,4 +51,4 @@ optimizations:
 
 max_restarts: 1000
 
-entrypoint: model_search:DenseNASSearchTrial
+entrypoint: model_bilevel:DenseNASSearchTrial

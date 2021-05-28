@@ -22,7 +22,7 @@ bind_mounts:
 
 hyperparameters:
   task: scifar100
-  train: false
+  train: true
   permute: false
 
   #NN architecture backbone
@@ -61,9 +61,9 @@ hyperparameters:
 
 resources:
   slots_per_trial: 1
+  max_slots: 4
 
-records_per_epoch: 50000
-# 50000 if cifar
+records_per_epoch: 40000
 
 searcher:
   name: adaptive_asha

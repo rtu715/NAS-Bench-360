@@ -1,4 +1,4 @@
-description: cifar100_backbone_tuning
+description: cifar100_backbone_tuning_seed1
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -7,7 +7,7 @@ environment:
     password: 980715tutubo
 
 reproducibility:
-  experiment_seed: 0 
+  experiment_seed: 1
 
 data:
   download_dir: /data
@@ -64,8 +64,7 @@ resources:
   slots_per_trial: 1
   max_slots: 4
 
-records_per_epoch: 50000
-# 50000 if cifar
+records_per_epoch: 40000
 
 searcher:
   name: adaptive_asha
@@ -84,4 +83,4 @@ min_validation_period:
 
 max_restarts: 100
 
-entrypoint: model_point:XDTrial
+entrypoint: model_point:BackboneTrial

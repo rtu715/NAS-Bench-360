@@ -56,7 +56,7 @@ class DenseNASSearchTrial(PyTorchTrial):
 
         elif self.hparams.task == 'protein':
             merge_cfg_from_file('configs/protein_search_cfg_resnet.yaml', cfg)
-            input_shape = (57, 64, 64)
+            input_shape = (57, 128, 128)
             self.criterion = LogCoshLoss()
             #error is reported via MAE
             self.error = nn.L1Loss(reduction='sum')
@@ -328,7 +328,7 @@ class DenseNASSearchTrial(PyTorchTrial):
         test_sub_obj = 0.0
         test_error_sum = 0.0
         test_num_batches = 100
-        lr8, mlr8, lr12, mlr12 = 0.0
+        lr8, mlr8, lr12, mlr12 = 0.0, 0.0, 0.0, 0.0
         if self.hparams.task == 'pde':
             test_num_batches = 0
             with torch.no_grad():
@@ -365,8 +365,9 @@ class DenseNASSearchTrial(PyTorchTrial):
                     y = torch.zeros_like(data)[:, :, :, :1]
                     for i in range(0, s_length, stride):
                         for j in range(0, s_length, stride):
-                            out, _ = dropped_model(data[:, i:i + L, j:j + L, :])
-                            y[:, i:i + L, j:j + L, :] = out
+                            logits, _ = dropped_model(data[:, i:i + L, j:j + L, :])
+                            logits = logits.unsqueeze(3)
+                            y[:, i:i + L, j:j + L, :] = logits
 
                     out = y
                     # no transpose here since out is [bs, size, size, 1] already
@@ -536,9 +537,9 @@ class DenseNASSearchTrial(PyTorchTrial):
             loss = loss / logits.size(0)
             mae = 0
 
-        #elif self.hparams.task == 'protein':
-            #loss = self.criterion(logits, target_valid.squeeze())
-            #mae = F.l1_loss(logits, target_valid.squeeze(), reduction='mean').item()
+        elif self.hparams.task == 'protein':
+            loss = self.criterion(logits, target_valid.squeeze())
+            mae = F.l1_loss(logits, target_valid.squeeze(), reduction='mean').item()
             #target_valid, logits, num = filter_MAE(target_valid.squeeze(), logits.squeeze(), 8.0)
             #error = self.error(logits, target_valid).item()
             #if num and error:
