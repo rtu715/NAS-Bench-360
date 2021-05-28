@@ -67,7 +67,7 @@ class BackboneTrial(PyTorchTrial):
 
         # Changing our backbone
         #self.backbone=DeepConRddDistances()
-        self.backbone=Backbone(10, 1, 2, self.in_channels, 0.0)
+        self.backbone=Backbone(10, 1, 2, self.in_channels, self.hparams.droprate)
         #self.backbone = Backbone_Grid(self.in_channels, 32, 1)
 
         self.model = self.context.wrap_model(self.backbone)
@@ -286,7 +286,6 @@ class BackboneTrial(PyTorchTrial):
                                          512, 10, 1, 57, label_engineering = None)
                 valid_queue = DataLoader(test_data, batch_size=2, shuffle=True, num_workers=0)
 
-
         else:
             print('no such dataset')
             raise NotImplementedError
@@ -332,7 +331,7 @@ class BackboneTrial(PyTorchTrial):
         #evaluate on test proteins, not validation procedures
         if self.hparams.task == 'protein' and not self.hparams.train:
             return self.evaluate_test_protein(data_loader)
-        
+
         loss_sum = 0
         error_sum = 0
         num_batches = 0

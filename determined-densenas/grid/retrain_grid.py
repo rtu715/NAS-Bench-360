@@ -53,7 +53,9 @@ class DenseNASTrainTrial(PyTorchTrial):
             self.in_channels = 3
 
         elif self.hparams.task == 'protein':
-            self.criterion = LogCoshLoss()
+            #self.criterion = LogCoshLoss()
+            self.criterion = nn.MSELoss(reduction='mean')
+
             # error is reported via MAE
             self.error = nn.L1Loss(reduction='sum')
             self.in_channels = 57

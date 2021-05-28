@@ -30,6 +30,9 @@ from xd.darts import Supernet
 from xd.nas import MixedOptimizer
 from xd.ops import Conv
 
+from data_utils.protein_io import load_list
+from data_utils.protein_gen import PDNetDataset
+
 
 TorchData = Union[Dict[str, torch.Tensor], Sequence[torch.Tensor], torch.Tensor]
 
@@ -61,7 +64,8 @@ class XDTrial(PyTorchTrial):
             self.in_channels = 3
 
         elif self.hparams.task == 'protein':
-            self.criterion = LogCoshLoss()
+            self.criterion = nn.MSELoss(reduction='mean')
+            #self.criterion = LogCoshLoss()
             #error is reported via MAE
             self.error = nn.L1Loss(reduction='sum')
             self.in_channels = 57
@@ -71,8 +75,8 @@ class XDTrial(PyTorchTrial):
 
         # Changing our backbone
         #self.backbone = Backbone_Grid(12, 32, 5) 
-        self.backbone = Backbone_Grid(self.in_channels, 32, 1)
-        #self.backbone = Backbone(16, 1, 2, self.in_channels, 0.0)
+        #self.backbone = Backbone_Grid(self.in_channels, 32, 1)
+        self.backbone = Backbone(10, 1, 2, self.in_channels, self.hparams.droprate)
 
         self.chrysalis, self.original = Chrysalis.metamorphosize(self.backbone), self.backbone
         
@@ -122,14 +126,7 @@ class XDTrial(PyTorchTrial):
         '''
         Definition of optimizers, no Adam implementation
         '''
-        momentum = partial(torch.optim.SGD, momentum=self.hparams.momentum)
-        #for unet
-        opts = [torch.optim.Adam(self.model.model_weights(), lr=self.hparams.learning_rate)]
-        '''
-        opts = [torch.optim.Adam([{'params': list(self.model.xd_weights())},
-                          {'params': list(self.model.nonxd_weights())}],
-                          lr=self.hparams.learning_rate)]
-        
+
         if self.hparams.momentum: 
             momentum = partial(torch.optim.SGD, momentum=self.hparams.momentum, nesterov=self.hparams.nesterov)
         else:
@@ -137,7 +134,7 @@ class XDTrial(PyTorchTrial):
 
         opts = [
             momentum(self.model.model_weights(), lr=self.hparams.learning_rate, weight_decay=self.hparams.weight_decay)]
-        '''
+
         if self.hparams.arch_lr:
             arch_opt = torch.optim.Adam if self.hparams.arch_adam else momentum
             opts.append(arch_opt(self.model.arch_params(), lr=self.hparams.arch_lr, weight_decay=0.0 if self.hparams.arch_adam else self.hparams.weight_decay))
@@ -157,48 +154,44 @@ class XDTrial(PyTorchTrial):
         )
 
     
+
     
-    def weight_sched(self, epoch) -> Any:
-        return 0.5 ** (epoch // 100)
-    
-    '''
+
     def weight_sched(self, epoch) -> Any:
         # deleted scheduling for different architectures
         if self.hparams.epochs != 200:
             return 0.2 ** (epoch >= int(0.3 * self.hparams.epochs)) * 0.2 ** (epoch > int(0.6 * self.hparams.epochs)) * 0.2 ** (epoch > int(0.8 * self.hparams.epochs))
         print('using original weight schedule') 
         return 0.2 ** (epoch >= 60) * 0.2 ** (epoch >= 120) * 0.2 ** (epoch >=160)
-    '''
+
 
     def arch_sched(self, epoch) -> Any:
         return 0.0 if epoch < self.hparams.warmup_epochs or epoch > self.hparams.epochs-self.hparams.cooldown_epochs else self.weight_sched(epoch)
-
-
-    '''
-    Temporary data loaders, will need new ones for new tasks
-    Dataloaders for PDE
-    '''
 
     def download_data_from_s3(self):
         '''Download pde data/protein data from s3 to store in temp directory'''
 
         s3_bucket = self.context.get_data_config()["bucket"]
         download_directory = f"/tmp/data-rank{self.context.distributed.get_rank()}"
+        os.makedirs(download_directory, exist_ok=True)
 
         if self.hparams.task == 'pde':
             data_files = ["piececonst_r421_N1024_smooth1.mat", "piececonst_r421_N1024_smooth2.mat"]
             s3_path = None
 
         elif self.hparams.task == 'protein':
-            data_files = ['X_train.npz', 'X_valid.npz', 'Y_train.npz',
-                          'Y_valid.npz', 'X_test.npz', 'Y_test.npz', 'psicov.json']
-            s3_path = 'protein'
+            data_files = ['protein.zip']
+            data_dir = download_directory
+            self.all_feat_paths = [data_dir + '/deepcov/features/',
+                              data_dir + '/psicov/features/', data_dir + '/cameo/features/']
+            self.all_dist_paths = [data_dir + '/deepcov/distance/',
+                              data_dir + '/psicov/distance/', data_dir + '/cameo/distance/']
+            s3_path = None
 
         else:
             raise NotImplementedError
 
         s3 = boto3.client("s3")
-        os.makedirs(download_directory, exist_ok=True)
 
         for data_file in data_files:
             filepath = os.path.join(download_directory, data_file)
@@ -207,6 +200,7 @@ class XDTrial(PyTorchTrial):
                 s3.download_file(s3_bucket, s3_loc, filepath)
 
         return download_directory
+
     def build_training_data_loader(self) -> DataLoader:
         if self.hparams.task == 'pde':
             TRAIN_PATH = os.path.join(self.download_directory, 'piececonst_r421_N1024_smooth1.mat')
@@ -244,31 +238,31 @@ class XDTrial(PyTorchTrial):
 
         elif self.hparams.task == 'protein':
             os.chdir(self.download_directory)
+            import zipfile
+            with zipfile.ZipFile('protein.zip', 'r') as zip_ref:
+                zip_ref.extractall()
+
+            self.deepcov_list = load_list('deepcov.lst', -1)
+
+            self.length_dict = {}
+            for pdb in self.deepcov_list:
+                (ly, seqy, cb_map) = np.load(
+                    'deepcov/distance/' + pdb + '-cb.npy',
+                    allow_pickle=True)
+                self.length_dict[pdb] = ly
 
             if self.hparams.train:
-                x_train = np.load('X_train.npz')
-                y_train = np.load('Y_train.npz')
+                train_pdbs = self.deepcov_list[100:]
 
-                x_train = torch.from_numpy(x_train.f.arr_0)
-                y_train = torch.from_numpy(y_train.f.arr_0)
-                train_data = torch.utils.data.TensorDataset(x_train, y_train)
+                train_data = PDNetDataset(train_pdbs, self.all_feat_paths, self.all_dist_paths,
+                                          128, 10, self.context.get_per_slot_batch_size(), 57,
+                                          label_engineering = '16.0')
 
             else:
-                x_train = np.load('X_train.npz')
-                y_train = np.load('Y_train.npz')
-                x_train = torch.from_numpy(x_train.f.arr_0)
-                y_train = torch.from_numpy(y_train.f.arr_0)
-
-                x_val = np.load('X_valid.npz')
-                y_val = np.load('Y_valid.npz')
-                x_val = torch.from_numpy(x_val.f.arr_0)
-                y_val = torch.from_numpy(y_val.f.arr_0)
-
-                x_combined = torch.cat([x_train, x_val], dim=0)
-                y_combined = torch.cat([y_train, y_val], dim=0)
-
-                train_data = torch.utils.data.TensorDataset(x_combined, y_combined)
-
+                train_pdbs = self.deepcov_list[:]
+                train_data = PDNetDataset(train_pdbs, self.all_feat_paths, self.all_dist_paths,
+                                          128, 10, self.context.get_per_slot_batch_size(), 57,
+                                          label_engineering = '16.0')
 
         else:
             print('no such dataset')
@@ -311,25 +305,29 @@ class XDTrial(PyTorchTrial):
 
         elif self.hparams.task == 'protein':
             if self.hparams.train:
-                x_test = np.load('X_valid.npz')
-                y_test = np.load('Y_valid.npz')
-                batch_size = self.context.get_per_slot_batch_size()
+                valid_pdbs = self.deepcov_list[:100]
+                valid_data = PDNetDataset(valid_pdbs, self.all_feat_paths, self.all_dist_paths,
+                                          128, 10, self.context.get_per_slot_batch_size(), 57,
+                                          label_engineering = '16.0')
+                valid_queue = DataLoader(valid_data, batch_size=self.hparams.eval_batch_size,
+                                         shuffle=True, num_workers=2)
+
 
             else:
-                x_test = np.load('X_test.npz')
-                y_test = np.load('Y_test.npz')
-                batch_size = self.hparams.eval_batch_size
+                psicov_list = load_list('psicov.lst')
+                psicov_length_dict = {}
+                for pdb in psicov_list:
+                    (ly, seqy, cb_map) = np.load('psicov/distance/' + pdb + '-cb.npy',
+                                                 allow_pickle=True)
+                    psicov_length_dict[pdb] = ly
 
-                f = open('psicov.json', )
-                psicov = json.load(f)
-                self.my_list = psicov['my_list']
-                self.length_dict = psicov['length_dict']
+                self.my_list = psicov_list
+                self.length_dict = psicov_length_dict
 
-            #note, when testing batch size should be different
-            x_test = torch.from_numpy(x_test.f.arr_0)
-            y_test = torch.from_numpy(y_test.f.arr_0)
-            valid_queue = DataLoader(torch.utils.data.TensorDataset(x_test, y_test), batch_size=batch_size, shuffle=False, num_workers=2)
-
+                #note, when testing batch size should be different
+                test_data = PDNetDataset(self.my_list, self.all_feat_paths, self.all_dist_paths,
+                                         512, 10, 1, 57, label_engineering = None)
+                valid_queue = DataLoader(test_data, batch_size=2, shuffle=True, num_workers=0)
 
         else:
             print('no such dataset')
@@ -344,11 +342,9 @@ class XDTrial(PyTorchTrial):
     def train_batch(self, batch: TorchData, epoch_idx: int, batch_idx: int
                     ) -> Dict[str, torch.Tensor]:
 
-
         x_train, y_train = batch
 
         self.model.train()
-
         logits = self.model(x_train)
 
         if self.hparams.task == 'pde':
@@ -432,15 +428,13 @@ class XDTrial(PyTorchTrial):
                 batch = self.context.to_device(batch)
                 data, target = batch
                 for i in range(data.size(0)):
-                    #no need to permute here since already did that
                     targets.append(
                         np.expand_dims(
-                            target.cpu().numpy()[i], axis=0))
+                            target.cpu().numpy()[i].transpose(1,2,0), axis=0))
 
                 out = self.model.forward_window(data, 128)
 
-                #no transpose here since out is [bs, size, size, 1] already
-                P.append(out.cpu().numpy())
+                P.append(out.cpu().numpy().transpose(0,2,3,1))
 
             # Combine P, convert to numpy
             P = np.concatenate(P, axis=0)

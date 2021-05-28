@@ -65,7 +65,8 @@ class GAEASearchTrial(PyTorchTrial):
             self.n_classes = 1
 
         elif self.hparams.task == 'protein':
-            self.criterion = LogCoshLoss()
+            #self.criterion = LogCoshLoss()
+            self.criterion = nn.MSELoss(reduction='mean')
             #error is reported via MAE
             self.error = nn.L1Loss(reduction='sum')
             self.in_channels = 57

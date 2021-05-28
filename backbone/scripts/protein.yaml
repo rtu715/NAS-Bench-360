@@ -15,7 +15,8 @@ data:
 
 hyperparameters:
   task: protein
-  train: false
+  train: true
+  droprate: 0.0
 
   learning_rate: 0.001
   momentum: 0.9

@@ -60,7 +60,8 @@ class DenseNASSearchTrial(PyTorchTrial):
         elif self.hparams.task == 'protein':
             merge_cfg_from_file('configs/protein_search_cfg_resnet.yaml', cfg)
             input_shape = (57, 128, 128)
-            self.criterion = LogCoshLoss()
+            #self.criterion = LogCoshLoss()
+            self.criterion = nn.MSELoss(reduction='mean')
             #error is reported via MAE
             self.error = nn.L1Loss(reduction='sum')
             self.in_channels = 57
