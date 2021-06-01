@@ -67,7 +67,7 @@ class BackboneTrial(PyTorchTrial):
 
         # Changing our backbone
         #self.backbone=DeepConRddDistances()
-        self.backbone=Backbone(10, 1, 2, self.in_channels, self.hparams.droprate)
+        self.backbone=Backbone(16, 1, 2, self.in_channels, self.hparams.droprate)
         #self.backbone = Backbone_Grid(self.in_channels, 32, 1)
 
         self.model = self.context.wrap_model(self.backbone)
@@ -85,13 +85,14 @@ class BackboneTrial(PyTorchTrial):
         #                  {'params': list(self.model.nonxd_weights())}],
         #                  lr=self.hparams.learning_rate)]
         
-         
+        nesterov = self.hparams.nesterov if self.hparams.momentum else False 
         self.opt = self.context.wrap_optimizer(
             torch.optim.SGD(
                 self.model.parameters(),
                 lr=self.context.get_hparam("learning_rate"),
                 momentum=self.context.get_hparam("momentum"),
                 weight_decay=self.context.get_hparam("weight_decay"),
+                nesterov=nesterov
             )
         )
         '''

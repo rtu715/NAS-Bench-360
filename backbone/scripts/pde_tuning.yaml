@@ -1,4 +1,4 @@
-description: protein_xd_search
+description: pde_backbone_tuning_seed1
 environment:
   image: "renbotu/xd-nas:determined1.8"
   registry_auth:
@@ -6,64 +6,65 @@ environment:
     password: 980715tutubo
 
 reproducibility:
-  experiment_seed: 0 
+  experiment_seed: 1
 
 data:
   download_dir: /data
   type: s3
   bucket: pde-xd
 
+
+bind_mounts:
+  - host_path: /tmp
+    container_path: /data
+    read_only: false
+
 hyperparameters:
-  task: protein
+  task: pde 
   train: true
-  droprate: 0.0
-
-  learning_rate: 0.001
-  weight_decay: 5e-4
-  momentum: 0.9
-  nesterov: true
-
-  arch_lr:
-    type: log
-    minval: -6.0
-    maxval: -2.0
-    base: 10.0
-
-  arch_adam: 
+  
+  droprate: 
     type: categorical
     vals:
-      - true
-      - false
+      - 0.0
+      - 0.3
 
-  global_batch_size: 8
-  eval_batch_size: 2
+  learning_rate:
+    type: log
+    minval: -4.0
+    maxval: 0.0
+    base: 10.0
+ 
+  momentum:
+    type: categorical
+    vals:
+      - 0.0
+      - 0.9
+  
+  weight_decay:
+    type: log
+    minval: -5.0
+    maxval: -1.0
+    base: 10.0
+  nesterov: true
+
+  global_batch_size: 4
+  eval_batch_size: 4
 
   start_epoch: 0
   epochs: 200
 
-  patch: true
-  from_scratch: false
-  kmatrix_depth: 
-    type: categorical
-    vals: 
-      - 1
-      - 3
-      - 5
-  max_kernel_size: 1
-
-  warmup_epochs: 0
-  cooldown_epochs: 0
   sub: 5
 
 resources:
   slots_per_trial: 1
   max_slots: 4
 
-records_per_epoch: 3356
+records_per_epoch: 900
 
 searcher:
   name: adaptive_asha
-  metric: MAE
+  metric: validation_loss
   max_length:
     epochs: 200
   max_trials: 16
@@ -78,4 +79,4 @@ min_validation_period:
 
 max_restarts: 100
 
-entrypoint: model_grid:XDTrial
+entrypoint: model_grid_original:BackboneTrial

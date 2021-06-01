@@ -1,4 +1,4 @@
-description: scifar100_xd_eval
+description: scifar100_xd_eval_seed2
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -7,7 +7,7 @@ environment:
     password: 980715tutubo
 
 reproducibility:
-  experiment_seed: 0 
+  experiment_seed: 2
 
 data:
   download_dir: /data
@@ -36,7 +36,7 @@ hyperparameters:
   weight_decay: 5e-4 
   nesterov: true
 
-  arch_lr:  0.0000035705227567182885 
+  arch_lr: 0.000029504310814693167
   arch_adam: true
 
   global_batch_size: 64
@@ -55,7 +55,6 @@ hyperparameters:
 
 resources:
   slots_per_trial: 1
-  max_slots: 4
 
 records_per_epoch: 50000
 # 50000 if cifar, 60000 if spherical
@@ -69,7 +68,7 @@ searcher:
     epochs: 200
 
 min_validation_period:
-  epochs: 1
+  epochs: 5
 
 min_checkpoint_period:
   epochs: 5

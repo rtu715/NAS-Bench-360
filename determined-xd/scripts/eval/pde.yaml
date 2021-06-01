@@ -1,4 +1,4 @@
-description: pde_xd_eval_kernel5_warmup
+description: pde_xd_eval
 environment:
   image: "renbotu/xd-nas:determined1.8"
   registry_auth:
@@ -16,29 +16,30 @@ data:
 hyperparameters:
   task: pde
   train: false
+  droprate: 0.0
 
-  learning_rate: 0.0001
-  weight_decay: 1e-4
-
-  #tuned
-  arch_lr: 0.000007348546010248473 
-
-  arch_momentum: 0.5
+  learning_rate: 0.001
+  momentum: 0.9
+  weight_decay: 5e-4
 
   #tuned
-  arch_adam: false
+  arch_lr: 0.000045566719139214714
+
+
+  #tuned
+  arch_adam: true
   
   global_batch_size: 4
 
   start_epoch: 0
-  epochs: 100
+  epochs: 200
 
   patch: true
   from_scratch: false
   kmatrix_depth: 5
-  max_kernel_size: 5
+  max_kernel_size: 1
 
-  warmup_epochs: 50
+  warmup_epochs: 0
   cooldown_epochs: 0
   sub: 5
 
@@ -51,7 +52,7 @@ searcher:
   name: single
   metric: validation_loss
   max_length:
-    epochs: 100
+    epochs: 200
   
 
 min_validation_period:

@@ -76,7 +76,7 @@ class XDTrial(PyTorchTrial):
         # Changing our backbone
         #self.backbone = Backbone_Grid(12, 32, 5) 
         #self.backbone = Backbone_Grid(self.in_channels, 32, 1)
-        self.backbone = Backbone(10, 1, 2, self.in_channels, self.hparams.droprate)
+        self.backbone = Backbone(16, 1, 2, self.in_channels, 0.0)
 
         self.chrysalis, self.original = Chrysalis.metamorphosize(self.backbone), self.backbone
         
@@ -128,7 +128,7 @@ class XDTrial(PyTorchTrial):
         '''
 
         if self.hparams.momentum: 
-            momentum = partial(torch.optim.SGD, momentum=self.hparams.momentum, nesterov=self.hparams.nesterov)
+            momentum = partial(torch.optim.SGD, momentum=self.hparams.momentum, nesterov=True)
         else:
             momentum = partial(torch.optim.SGD)
 

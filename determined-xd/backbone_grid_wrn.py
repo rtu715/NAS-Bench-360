@@ -77,9 +77,9 @@ class Backbone(nn.Module):
         # 1st block
         self.block1 = NetworkBlock(n, nChannels[0], nChannels[1], block, 1, dropRate)
         # 2nd block
-        self.block2 = NetworkBlock(n, nChannels[1], nChannels[2], block, 1, dropRate)
+        self.block2 = NetworkBlock(n, nChannels[1], nChannels[2], block, 2, dropRate)
         # 3rd block
-        self.block3 = NetworkBlock(n, nChannels[2], nChannels[3], block, 1, dropRate)
+        self.block3 = NetworkBlock(n, nChannels[2], nChannels[3], block, 2, dropRate)
         # global average pooling and classifier
         self.bn1 = nn.BatchNorm2d(nChannels[3])
         self.relu = nn.ReLU(inplace=True)
@@ -102,7 +102,7 @@ class Backbone(nn.Module):
         if x.size(3) == 3:
             pde = True
             #pde input needs to be permuted
-        x = x.permute(0,3,1,2).contiguous()
+            x = x.permute(0,3,1,2).contiguous()
         #out = self.conv1(x)
         out = self.in_layer(x)
         out = self.block1(out)
@@ -113,7 +113,7 @@ class Backbone(nn.Module):
             self.pool= nn.AdaptiveAvgPool2d(85)
         else:
             self.pool = nn.AdaptiveAvgPool2d(128)
-        #out = self.pool(out)
+        out = self.pool(out)
         #return self.out_conv(out)
         return self.fc(out.permute(0,2,3,1).contiguous())
 

@@ -1,4 +1,4 @@
-description: scifar100_backbone_retrain_seed1
+description: scifar100_backbone_retrain_seed2
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -7,7 +7,7 @@ environment:
     password: 980715tutubo
 
 reproducibility:
-  experiment_seed: 1
+  experiment_seed: 2
 
 data:
   download_dir: /data
@@ -31,9 +31,9 @@ hyperparameters:
   backbone: 16,4
   droprate: 0.3
 
-  learning_rate: 0.9744044165384413
-  momentum: 0
-  weight_decay: 0.000010010539860510488
+  learning_rate: 0.009483034914203466
+  momentum: 0.9
+  weight_decay: 0.0000510432706737419
   nesterov: true
 
   global_batch_size: 128
@@ -44,7 +44,6 @@ hyperparameters:
 
 resources:
   slots_per_trial: 1
-  max_slots: 4
 
 records_per_epoch: 50000
 

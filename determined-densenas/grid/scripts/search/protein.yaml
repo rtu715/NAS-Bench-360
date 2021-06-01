@@ -24,7 +24,7 @@ hyperparameters:
   task: protein
   train: true
   sub: 5
-  num_examples: 335
+  num_examples: 671
 
   net_type: res
   
@@ -34,7 +34,7 @@ resources:
   slots_per_trial: 1
 
 min_validation_period:
-  epochs: 1
+  epochs: 5
 
 min_checkpoint_period:
   epochs: 5
