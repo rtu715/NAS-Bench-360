@@ -1,0 +1,78 @@
+description: pde_backbone_random
+environment:
+  image: "renbotu/xd-nas:determined1.8"
+  registry_auth:
+    username: renbotu
+    password: 980715tutubo
+
+reproducibility:
+  experiment_seed: 0
+
+data:
+  download_dir: /data
+  type: s3
+  bucket: pde-xd
+
+
+bind_mounts:
+  - host_path: /tmp
+    container_path: /data
+    read_only: false
+
+hyperparameters:
+  task: pde 
+  train: false
+  
+  droprate: 
+    type: categorical
+    vals:
+      - 0.0
+      - 0.3
+
+  learning_rate:
+    type: log
+    minval: -4.0
+    maxval: 0.0
+    base: 10.0
+ 
+  momentum:
+    type: categorical
+    vals:
+      - 0.0
+      - 0.9
+  
+  weight_decay:
+    type: log
+    minval: -5.0
+    maxval: -1.0
+    base: 10.0
+  nesterov: true
+
+  global_batch_size: 4
+  eval_batch_size: 4
+
+  start_epoch: 0
+  epochs: 200
+
+  sub: 5
+
+resources:
+  slots_per_trial: 1
+  max_slots: 8
+
+records_per_epoch: 1000
+
+searcher:
+  name: random
+  metric: validation_loss
+  max_length:
+    epochs: 200
+  max_trials: 8
+  
+
+min_validation_period:
+  epochs: 20
+
+max_restarts: 100
+
+entrypoint: model_grid_original:BackboneTrial

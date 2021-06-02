@@ -152,6 +152,18 @@ class DenseNASSearchTrial(PyTorchTrial):
 
         self.config = config 
         self.download_directory = self.download_data_from_s3()
+
+        for _ in range(8):
+            betas, head_alphas, stack_alphas = self.model.display_arch_params()
+            derived_arch = self.arch_gener.derive_archs(betas, head_alphas, stack_alphas)
+            derived_arch_str = '|\n'.join(map(str, derived_arch))
+            derived_model = self.der_Net(derived_arch_str)
+            derived_flops = comp_multadds(derived_model, input_size=self.input_shape)
+            derived_params = utils.count_parameters_in_MB(derived_model)
+            print("Derived Model Mult-Adds = %.2fMB" % derived_flops)
+            print("Derived Model Num Params = %.2fMB" % derived_params)
+            print(derived_arch_str)
+
     def download_data_from_s3(self):
         '''Download data from s3 to store in temp directory'''
 

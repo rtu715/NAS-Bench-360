@@ -1,0 +1,169 @@
+description: pde_gaea_random
+
+environment:
+  image: "renbotu/xd-nas:determined1.8"
+  registry_auth:
+    username: renbotu
+    password: 980715tutubo
+
+reproducibility:
+  experiment_seed: 0
+
+data:
+  download_dir: /data
+  type: s3
+  bucket: pde-xd
+
+bind_mounts:
+  - host_path: /tmp
+    container_path: /data
+    read_only: false
+
+hyperparameters:
+    task: pde
+    train: false
+
+    # Number of classes in dataset
+    n_classes: 1
+    # Channel shuffle factor.  1 / shuffle_factor channels are activated at a given time.
+    global_batch_size: 4
+    learning_rate: 0.025
+    momentum: 0.9
+    min_learning_rate: 0
+    scheduler_epochs: 600
+    weight_decay: 3e-4
+    arch_learning_rate: 0.0
+    init_channels: 36 #from pde
+    layers: 20
+    nodes: 4
+    multiplier: 4
+    drop_path_prob: 0.3
+    clip_gradients_l2_norm: 5
+
+    sub: 5
+
+  # Tunable hyperparameters
+  # Normal cell
+  normal_node1_edge1:
+    type: categorical
+    vals: [0, 1]
+  normal_node1_edge2:
+    type: categorical
+    vals: [0, 1]
+  normal_node2_edge1:
+    type: categorical
+    vals: [0, 1, 2]
+  normal_node2_edge2:
+    type: categorical
+    vals: [0, 1, 2]
+  normal_node3_edge1:
+    type: categorical
+    vals: [0, 1, 2, 3]
+  normal_node3_edge2:
+    type: categorical
+    vals: [0, 1, 2, 3]
+  normal_node4_edge1:
+    type: categorical
+    vals: [0, 1, 2, 3, 4]
+  normal_node4_edge2:
+    type: categorical
+    vals: [0, 1, 2, 3, 4]
+  normal_node1_edge1_op:
+    type: categorical
+    vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
+  normal_node1_edge2_op:
+    type: categorical
+    vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
+  normal_node2_edge1_op:
+    type: categorical
+    vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
+  normal_node2_edge2_op:
+    type: categorical
+    vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
+  normal_node3_edge1_op:
+    type: categorical
+    vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
+  normal_node3_edge2_op:
+    type: categorical
+    vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
+  normal_node4_edge1_op:
+    type: categorical
+    vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
+  normal_node4_edge2_op:
+    type: categorical
+    vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
+  # Reduce cell
+  reduce_node1_edge1:
+    type: categorical
+    vals: [0, 1]
+  reduce_node1_edge2:
+    type: categorical
+    vals: [0, 1]
+  reduce_node2_edge1:
+    type: categorical
+    vals: [0, 1, 2]
+  reduce_node2_edge2:
+    type: categorical
+    vals: [0, 1, 2]
+  reduce_node3_edge1:
+    type: categorical
+    vals: [0, 1, 2, 3]
+  reduce_node3_edge2:
+    type: categorical
+    vals: [0, 1, 2, 3]
+  reduce_node4_edge1:
+    type: categorical
+    vals: [0, 1, 2, 3, 4]
+  reduce_node4_edge2:
+    type: categorical
+    vals: [0, 1, 2, 3, 4]
+  reduce_node1_edge1_op:
+    type: categorical
+    vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
+  reduce_node1_edge2_op:
+    type: categorical
+    vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
+  reduce_node2_edge1_op:
+    type: categorical
+    vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
+  reduce_node2_edge2_op:
+    type: categorical
+    vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
+  reduce_node3_edge1_op:
+    type: categorical
+    vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
+  reduce_node3_edge2_op:
+    type: categorical
+    vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
+  reduce_node4_edge1_op:
+    type: categorical
+    vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
+  reduce_node4_edge2_op:
+    type: categorical
+    vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
+
+
+resources:
+  slots_per_trial: 1
+  max_slots: 8
+
+min_validation_period: 
+  epochs: 20
+
+min_checkpoint_period:
+  epochs: 5
+
+records_per_epoch: 1000
+searcher:
+  name: random
+  metric: validation_error
+  max_trials: 8
+  max_length: 
+    epochs: 600
+
+optimizations:
+  aggregation_frequency:  1
+
+max_restarts: 100
+
+entrypoint: model_def:GAEASearchTrial

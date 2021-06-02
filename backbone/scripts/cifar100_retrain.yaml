@@ -26,7 +26,7 @@ hyperparameters:
   permute: false
 
   #NN architecture backbone
-  backbone: 40,4
+  backbone: 16,4
   droprate: 0.0
 
   learning_rate: 0.1

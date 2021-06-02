@@ -37,10 +37,15 @@ from searched_genotypes import genotypes
 
 Genotype = namedtuple("Genotype", "normal normal_concat reduce reduce_concat")
 
+class AttrDict(dict):
+    def __init__(self, *args, **kwargs):
+        super(AttrDict, self).__init__(*args, **kwargs)
+        self.__dict__ = self
 
 class GAEAEvalTrial(PyTorchTrial):
     def __init__(self, context: PyTorchTrialContext) -> None:
         self.context = context
+        self.hparams = AttrDict(context.get_hparams())
         self.data_config = context.get_data_config()
         self.criterion = nn.CrossEntropyLoss()
         self.download_directory = self.download_data_from_s3()
@@ -71,81 +76,15 @@ class GAEAEvalTrial(PyTorchTrial):
             step_mode=LRScheduler.StepMode.STEP_EVERY_EPOCH,
         )
 
-
     def build_model_from_config(self):
-        '''
-        genotype = Genotype(
-            normal=[
-                ("skip_connect", 1),
-                ("skip_connect", 0),
-                ("sep_conv_3x3", 2),
-                ("sep_conv_3x3", 1),
-                ("sep_conv_5x5", 2),
-                ("sep_conv_3x3", 0),
-                ("sep_conv_5x5", 3),
-                ("sep_conv_5x5", 2),
-            ],
-            normal_concat=range(2, 6),
-            reduce=[
-                ("max_pool_3x3", 1),
-                ("sep_conv_3x3", 0),
-                ("sep_conv_5x5", 1),
-                ("dil_conv_5x5", 2),
-                ("sep_conv_3x3", 1),
-                ("sep_conv_3x3", 3),
-                ("sep_conv_5x5", 1),
-                ("max_pool_3x3", 2),
-            ],
-            reduce_concat=range(2, 6),
-        )
-        ''' 
-        '''
-        best model for spherical MNIST
-        genotype = Genotype(normal=[('max_pool_3x3', 0),
-                                    ('dil_conv_3x3', 1),
-                                    ('dil_conv_5x5', 0),
-                                    ('sep_conv_3x3', 2),
-                                    ('sep_conv_5x5', 1),
-                                    ('max_pool_3x3', 3),
-                                    ('sep_conv_3x3', 3),
-                                    ('sep_conv_3x3', 1)],
-                            normal_concat=range(2, 6),
-                            reduce=[('skip_connect', 1),
-                                    ('skip_connect', 0),
-                                    ('sep_conv_5x5', 1),
-                                    ('skip_connect', 0),
-                                    ('max_pool_3x3', 0),
-                                    ('sep_conv_3x3', 1),
-                                    ('max_pool_3x3', 4),
-                                    ('max_pool_3x3', 3)],
-                            reduce_concat=range(2, 6))
 
-        best genotype for ninapro
-        genotype= Genotype(normal=[('sep_conv_5x5', 0), 
-            ('sep_conv_3x3', 1), 
-            ('max_pool_3x3', 0), 
-            ('sep_conv_5x5', 1), 
-            ('dil_conv_3x3', 0), 
-            ('dil_conv_3x3', 2), 
-            ('sep_conv_3x3', 2), 
-            ('sep_conv_3x3', 0)], 
-            normal_concat=range(2, 6), 
-            reduce=[('skip_connect', 0), 
-                ('avg_pool_3x3', 1), 
-                ('dil_conv_3x3', 2), 
-                ('max_pool_3x3', 0), 
-                ('sep_conv_3x3', 2), 
-                ('sep_conv_5x5', 0), 
-                ('dil_conv_5x5', 3), 
-                ('sep_conv_5x5', 2)], 
-            reduce_concat=range(2, 6))
-        '''
-        #genotype=Genotype(normal=[('dil_conv_5x5', 1), ('dil_conv_5x5', 0), ('sep_conv_3x3', 2), ('dil_conv_3x3', 0), ('sep_conv_5x5', 0), ('sep_conv_5x5', 1), ('sep_conv_5x5', 0), ('sep_conv_5x5', 4)], normal_concat=range(2, 6), reduce=[('avg_pool_3x3', 1), ('sep_conv_5x5', 0), ('dil_conv_5x5', 2), ('sep_conv_3x3', 0), ('sep_conv_5x5', 2), ('dil_conv_5x5', 3), ('sep_conv_5x5', 0), ('dil_conv_3x3', 2)], reduce_concat=range(2, 6)) 
-        if self.context.get_hparam('permute'):
-            genotype = genotypes['cifar100_permuted']
-        else:
-            genotype = genotypes[self.context.get_hparam('task')] 
-        
+        #if self.context.get_hparam('permute'):
+        #    genotype = genotypes['cifar100_permuted']
+        #else:
+        #    genotype = genotypes[self.context.get_hparam('task')]
+
+        genotype = self.get_genotype_from_hps()
+
         print(self.context.get_hparam('task'))
         print(genotype)
 
@@ -162,6 +101,28 @@ class GAEAEvalTrial(PyTorchTrial):
         )
 
         return model
+
+    def get_genotype_from_hps(self):
+        # only used in eval random archs
+        cell_config = {"normal": [], "reduce": []}
+
+        for cell in ["normal", "reduce"]:
+            for node in range(4):
+                for edge in [1, 2]:
+                    edge_ind = self.hparams[
+                        "{}_node{}_edge{}".format(cell, node + 1, edge)
+                    ]
+                    edge_op = self.hparams[
+                        "{}_node{}_edge{}_op".format(cell, node + 1, edge)
+                    ]
+                    cell_config[cell].append((edge_op, edge_ind))
+        print(cell_config)
+        return Genotype(
+            normal=cell_config["normal"],
+            normal_concat=range(2, 6),
+            reduce=cell_config["reduce"],
+            reduce_concat=range(2, 6),
+        )
 
     def download_data_from_s3(self):
         '''Download data from s3 to store in temp directory'''

@@ -129,7 +129,9 @@ class GAEASearchTrial(PyTorchTrial):
                 #searched_genotype = Genotype(normal=[('dil_conv_5x5', 1), ('sep_conv_5x5', 0), ('sep_conv_5x5', 1), ('dil_conv_5x5', 2), ('dil_conv_5x5', 3), ('sep_conv_3x3', 2), ('dil_conv_3x3', 3), ('dil_conv_3x3', 2)], normal_concat=range(2, 6), reduce=[('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1)], reduce_concat=range(2, 6))
                 
                 #seed 2
-                searched_genotype = Genotype(normal=[('dil_conv_3x3', 1), ('dil_conv_3x3', 0), ('dil_conv_3x3', 2), ('dil_conv_3x3', 0), ('dil_conv_5x5', 3), ('sep_conv_5x5', 1), ('dil_conv_5x5', 4), ('max_pool_3x3', 1)], normal_concat=range(2, 6), reduce=[('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1)], reduce_concat=range(2, 6))
+                #searched_genotype = Genotype(normal=[('dil_conv_3x3', 1), ('dil_conv_3x3', 0), ('dil_conv_3x3', 2), ('dil_conv_3x3', 0), ('dil_conv_5x5', 3), ('sep_conv_5x5', 1), ('dil_conv_5x5', 4), ('max_pool_3x3', 1)], normal_concat=range(2, 6), reduce=[('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1)], reduce_concat=range(2, 6))
+
+                searched_genotype = self.get_genotype_from_hps()
 
             elif self.hparams.task =='protein':
                 #seed 0
@@ -176,6 +178,28 @@ class GAEASearchTrial(PyTorchTrial):
             )
         total_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)/ 1e6
         print('Parameter size in MB: ', total_params)
+
+    def get_genotype_from_hps(self):
+        # only used in eval random archs
+        cell_config = {"normal": [], "reduce": []}
+
+        for cell in ["normal", "reduce"]:
+            for node in range(4):
+                for edge in [1, 2]:
+                    edge_ind = self.hparams[
+                        "{}_node{}_edge{}".format(cell, node + 1, edge)
+                    ]
+                    edge_op = self.hparams[
+                        "{}_node{}_edge{}_op".format(cell, node + 1, edge)
+                    ]
+                    cell_config[cell].append((edge_op, edge_ind))
+        print(cell_config)
+        return Genotype(
+            normal=cell_config["normal"],
+            normal_concat=range(2, 6),
+            reduce=cell_config["reduce"],
+            reduce_concat=range(2, 6),
+        )
 
     def download_data_from_s3(self):
         '''Download pde data from s3 to store in temp directory'''
