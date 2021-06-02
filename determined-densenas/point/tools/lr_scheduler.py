@@ -101,6 +101,9 @@ class CosineRestartAnnealingLR(object):
 
         return {key: value for key, value in self.__dict__.items() if key != 'optimizer'}        
 
+    def load_state_dict(self, state_dict):
+        self.__dict__.update(state_dict)
+
 def get_lr_scheduler(config, optimizer, num_examples=None, batch_size=None):
 
     if num_examples is None:

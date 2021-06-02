@@ -1,4 +1,4 @@
-description: protein_xd_search
+description: protein_xd_search_seed2
 environment:
   image: "renbotu/xd-nas:determined1.8"
   registry_auth:
@@ -6,7 +6,7 @@ environment:
     password: 980715tutubo
 
 reproducibility:
-  experiment_seed: 0 
+  experiment_seed: 2
 
 data:
   download_dir: /data

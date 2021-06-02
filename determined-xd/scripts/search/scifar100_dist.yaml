@@ -1,4 +1,4 @@
-description: scifar100_backbone_retrain
+description: scifar100_xd_search_distributed
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -22,30 +22,50 @@ bind_mounts:
 
 hyperparameters:
   task: scifar100
-  train: false
-  permute: false 
+  train: false  
+  permute: false
 
   #NN architecture backbone
   #layers: 16
   #widen_factor: 4
-  backbone: 40,4
+  #backbone: 
+  #  type: categorical
+  #  vals:
+  #    - 40,2
+  #    - 16,4
+  backbone: 28,4
   droprate: 0.0
 
-  learning_rate: 0.01207563335135194
+  learning_rate: 0.1
   momentum: 0.9
-  weight_decay: 0.000029723346443356543
+  weight_decay: 5e-4 
   nesterov: true
 
-  global_batch_size: 128
+  arch_lr: 0.001 
+
+  arch_adam: true
+
+  global_batch_size: 64
 
   start_epoch: 0
   epochs: 200
 
+  patch: true
+  from_scratch: false
+  kmatrix_depth: 5
+    
+  max_kernel_size: 1
+
+  warmup_epochs: 0 
+ 
+  cooldown_epochs: 0
 
 resources:
-  slots_per_trial: 1
+  slots_per_trial: 4
+  max_slots: 16
 
-records_per_epoch: 50000
+records_per_epoch: 40000
+# 50000 if cifar, 60000 if spherical
 
 
 searcher:
@@ -56,12 +76,15 @@ searcher:
     epochs: 200
 
 min_validation_period:
-  epochs: 5
+  epochs: 20
 
 min_checkpoint_period:
   epochs: 5
          
+optimizations:
+   # Gradient updates will be communicated every 4 mini-batches.
+   aggregation_frequency: 4
 
 max_restarts: 100
 
-entrypoint: model_point:BackboneTrial
+entrypoint: model_point:XDTrial
