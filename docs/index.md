@@ -2,14 +2,14 @@
 
 Some information Here
 
-| Tasks               | Number of Samples | Data Split (train/val/test)          | Task Type | Applications| License|
-|---------------------|-------------------|----------------------|-----------|------------------------|-------------|
-| CIFAR-100           | 60,000            | 40,000/10,000/10,000 | Point     | Computer Vision        | CC BY-SA    |
-| Permuted CIFAR-100  | 60,000            | 40,000/10,000/10,000 | Point     | Transformed Vision     | CC BY-SA    |
-| Spherical CIFAR-100 | 60,000            | 40,000/10,000/10,000 | Point     | Omnidirectional Vision | CC BY-SA    |
-| Ninapro DB5         | 3,916             | 2,638/659/659        | Point     | Medical Imaging        | CC BY-ND    |
-| Darcy Flow          | 1,100             | 900/100/100          | Grid      | PDE Solver             | MIT         |
-| PsiCov + DeepCov    | 3,456 + 150       | 3356/100/150         | Grid      | Protein Folding        | GPL         |
+| Tasks               | Number of Samples | Data Split(train/val/test) | Task Type | Applications           | License  |
+|---------------------|-------------------|----------------------------|-----------|------------------------|----------|
+| CIFAR-100           | 60,000            | 40,000/10,000/10,000       | Point     | Computer Vision        | CC BY-SA |
+| Permuted CIFAR-100  | 60,000            | 40,000/10,000/10,000       | Point     | Transformed Vision     | CC BY-SA |
+| Spherical CIFAR-100 | 60,000            | 40,000/10,000/10,000       | Point     | Omnidirectional Vision | CC BY-SA |
+| Ninapro DB5         | 3,916             | 2,638/659/659              | Point     | Medical Imaging        | CC BY-ND |
+| Darcy Flow          | 1,100             | 900/100/100                | Grid      | PDE Solver             | MIT      |
+| PsiCov + DeepCov    | 3,456 + 150       | 3356/100/150               | Grid      | Protein Folding        | GPL      |
 *validation data can be split through index slicing 
 
 ## Metadata and Download Links
@@ -32,7 +32,7 @@ Download Links (~30 MB total): <br />
 [Train Data](https://pde-xd.s3.amazonaws.com/ninapro/ninapro_train.npy), 
 [Train Labels](https://pde-xd.s3.amazonaws.com/ninapro/label_train.npy); 
 [Validation Data](https://pde-xd.s3.amazonaws.com/ninapro/ninapro_val.npy),
-[Validation labels](https://pde-xd.s3.amazonaws.com/ninapro/label_val.npy); 
+[Validation Labels](https://pde-xd.s3.amazonaws.com/ninapro/label_val.npy); 
 [Test Data](https://pde-xd.s3.amazonaws.com/ninapro/ninapro_test.npy),
 [Test Labels](https://pde-xd.s3.amazonaws.com/ninapro/label_test.npy)
 
