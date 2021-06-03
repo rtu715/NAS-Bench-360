@@ -1,4 +1,4 @@
-description: cifar100_xd_eval_fixed
+description: cifar100_xd_eval
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -26,7 +26,7 @@ hyperparameters:
   permute: false
 
   #NN architecture backbone
-  backbone: 40,4
+  backbone: 16,4
   droprate: 0.0
 
   learning_rate: 0.1
@@ -35,7 +35,7 @@ hyperparameters:
   nesterov: true
 
   #tuned
-  arch_lr: 0.00001
+  arch_lr: 0.0001
   arch_adam: true
 
   global_batch_size: 128
@@ -50,7 +50,7 @@ hyperparameters:
   kmatrix_depth: 3
   max_kernel_size: 3
 
-  warmup_epochs: 50
+  warmup_epochs: 0
   cooldown_epochs: 0
 
 resources:

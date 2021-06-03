@@ -1,4 +1,4 @@
-description: protein_xd_eval_seed1
+description: protein_xd_eval
 environment:
   image: "renbotu/xd-nas:determined1.8"
   registry_auth:
@@ -6,7 +6,7 @@ environment:
     password: 980715tutubo
 
 reproducibility:
-  experiment_seed: 1
+  experiment_seed: 0
 
 data:
   download_dir: /data
@@ -24,11 +24,10 @@ hyperparameters:
   nesterov: true
 
   #tuned
-  arch_lr: 0.00001236516445710446
-
+  arch_lr: 0.0001
 
   #tuned
-  arch_adam: false
+  arch_adam: true
   
   global_batch_size: 8
   eval_batch_size: 2
@@ -40,8 +39,8 @@ hyperparameters:
   from_scratch: false
 
   #tuned
-  kmatrix_depth: 5
-  max_kernel_size: 1
+  kmatrix_depth: 3
+  max_kernel_size: 3
 
   warmup_epochs: 0
   cooldown_epochs: 0
@@ -60,7 +59,7 @@ searcher:
   
 
 min_validation_period:
-  epochs: 20
+  epochs: 40
 
 max_restarts: 100
 

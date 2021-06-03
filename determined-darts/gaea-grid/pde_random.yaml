@@ -42,105 +42,103 @@ hyperparameters:
 
     sub: 5
 
-  # Tunable hyperparameters
-  # Normal cell
-  normal_node1_edge1:
-    type: categorical
-    vals: [0, 1]
-  normal_node1_edge2:
-    type: categorical
-    vals: [0, 1]
-  normal_node2_edge1:
-    type: categorical
-    vals: [0, 1, 2]
-  normal_node2_edge2:
-    type: categorical
-    vals: [0, 1, 2]
-  normal_node3_edge1:
-    type: categorical
-    vals: [0, 1, 2, 3]
-  normal_node3_edge2:
-    type: categorical
-    vals: [0, 1, 2, 3]
-  normal_node4_edge1:
-    type: categorical
-    vals: [0, 1, 2, 3, 4]
-  normal_node4_edge2:
-    type: categorical
-    vals: [0, 1, 2, 3, 4]
-  normal_node1_edge1_op:
-    type: categorical
-    vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
-  normal_node1_edge2_op:
-    type: categorical
-    vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
-  normal_node2_edge1_op:
-    type: categorical
-    vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
-  normal_node2_edge2_op:
-    type: categorical
-    vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
-  normal_node3_edge1_op:
-    type: categorical
-    vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
-  normal_node3_edge2_op:
-    type: categorical
-    vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
-  normal_node4_edge1_op:
-    type: categorical
-    vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
-  normal_node4_edge2_op:
-    type: categorical
-    vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
-  # Reduce cell
-  reduce_node1_edge1:
-    type: categorical
-    vals: [0, 1]
-  reduce_node1_edge2:
-    type: categorical
-    vals: [0, 1]
-  reduce_node2_edge1:
-    type: categorical
-    vals: [0, 1, 2]
-  reduce_node2_edge2:
-    type: categorical
-    vals: [0, 1, 2]
-  reduce_node3_edge1:
-    type: categorical
-    vals: [0, 1, 2, 3]
-  reduce_node3_edge2:
-    type: categorical
-    vals: [0, 1, 2, 3]
-  reduce_node4_edge1:
-    type: categorical
-    vals: [0, 1, 2, 3, 4]
-  reduce_node4_edge2:
-    type: categorical
-    vals: [0, 1, 2, 3, 4]
-  reduce_node1_edge1_op:
-    type: categorical
-    vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
-  reduce_node1_edge2_op:
-    type: categorical
-    vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
-  reduce_node2_edge1_op:
-    type: categorical
-    vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
-  reduce_node2_edge2_op:
-    type: categorical
-    vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
-  reduce_node3_edge1_op:
-    type: categorical
-    vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
-  reduce_node3_edge2_op:
-    type: categorical
-    vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
-  reduce_node4_edge1_op:
-    type: categorical
-    vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
-  reduce_node4_edge2_op:
-    type: categorical
-    vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
+    normal_node1_edge1:
+      type: categorical
+      vals: [0, 1]
+    normal_node1_edge2:
+      type: categorical
+      vals: [0, 1]
+    normal_node2_edge1:
+      type: categorical
+      vals: [0, 1, 2]
+    normal_node2_edge2:
+      type: categorical
+      vals: [0, 1, 2]
+    normal_node3_edge1:
+      type: categorical
+      vals: [0, 1, 2, 3]
+    normal_node3_edge2:
+      type: categorical
+      vals: [0, 1, 2, 3]
+    normal_node4_edge1:
+      type: categorical
+      vals: [0, 1, 2, 3, 4]
+    normal_node4_edge2:
+      type: categorical
+      vals: [0, 1, 2, 3, 4]
+    normal_node1_edge1_op:
+      type: categorical
+      vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
+    normal_node1_edge2_op:
+      type: categorical
+      vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
+    normal_node2_edge1_op:
+      type: categorical
+      vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
+    normal_node2_edge2_op:
+      type: categorical
+      vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
+    normal_node3_edge1_op:
+      type: categorical
+      vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
+    normal_node3_edge2_op:
+      type: categorical
+      vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
+    normal_node4_edge1_op:
+      type: categorical
+      vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
+    normal_node4_edge2_op:
+      type: categorical
+      vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
+    # Reduce cell
+    reduce_node1_edge1:
+      type: categorical
+      vals: [0, 1]
+    reduce_node1_edge2:
+      type: categorical
+      vals: [0, 1]
+    reduce_node2_edge1:
+      type: categorical
+      vals: [0, 1, 2]
+    reduce_node2_edge2:
+      type: categorical
+      vals: [0, 1, 2]
+    reduce_node3_edge1:
+      type: categorical
+      vals: [0, 1, 2, 3]
+    reduce_node3_edge2:
+      type: categorical
+      vals: [0, 1, 2, 3]
+    reduce_node4_edge1:
+      type: categorical
+      vals: [0, 1, 2, 3, 4]
+    reduce_node4_edge2:
+      type: categorical
+      vals: [0, 1, 2, 3, 4]
+    reduce_node1_edge1_op:
+      type: categorical
+      vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
+    reduce_node1_edge2_op:
+      type: categorical
+      vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
+    reduce_node2_edge1_op:
+      type: categorical
+      vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
+    reduce_node2_edge2_op:
+      type: categorical
+      vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
+    reduce_node3_edge1_op:
+      type: categorical
+      vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
+    reduce_node3_edge2_op:
+      type: categorical
+      vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
+    reduce_node4_edge1_op:
+      type: categorical
+      vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
+    reduce_node4_edge2_op:
+      type: categorical
+      vals: [max_pool_3x3, avg_pool_3x3, skip_connect, sep_conv_3x3, sep_conv_5x5, dil_conv_3x3, dil_conv_5x5]
 
 
 resources:

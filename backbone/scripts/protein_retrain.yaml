@@ -1,4 +1,4 @@
-description: protein_backbone_retrain
+description: protein_backbone_retrain_seed2
 environment:
   image: "renbotu/xd-nas:determined1.8"
   registry_auth:
@@ -6,7 +6,7 @@ environment:
     password: 980715tutubo
 
 reproducibility:
-  experiment_seed: 0 
+  experiment_seed: 2
 
 data:
   download_dir: /data
@@ -22,11 +22,11 @@ bind_mounts:
 hyperparameters:
   task: protein
   train: false
-  droprate: 0.0
+  droprate: 0.3
 
-  learning_rate: 0.05336803302756709
-  momentum: 0.0
-  weight_decay: 0.002833047339533929
+  learning_rate: 0.0026485886617388914
+  momentum: 0.9
+  weight_decay: 0.00011955154427905232
   nesterov: true
 
   global_batch_size: 8

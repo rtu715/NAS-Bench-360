@@ -67,7 +67,7 @@ records_per_epoch: 3297
 
 
 searcher:
-  name: adaptive_asha
+  name: random
   metric: top1_accuracy
   smaller_is_better: false
   max_length:

@@ -1,4 +1,4 @@
-description: pde_xd_eval_seed2
+description: pde_xd_eval
 environment:
   image: "renbotu/xd-nas:determined1.8"
   registry_auth:
@@ -6,7 +6,7 @@ environment:
     password: 980715tutubo
 
 reproducibility:
-  experiment_seed: 2
+  experiment_seed: 0
 
 data:
   download_dir: /data
@@ -23,7 +23,7 @@ hyperparameters:
   weight_decay: 5e-4
 
   #tuned
-  arch_lr: 0.000029504310814693167
+  arch_lr: 0.0001
 
   #tuned
   arch_adam: true
@@ -36,7 +36,7 @@ hyperparameters:
   patch: true
   from_scratch: false
   kmatrix_depth: 3
-  max_kernel_size: 1
+  max_kernel_size: 3
 
   warmup_epochs: 0
   cooldown_epochs: 0

@@ -27,7 +27,7 @@ hyperparameters:
   permute: true
 
   #NN architecture backbone
-  backbone: 40,4
+  backbone: 16,4
   droprate: 0.0
 
   learning_rate: 0.1
@@ -36,7 +36,7 @@ hyperparameters:
   nesterov: true
   
   #tuned
-  arch_lr: 0.000018268942281532293
+  arch_lr: 0.0001
   arch_adam: true
 
   global_batch_size: 128
@@ -49,7 +49,7 @@ hyperparameters:
 
   #tuned
   kmatrix_depth: 3
-  max_kernel_size: 1
+  max_kernel_size: 3
 
   warmup_epochs: 0
   cooldown_epochs: 0
