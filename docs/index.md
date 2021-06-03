@@ -57,3 +57,7 @@ Grid task scripts: [grid.py](grid.py), [utils](utils_grid.py), [protein_generato
 ## Benchmark Results 
 
 ## Reproducibility Checklist 
+
+## License
+
+The code is open-source and released under the [MIT](https://en.wikipedia.org/wiki/MIT_License) LICENSE
