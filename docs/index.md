@@ -1,3 +1,24 @@
+---
+layout: tutorial
+schemadotorg:
+ "@context": http://schema.org/
+ "@type": CreativeWork
+ about: "This is a NAS benchmark introducing novel tasks"
+ audience:
+   - "@type": Audience
+     name: WebMaster
+ genre: "Benchmark"
+ name: "NAS-Bench-360"
+ author: ["Renbo Tu"]
+ contributor:
+   - "@type": Person
+     name: "Mikhail Khodak"
+ description: "a NAS benchmark for diverse tasks, i.e. instead of nasbench101, 201, 301 on a bunch of vision tasks we come up with a suite of many interesting tasks from different fields, 
+     run different nas algos/search spaces on them."
+ keywords: ["schemaorg", "TeSS"]
+ license: MIT
+---
+
 # NAS-Bench-360
 
 Some information Here
@@ -10,6 +31,7 @@ Some information Here
 | Ninapro DB5         | 3,916             | 2,638/659/659              | Point     | Medical Imaging        | CC BY-ND |
 | Darcy Flow          | 1,100             | 900/100/100                | Grid      | PDE Solver             | MIT      |
 | PsiCov + DeepCov    | 3,456 + 150       | 3356/100/150               | Grid      | Protein Folding        | GPL      |
+
 *validation data can be split through index slicing 
 
 ## Metadata and Download Links
