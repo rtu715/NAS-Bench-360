@@ -1,5 +1,4 @@
 ---
-layout: tutorial
 schemadotorg:
  "@context": http://schema.org/
  "@type": CreativeWork
