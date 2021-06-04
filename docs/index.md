@@ -20,12 +20,10 @@ schemadotorg:
 
 # NAS-Bench-360
 
-Some information Here
 
 | Tasks               | Number of Samples | Data Split(train/val/test) | Task Type | Applications           | License  |
 |---------------------|-------------------|----------------------------|-----------|------------------------|----------|
 | CIFAR-100           | 60,000            | 40,000/10,000/10,000       | Point     | Computer Vision        | CC BY-SA |
-| Permuted CIFAR-100  | 60,000            | 40,000/10,000/10,000       | Point     | Transformed Vision     | CC BY-SA |
 | Spherical CIFAR-100 | 60,000            | 40,000/10,000/10,000       | Point     | Omnidirectional Vision | CC BY-SA |
 | Ninapro DB5         | 3,916             | 2,638/659/659              | Point     | Medical Imaging        | CC BY-ND |
 | Darcy Flow          | 1,100             | 900/100/100                | Grid      | PDE Solver             | MIT      |
@@ -39,10 +37,12 @@ Metadata is in the form of Data Nutrition Labels
 [Download](https://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz) 
 (161 MB, our code loads from torchvision)
 
+<!--
 ### Permuted CIFAR-100 <br /> 
 [Metadata](permuted.pdf) <br/>
 [Download](https://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz)
 (161 MB, we generate permutated images in the code directly)
+-->
 
 ### Spherical CIFAR-100 <br /> 
 [Metadata](spherical.pdf) <br/>

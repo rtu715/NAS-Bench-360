@@ -17,13 +17,8 @@ import torch.optim
 import torch.utils.data
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
-from torch.autograd import Variable
 
 from backbone import Backbone
-
-from xd.chrysalis import Chrysalis
-from xd.darts import Supernet
-from xd.nas import MixedOptimizer
 
 # used for logging to TensorBoard
 from tensorboard_logger import configure, log_value

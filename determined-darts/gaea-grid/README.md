@@ -6,10 +6,10 @@ The training routine is based on that used by [PC-DARTS](https://github.com/yuhu
 
 ### To Run
 To run the example, simply run the following command from the `search` directory:
-` det experiment create search/[dataset].yaml .`
+` det experiment create [dataset]_search.yaml .`
 
-After the architecture search stage is complete, you can evaluate the architecture by copying the resulting genotype from the log to `eval/searched_genotype.py`.  
+After the architecture search stage is complete, you can evaluate the architecture by copying the resulting genotype from the log to `model_def.py`.  
 
 ## Architecture Evaluation
 Run the following command from the `eval` directory:
-` det experiment create eval/[dataset].yaml .`
+` det experiment create [dataset]_eval.yaml .`

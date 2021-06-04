@@ -1,9 +1,6 @@
 import argparse
 import json
-import math
 import os
-import pdb
-import shutil
 import time
 from functools import partial
 
@@ -37,7 +34,7 @@ class RowColPermute(nn.Module):
         return tensor[:,self.rowperm][:,:,self.colperm]
 
 model_names = sorted(name for name in resnet.__dict__
-    if name.islower() and not name.startswith("__")
+                     if name.islower() and not name.startswith("__")
                      and name.startswith("resnet")
                      and callable(resnet.__dict__[name]))
 
