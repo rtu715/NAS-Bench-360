@@ -23,11 +23,11 @@ schemadotorg:
 
 | Tasks               | Number of Samples | Data Split(train/val/test) | Task Type | Applications           | License  |
 |---------------------|-------------------|----------------------------|-----------|------------------------|----------|
-| CIFAR-100           | 60,000            | 40,000/10,000/10,000       | Point     | Computer Vision        | CC BY-SA |
+| CIFAR-100           | 60,000            | 40,000/10,000/10,000       | Point     | Computer Vision        | N/A      |
 | Spherical CIFAR-100 | 60,000            | 40,000/10,000/10,000       | Point     | Omnidirectional Vision | CC BY-SA |
 | Ninapro DB5         | 3,916             | 2,638/659/659              | Point     | Medical Imaging        | CC BY-ND |
 | Darcy Flow          | 1,100             | 900/100/100                | Grid      | PDE Solver             | MIT      |
-| PsiCov + DeepCov    | 3,456 + 150       | 3356/100/150               | Grid      | Protein Folding        | GPL      |
+| PSICOV + DeepCov    | 3,456 + 150       | 3356/100/150               | Grid      | Protein Folding        | GPL      |
 
 *validation data can be split through index slicing 
 
@@ -48,7 +48,7 @@ Metadata is in the form of Data Nutrition Labels
 [Metadata](spherical.pdf) <br/>
 [Download](https://pde-xd.s3.amazonaws.com/spherical/s2_cifar100.gz) (272 MB)
 
-### Processed Ninapro DB5  <br />
+### Processed Ninapro DB5 (sEMG)  <br />
 Download Links (~30 MB total): <br />
 [Train Data](https://pde-xd.s3.amazonaws.com/ninapro/ninapro_train.npy), 
 [Train Labels](https://pde-xd.s3.amazonaws.com/ninapro/label_train.npy); 
@@ -57,11 +57,11 @@ Download Links (~30 MB total): <br />
 [Test Data](https://pde-xd.s3.amazonaws.com/ninapro/ninapro_test.npy),
 [Test Labels](https://pde-xd.s3.amazonaws.com/ninapro/label_test.npy)
 
-### Darcy Flow <br />
+### Darcy Flow (PDE) <br />
 [Download Train + Validation Data](https://pde-xd.s3.amazonaws.com/piececonst_r421_N1024_smooth1.mat) (1.6 GB) <br/>
 [Download Test Data](https://pde-xd.s3.amazonaws.com/piececonst_r421_N1024_smooth2.mat) (1.6 GB)
 
-### DeepCov + PsiCov (Protein Folding) <br />
+### DeepCov + PSICOV (Protein Folding) <br />
 [Download](https://pde-xd.s3.amazonaws.com/protein.zip) (1.1 GB)
 
 ## Reading data 
@@ -77,7 +77,14 @@ Grid task scripts: [grid.py](grid.py), [utils](utils_grid.py), [protein_generato
 
 ## Benchmark Results 
 
-## Reproducibility Checklist 
+| Tasks               | GAEA PC-DARTS  | DenseNAS     | Backbone + HPO | Human-designed architecture |
+|---------------------|----------------|--------------|----------------|-----------------------------|
+| CIFAR-100           | 75.81 ± 2.12   | 72.56 ± 0.65 | 75.11 ± 0.23   | N/A                         |
+| Spherical CIFAR-100 | 47.10 ± 4.08   | 27.01 ± 0.95 | 21.55 ± 0.60   | (S2CNN)                     |
+| Ninapro             | 88.57 ± 0.61   | 89.83 ± 1.31 | 93.12 ± 0.40   | N/A                         |
+| Darcy Flow          | 0.056 ± 0.012  | 0.10 ± 0.010 | 0.041 ± 0.0012 | 0.0065(XD)                  |
+| PSICOV              | 2.80 ± 0.057   | 3.84 ± 0.15  | 5.71 ± 0.15    | N/A                         |
+
 
 ## License
 
