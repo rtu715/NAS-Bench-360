@@ -23,7 +23,7 @@ schemadotorg:
 
 | Tasks               | Number of Samples | Data Split(train/val/test) | Task Type | Applications           | License  |
 |---------------------|-------------------|----------------------------|-----------|------------------------|----------|
-| CIFAR-100           | 60,000            | 40,000/10,000/10,000       | Point     | Computer Vision        | N/A      |
+| CIFAR-100           | 60,000            | 40,000/10,000/10,000       | Point     | Computer Vision        | CC BY 4.0|
 | Spherical CIFAR-100 | 60,000            | 40,000/10,000/10,000       | Point     | Omnidirectional Vision | CC BY-SA |
 | Ninapro DB5         | 3,916             | 2,638/659/659              | Point     | Medical Imaging        | CC BY-ND |
 | Darcy Flow          | 1,100             | 900/100/100                | Grid      | PDE Solver             | MIT      |
