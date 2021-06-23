@@ -1,13 +1,10 @@
-description: cifar100_backbone_tuning_seed2
+description: cifar100_backbone_tuning
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
-  registry_auth:
-    username: renbotu
-    password: 980715tutubo
 
 reproducibility:
-  experiment_seed: 2
+  experiment_seed: 0
 
 data:
   download_dir: /data
@@ -33,6 +30,7 @@ hyperparameters:
     vals:
       - 0.0
       - 0.3
+      - 0.6
 
   learning_rate:
     type: log
@@ -49,7 +47,7 @@ hyperparameters:
   weight_decay:
     type: log
     minval: -5.0
-    maxval: -1.0
+    maxval: -2.0
     base: 10.0
   
   nesterov: true
@@ -72,14 +70,14 @@ searcher:
   smaller_is_better: false
   max_length:
     epochs: 200
-  max_trials: 16
-  mode: aggressive
+  max_trials: 128
+  mode: standard 
   divisor: 4
   max_rungs: 5
   max_concurrent_trials: 4
 
 min_validation_period:
-  epochs: 1
+  epochs: 10
 
 max_restarts: 100
 

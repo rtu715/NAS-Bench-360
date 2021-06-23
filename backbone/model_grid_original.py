@@ -67,7 +67,10 @@ class BackboneTrial(PyTorchTrial):
 
         # Changing our backbone
         #self.backbone=DeepConRddDistances()
-        self.backbone=Backbone(16, 1, 2, self.in_channels, self.hparams.droprate)
+        depth = list(map(int, self.hparams.backbone.split(',')))[0]
+        width = list(map(int, self.hparams.backbone.split(',')))[1]
+        self.backbone=Backbone(depth, 1, width, self.in_channels, self.hparams.droprate)
+
         #self.backbone = Backbone_Grid(self.in_channels, 32, 1)
 
         self.model = self.context.wrap_model(self.backbone)

@@ -1,18 +1,14 @@
-description: protein_backbone_eval_seed2
+description: protein_backbone_eval
 environment:
   image: "renbotu/xd-nas:determined1.8"
-  registry_auth:
-    username: renbotu
-    password: 980715tutubo
 
 reproducibility:
-  experiment_seed: 2
+  experiment_seed: 0
 
 data:
   download_dir: /data
   type: s3
   bucket: pde-xd
-
 
 bind_mounts:
   - host_path: /tmp
@@ -22,6 +18,7 @@ bind_mounts:
 hyperparameters:
   task: protein
   train: true
+  backbone: 16,4
   droprate: 0.0
 
   learning_rate: 0.001
@@ -47,7 +44,6 @@ searcher:
   metric: MAE
   max_length:
     epochs: 200
-  
 
 min_validation_period:
   epochs: 1

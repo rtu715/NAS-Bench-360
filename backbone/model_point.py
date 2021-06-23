@@ -59,8 +59,8 @@ class BackboneTrial(PyTorchTrial):
         n_classes, in_channels = dataset_hypers[self.hparams.task]
         print('task: ', self.hparams.task, 'in_channels: ',  in_channels, 'classes: ', n_classes)
         # Changing our backbone
-        depth = int(self.hparams.backbone[0:2])
-        width = int(self.hparams.backbone[3:4])
+        depth = list(map(int, self.hparams.backbone.split(',')))[0]
+        width = list(map(int, self.hparams.backbone.split(',')))[1]
 
         self.backbone = Backbone_Pt(
             depth,
@@ -101,7 +101,7 @@ class BackboneTrial(PyTorchTrial):
     def weight_sched(self, epoch) -> Any:
         if self.hparams.epochs != 200:
             return 0.2 ** (epoch >= int(0.3 * self.hparams.epochs)) * 0.2 ** (epoch > int(0.6 * self.hparams.epochs)) * 0.2 ** (epoch > int(0.8 * self.hparams.epochs))
-        print('using original weight schedule') 
+        #print('using original weight schedule') 
         return 0.2 ** (epoch >= 60) * 0.2 ** (epoch >= 120) * 0.2 ** (epoch >=160)
 
 

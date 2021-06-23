@@ -1,12 +1,9 @@
-description: pde_backbone_eval_seed2
+description: pde_backbone_eval
 environment:
   image: "renbotu/xd-nas:determined1.8"
-  registry_auth:
-    username: renbotu
-    password: 980715tutubo
 
 reproducibility:
-  experiment_seed: 2
+  experiment_seed: 0
 
 data:
   download_dir: /data
@@ -17,9 +14,11 @@ bind_mounts:
   - host_path: /tmp
     container_path: /data
     read_only: false
+
 hyperparameters:
   task: pde
   train: true
+  backbone: 16,4
   droprate: 0.0
 
   learning_rate: 0.001
@@ -27,7 +26,7 @@ hyperparameters:
   weight_decay: 5e-4
   nesterov: true
 
-  global_batch_size: 4
+  global_batch_size: 8
 
   start_epoch: 0
   epochs: 200
@@ -44,7 +43,6 @@ searcher:
   metric: validation_loss
   max_length:
     epochs: 200
-  
 
 min_validation_period:
   epochs: 1
