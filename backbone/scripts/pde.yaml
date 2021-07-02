@@ -45,7 +45,7 @@ searcher:
     epochs: 200
 
 min_validation_period:
-  epochs: 1
+  epochs: 5
 
 max_restarts: 100
 

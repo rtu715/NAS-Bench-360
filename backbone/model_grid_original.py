@@ -18,10 +18,8 @@ import torch.nn.functional as F
 
 from determined.pytorch import DataLoader, PyTorchTrial, PyTorchTrialContext, LRScheduler
 
-from backbone_rdd import DeepConRddDistances
 from backbone_grid_wrn import Backbone
-from backbone_grid_unet import Backbone_Grid
-
+#from backbone_grid_down import Backbone
 from utils_grid import LpLoss, MatReader, UnitGaussianNormalizer, LogCoshLoss
 from utils_grid import create_grid, calculate_mae
 from data_utils.protein_io import load_list

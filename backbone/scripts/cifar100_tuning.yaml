@@ -35,13 +35,15 @@ hyperparameters:
   learning_rate:
     type: log
     minval: -4.0
-    maxval: 0.0
+    maxval: -1.0
     base: 10.0
  
   momentum:
     type: categorical
     vals:
       - 0.0
+      - 0.3
+      - 0.6
       - 0.9
   
   weight_decay:
@@ -71,13 +73,13 @@ searcher:
   max_length:
     epochs: 200
   max_trials: 128
-  mode: standard 
+  mode: standard
   divisor: 4
   max_rungs: 5
   max_concurrent_trials: 4
 
 min_validation_period:
-  epochs: 10
+  epochs: 5
 
 max_restarts: 100
 

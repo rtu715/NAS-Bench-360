@@ -103,8 +103,7 @@ class Backbone(nn.Module):
             pde = True
             #pde input needs to be permuted
             x = x.permute(0,3,1,2).contiguous()
-        #out = self.conv1(x)    
-        out = self.in_layer(x)
+        out = self.conv1(x)
         out = self.block1(out)
         out = self.block2(out)
         out = self.block3(out)

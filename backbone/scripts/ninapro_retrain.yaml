@@ -1,19 +1,15 @@
-description: ninapro_backbone_retrain_seed2
+description: ninapro_backbone_retrain
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
-  registry_auth:
-    username: renbotu
-    password: 980715tutubo
 
 reproducibility:
-  experiment_seed: 2
+  experiment_seed: 0
 
 data:
   download_dir: /data
   type: s3
   bucket: pde-xd
-
 
 bind_mounts:
   - host_path: /tmp
@@ -26,8 +22,6 @@ hyperparameters:
   permute: false
 
   #NN architecture backbone
-  #layers: 16
-  #widen_factor: 4
   backbone: 16,4
   droprate: 0.0
 
@@ -55,7 +49,7 @@ searcher:
     epochs: 200
 
 min_validation_period: 
-  epochs: 1    
+  epochs: 5
 min_checkpoint_period:
   epochs: 5
          

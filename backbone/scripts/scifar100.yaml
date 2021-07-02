@@ -1,13 +1,10 @@
-description: scifar100_backbone_eval_seed2
+description: scifar100_backbone_eval
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
-  registry_auth:
-    username: renbotu
-    password: 980715tutubo
 
 reproducibility:
-  experiment_seed: 2
+  experiment_seed: 0
 
 data:
   download_dir: /data
@@ -26,8 +23,6 @@ hyperparameters:
   permute: false 
 
   #NN architecture backbone
-  #layers: 16
-  #widen_factor: 4
   backbone: 16,4
   droprate: 0.0
 
@@ -44,7 +39,6 @@ hyperparameters:
 
 resources:
   slots_per_trial: 1
-  max_slots: 4
 
 records_per_epoch: 40000
 
@@ -57,7 +51,7 @@ searcher:
     epochs: 200
 
 min_validation_period:
-  epochs: 1
+  epochs: 5
 
 min_checkpoint_period:
   epochs: 5

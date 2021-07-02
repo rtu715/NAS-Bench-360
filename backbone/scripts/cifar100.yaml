@@ -1,13 +1,10 @@
-description: cifar100_backbone_eval_seed2
+description: cifar100_backbone_default
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
-  registry_auth:
-    username: renbotu
-    password: 980715tutubo
 
 reproducibility:
-  experiment_seed: 2
+  experiment_seed: 0
 
 data:
   download_dir: /data
@@ -54,7 +51,7 @@ searcher:
     epochs: 200
 
 min_validation_period:
-  epochs: 1
+  epochs: 10
 
 max_restarts: 100
 
