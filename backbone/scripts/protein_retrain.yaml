@@ -50,6 +50,9 @@ searcher:
 min_validation_period:
   epochs: 20
 
+min_checkpoint_period:
+  epochs: 5
+
 max_restarts: 100
 
 entrypoint: model_grid_original:BackboneTrial

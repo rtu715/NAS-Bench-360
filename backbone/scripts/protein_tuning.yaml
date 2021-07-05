@@ -18,6 +18,7 @@ bind_mounts:
 
 hyperparameters:
   task: protein
+  backbone: 16,4
   train: true
   
   droprate: 
@@ -73,6 +74,9 @@ searcher:
   max_concurrent_trials: 4
 
 min_validation_period:
+  epochs: 5
+
+min_checkpoint_period:
   epochs: 5
 
 max_restarts: 100
