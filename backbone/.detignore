@@ -1,0 +1,6 @@
+data
+*.zip
+data/*
+audio.zip
+__pycache__
+__pycache__/*

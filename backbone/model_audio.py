@@ -130,9 +130,11 @@ class BackboneTrial(PyTorchTrial):
         '''Download data from s3 to store in temp directory'''
 
         s3_bucket = self.context.get_data_config()["bucket"]
-        download_directory = f"/tmp/data-rank{self.context.distributed.get_rank()}"
+        #download_directory = f"/tmp/data-rank{self.context.distributed.get_rank()}"
+        #download_directory = "/tmp/data"
+        download_directory = os.getcwd()
         s3 = boto3.client("s3")
-        os.makedirs(download_directory, exist_ok=True)
+        #os.makedirs(download_directory, exist_ok=True)
 
         download_from_s3(s3_bucket, self.hparams.task, download_directory)
 
@@ -213,6 +215,7 @@ class BackboneTrial(PyTorchTrial):
                 input, target = batch
                 n = input.size(0)
                 logits = self.model(input)
+                logits = logits.mean(0).unsqueeze(0)
                 loss = self.criterion(logits, target)
                 #top1, top5 = utils_pt.accuracy(logits, target, topk=(1, 5))
                 #acc_top1.update(top1.item(), n)
@@ -222,8 +225,8 @@ class BackboneTrial(PyTorchTrial):
                 val_predictions.append(logits_sigmoid.detach().cpu().numpy()[0])
                 val_gts.append(target.detach().cpu().numpy()[0])
 
-        val_preds = np.asarray(self.val_predictions).astype('float32')
-        val_gts = np.asarray(self.val_gts).astype('int32')
+        val_preds = np.asarray(val_predictions).astype('float32')
+        val_gts = np.asarray(val_gts).astype('int32')
         map_value = average_precision_score(val_gts, val_preds, average="macro")
 
         results = {

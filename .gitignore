@@ -5,4 +5,5 @@ __pycache__
 runs
 save_temp
 */img/*
-
+*/data
+*/*.zip

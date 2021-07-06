@@ -13,7 +13,7 @@ import torch.utils.data as data_utils
 import torchvision
 from torchvision import transforms
 
-from audio_dataset import *
+from .audio_dataset import *
 
 
 
@@ -455,7 +455,7 @@ def load_ninapro(path, whichset):
 Audio related
 '''
 def load_audio(path, feature='mel', train=True):
-    meta_root = os.path.join(path, "chunks")
+    meta_root = os.path.join(path, "data/chunks")
     train_manifest = "tr.csv"
     val_manifest = "val.csv"
     label_map = "lbl_map.json"
@@ -466,16 +466,16 @@ def load_audio(path, feature='mel', train=True):
     test_manifest = os.path.join(meta_root, test_manifest)
     label_map = os.path.join(meta_root, label_map)
 
-    bg_files = "noise_22050"
+    bg_files = os.path.join(path, "data/noise_22050")
 
-    if type == 'mel':
+    if feature == 'mel':
         audio_config = {
             'feature': 'melspectrogram',
             'sample_rate': 22050,
             'min_duration': 1,
             'bg_files': bg_files,
         }
-    elif type == 'raw':
+    elif feature == 'raw':
         audio_config = {
             'feature': 'spectrogram',
             'n_fft': 441,
