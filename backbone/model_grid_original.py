@@ -7,6 +7,7 @@ import operator
 import boto3
 import os
 import json
+import tarfile
 
 import numpy as np
 import torch
@@ -20,10 +21,11 @@ from determined.pytorch import DataLoader, PyTorchTrial, PyTorchTrialContext, LR
 
 from backbone_grid_wrn import Backbone
 #from backbone_grid_down import Backbone
-from utils_grid import LpLoss, MatReader, UnitGaussianNormalizer, LogCoshLoss
-from utils_grid import create_grid, calculate_mae
+from utils_grid import LpLoss, MatReader, UnitGaussianNormalizer, LogCoshLoss, AverageMeter
+from utils_grid import create_grid, calculate_mae, maskMetric, set_input
 from data_utils.protein_io import load_list
 from data_utils.protein_gen import PDNetDataset
+from data_utils.cosmic_dataset import PairedDatasetImagePath, get_dirs
 
 TorchData = Union[Dict[str, torch.Tensor], Sequence[torch.Tensor], torch.Tensor]
 
@@ -59,6 +61,11 @@ class BackboneTrial(PyTorchTrial):
             #error is reported via MAE
             self.error = nn.L1Loss(reduction='sum')
             self.in_channels = 57
+
+        elif self.hparams.task == 'cosmic':
+            #self.criterion = nn.BCELoss()
+            self.criterion = nn.BCEWithLogitsLoss()
+            self.in_channels = 1
 
         else:
             raise NotImplementedError
@@ -146,7 +153,11 @@ class BackboneTrial(PyTorchTrial):
             self.all_dist_paths = [data_dir + '/deepcov/distance/',
                               data_dir + '/psicov/distance/', data_dir + '/cameo/distance/']
             s3_path = None
-
+        
+        elif self.hparams.task == 'cosmic':
+            data_files = ['deepCR.ACS-WFC.train.tar', 'deepCR.ACS-WFC.test.tar']
+            s3_path = 'cosmic'
+        
         else:
             raise NotImplementedError
 
@@ -223,6 +234,50 @@ class BackboneTrial(PyTorchTrial):
                                           128, 10, self.context.get_per_slot_batch_size(), 57,
                                           label_engineering = '16.0')
 
+        elif self.hparams.task == 'cosmic':
+            #TODO: extract tar file and get directories
+            #base_dir = '/workspace/tasks/cosmic/deepCR.ACS-WFC'
+            base_dir = self.download_directory
+            os.makedirs(os.path.join(base_dir,'data'), exist_ok=True)
+            data_base = os.path.join(base_dir,'data')
+            train_tar = tarfile.open(os.path.join(base_dir,'deepCR.ACS-WFC.train.tar'))
+            test_tar = tarfile.open(os.path.join(base_dir,'deepCR.ACS-WFC.test.tar'))
+            
+            train_tar.extractall(data_base)
+            test_tar.extractall(data_base)
+            get_dirs(base_dir, data_base)
+
+            self.train_dirs = np.load(os.path.join(base_dir,'train_dirs.npy'),allow_pickle = True)
+
+            '''
+            f435_train_dirs = []
+            f814_train_dirs = []
+            f606_train_dirs = []
+
+            num_trains = len(train_dirs)
+            for i,train_dir in enumerate(train_dirs):
+                arr = train_dir.split('/')
+                _filter = arr[-4]
+                if _filter == 'f435w':
+                    f435_train_dirs.append(train_dir)
+                elif _filter == 'f606w':
+                    f606_train_dirs.append(train_dir)
+                elif _filter == 'f814w':
+                    f814_train_dirs.append(train_dir)
+                else:
+                    raise ValueError('Check filter')
+            '''
+            aug_sky = (-0.9,3)
+            
+            #only train f435 for now
+            print(self.train_dirs[0])
+            if self.hparams.train:
+                train_data = PairedDatasetImagePath(self.train_dirs[::], aug_sky[0], aug_sky[1], part='search')
+            else:
+                train_data = PairedDatasetImagePath(self.train_dirs[::], aug_sky[0], aug_sky[1], part='train')
+            self.data_shape = train_data[0][0].shape[1]
+            print(len(train_data))
+
         else:
             print('no such dataset')
             raise NotImplementedError
@@ -288,6 +343,15 @@ class BackboneTrial(PyTorchTrial):
                                          512, 10, 1, 57, label_engineering = None)
                 valid_queue = DataLoader(test_data, batch_size=2, shuffle=True, num_workers=0)
 
+        elif self.hparams.task == 'cosmic':
+            aug_sky = (-0.9,3)
+            if self.hparams.train:
+                valid_data = PairedDatasetImagePath(self.train_dirs[::], aug_sky[0], aug_sky[1], part='val')
+            else:
+                valid_data = PairedDatasetImagePath(self.train_dirs[::], aug_sky[0], aug_sky[1], part='test')
+
+            valid_queue = DataLoader(valid_data, batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=8)
+
         else:
             print('no such dataset')
             raise NotImplementedError
@@ -301,12 +365,11 @@ class BackboneTrial(PyTorchTrial):
     def train_batch(self, batch: TorchData, epoch_idx: int, batch_idx: int
                     ) -> Dict[str, torch.Tensor]:
 
-        x_train, y_train = batch
-
         self.model.train()
-        logits = self.model(x_train)
-
+        
         if self.hparams.task == 'pde':
+            x_train, y_train = batch
+            logits = self.model(x_train)
             self.y_normalizer.cuda()
             target = self.y_normalizer.decode(y_train)
             logits = self.y_normalizer.decode(logits.squeeze())
@@ -314,8 +377,22 @@ class BackboneTrial(PyTorchTrial):
             mae = 0.0
 
         elif self.hparams.task == 'protein':
+            x_train, y_train = batch
+            logits = self.model(x_train)
             loss = self.criterion(logits.squeeze(), y_train.squeeze())
             mae = F.l1_loss(logits.squeeze(), y_train.squeeze(), reduction='mean').item()
+
+        elif self.hparams.task == 'cosmic':
+            img, mask, ignore = batch
+            '''
+            img = img.type(torch.cuda.FloatTensor).view(-1, 1, self.data_shape, self.data_shape)
+            mask = mask.type(torch.cuda.FloatTensor).view(-1, 1, self.data_shape, self.data_shape)
+            ignore = ignore.type(self.cuda.FloatTensor).view(-1, 1, self.data_shape, self.data_shape)
+            '''
+            img, mask, ignore = set_input(img, mask, ignore, self.data_shape)
+            logits = self.model(img).permute(0, 3, 1, 2).contiguous()
+            loss = self.criterion(logits * (1-ignore), mask * (1-ignore))
+            mae = 0.0
 
         self.context.backward(loss)
         self.context.step_optimizer(self.opt)
@@ -337,14 +414,18 @@ class BackboneTrial(PyTorchTrial):
         loss_sum = 0
         error_sum = 0
         num_batches = 0
+        
+        #for cr
+        meter = AverageMeter()
+        metric = np.zeros(4)
 
         with torch.no_grad():
             for batch in data_loader:
-                batch = self.context.to_device(batch)
-                input, target = batch
                 num_batches += 1
-                logits = self.model(input)
                 if self.hparams.task == 'pde':
+                    batch = self.context.to_device(batch)
+                    input, target = batch
+                    logits = self.model(input)
                     self.y_normalizer.cuda()
                     logits = self.y_normalizer.decode(logits.squeeze())
                     loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1)).item()
@@ -352,6 +433,9 @@ class BackboneTrial(PyTorchTrial):
                     error = 0
 
                 elif self.hparams.task == 'protein':
+                    batch = self.context.to_device(batch)
+                    input, target = batch
+                    logits = self.model(input)
                     logits = logits.squeeze()
                     target = target.squeeze()
                     loss = self.criterion(logits, target)
@@ -362,8 +446,24 @@ class BackboneTrial(PyTorchTrial):
                     #error = self.error(logits, target)
                     #error = error / num
 
+                elif self.hparams.task == 'cosmic':
+                    img, mask, ignore = set_input(*batch, self.data_shape)
+                    logits = self.model(img).permute(0,3,1,2).contiguous()
+                    loss = self.criterion(logits*(1-ignore), mask*(1-ignore))
+                    meter.update(loss, img.shape[0])
+                    metric += maskMetric(logits.reshape(-1, 1, self.data_shape, self.data_shape).detach().cpu().numpy() > 0.5, mask.cpu().numpy())
+
                 loss_sum += loss
 
+        if self.hparams.task == 'cosmic':
+            TP, TN, FP, FN = metric[0], metric[1], metric[2], metric[3]
+            TPR = TP / (TP + FN)
+            FPR = FP / (FP + TN)
+            
+            return {'validation_loss': meter.avg,
+                    'FPR': FPR,
+                    'TPR': TPR,
+                    }
 
         results = {
             "validation_loss": loss_sum / num_batches,

@@ -1,5 +1,4 @@
-description: audio_backbone_retrain
-
+description: cosmic_backbone_retrain
 environment:
   image: "renbotu/xd-nas:determined1.8"
 
@@ -18,42 +17,41 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-  task: audio
-  train: true
-  permute: false
-
-  #NN architecture backbone
+  task: cosmic
   backbone: 16,4
+  train: false
   droprate: 0.0
 
-  learning_rate: 1e-5
+  learning_rate: 0.001 
   momentum: 0.9
-  weight_decay: 5e-4
+  weight_decay: 5e-4 
   nesterov: true
 
-  global_batch_size: 256
+  global_batch_size: 8
 
   start_epoch: 0
   epochs: 200
 
+  sub: 5
+
 resources:
   slots_per_trial: 1
 
-records_per_epoch: 520966
-# 50000 if cifar, 60000 if spherical
+records_per_epoch: 3000
 
 searcher:
   name: single
-  metric: val_mAP
+  metric: validaton_loss
   max_length:
     epochs: 200
+  
 
 min_validation_period:
-  epochs: 10
+  epochs: 20
 
 min_checkpoint_period:
   epochs: 5
 
 max_restarts: 100
 
-entrypoint: model_audio:BackboneTrial
+entrypoint: model_grid_original:BackboneTrial

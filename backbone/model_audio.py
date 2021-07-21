@@ -95,7 +95,7 @@ class BackboneTrial(PyTorchTrial):
         print('Parameter size in MB(backbone): ', total_params)
 
         self.model = self.context.wrap_model(self.backbone)
-
+        self.last_eval = 0
         '''
         Definition of optimizer 
         '''
@@ -198,7 +198,7 @@ class BackboneTrial(PyTorchTrial):
         }
     
     def evaluate_full_dataset(
-        self, data_loader: torch.utils.data.DataLoader
+            self, data_loader: torch.utils.data.DataLoader,
     ) -> Dict[str, Any]:
 
         if not self.hparams.train and self.hparams.task == 'audio':
@@ -262,8 +262,10 @@ class BackboneTrial(PyTorchTrial):
 
             results.update(results2)
         '''
-        if self.hparams.task == 'audio':
+        if self.hparams.task == 'audio' and self.last_eval % 20 == 0:
             results.update(self.evaluate_audio_testset(self.test_data))
+
+        self.last_eval += 1
 
         return results
 
