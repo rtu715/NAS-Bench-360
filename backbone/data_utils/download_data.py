@@ -29,6 +29,10 @@ def download_from_s3(s3_bucket, task, download_dir):
     elif task == 'audio':
         data_files = ['audio.zip']
         s3_folder = 'audio'
+    
+    elif task == 'EEG':
+        data_files = ['train_data.npy', 'train_labels.npy', 'test_data.npy', 'test_labels.npy']
+        s3_folder = 'EEG'
 
     else:
         raise NotImplementedError

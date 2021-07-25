@@ -101,6 +101,9 @@ class Backbone_Pt(nn.Module):
         
         elif out.shape[3] == 13 and out.shape[2]==4:
             out = F.avg_pool2d(out, (4, 13))
+
+        elif out.shape[2] == 6:
+            out = nn.AdaptiveAvgPool2d((1,1))(out)
         else:
             out = F.avg_pool2d(out, 8)
         out = out.view(out.size(0), -1)

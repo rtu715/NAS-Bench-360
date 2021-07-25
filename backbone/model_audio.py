@@ -151,9 +151,12 @@ class BackboneTrial(PyTorchTrial):
 
         trainset = self.train_data
         print(len(trainset))
-        return DataLoader(trainset, num_workers=4, batch_size=self.context.get_per_slot_batch_size(),
+        train_loader = DataLoader(trainset, num_workers=4, batch_size=self.context.get_per_slot_batch_size(),
                           shuffle=True, sampler=None, collate_fn=_collate_fn,
                           pin_memory=False, drop_last=True)
+        print(len(train_loader))
+        return train_loader
+
 
     def build_validation_data_loader(self) -> DataLoader:
 
@@ -273,7 +276,7 @@ class BackboneTrial(PyTorchTrial):
         cnt = 0
         test_predictions = []
         test_gts = []
-        for ix in tqdm.tqdm(range(testset.len)):
+        for ix in range(testset.len):
             with torch.no_grad():
                 batch = testset[ix]
                 x, y = batch

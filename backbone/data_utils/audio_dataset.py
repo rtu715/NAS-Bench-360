@@ -465,8 +465,11 @@ class SpectrogramDataset(Dataset):
         df = pd.read_csv(manifest_path)
         self.files = df['files'].values
         self.labels = df['labels'].values
-        assert len(self.files) == len(self.labels)
-        self.len = len(self.files)
+        self.exts = df['ext'].values
+        self.unique_exts = np.unique(self.exts)
+        assert len(self.files) == len(self.labels) == len(self.exts)
+        self.len = len(self.unique_exts)
+        print(self.len)
         self.sr = audio_config.get("sample_rate", "22050")
         self.n_fft = audio_config.get("n_fft", 511)
         win_len = audio_config.get("win_len", None)
@@ -545,7 +548,11 @@ class SpectrogramDataset(Dataset):
         return real, comp, label_tensor
 
     def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:
-        real, comp, label_tensor = self.__get_item_helper__(index)
+        tgt_ext = self.unique_exts[index]
+        idxs = np.where(self.exts == tgt_ext)[0]
+        rand_index = np.random.choice(idxs)
+        
+        real, comp, label_tensor = self.__get_item_helper__(rand_index)
         if self.mixer is not None:
             real, final_label = self.mixer(self, real, label_tensor)
             if self.mode != "multiclass":

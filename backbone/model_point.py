@@ -54,7 +54,7 @@ class BackboneTrial(PyTorchTrial):
         self.criterion = nn.CrossEntropyLoss().cuda()
 
 
-        dataset_hypers = {'sEMG': (7, 1), 'ninapro': (18, 1), 'cifar10': (10, 3), 'smnist': (10, 1), 'cifar100':(100, 3), 'scifar100': (100, 3)}
+        dataset_hypers = {'sEMG': (7, 1), 'ninapro': (18, 1), 'cifar10': (10, 3), 'smnist': (10, 1), 'cifar100':(100, 3), 'scifar100': (100, 3), 'EEG':(4, 1)}
 
         n_classes, in_channels = dataset_hypers[self.hparams.task]
         print('task: ', self.hparams.task, 'in_channels: ',  in_channels, 'classes: ', n_classes)
@@ -107,14 +107,12 @@ class BackboneTrial(PyTorchTrial):
 
     def download_data_from_s3(self):
         '''Download data from s3 to store in temp directory'''
-
         s3_bucket = self.context.get_data_config()["bucket"]
         download_directory = f"/tmp/data-rank{self.context.distributed.get_rank()}"
         s3 = boto3.client("s3")
         os.makedirs(download_directory, exist_ok=True)
 
         download_from_s3(s3_bucket, self.hparams.task, download_directory)
-
         if self.hparams.train:
             self.train_data, self.val_data, self.test_data = load_data(self.hparams.task, download_directory, True, self.hparams.permute) 
             self.build_test_data_loader(download_directory)
@@ -156,8 +154,8 @@ class BackboneTrial(PyTorchTrial):
         self.model.train()
         output = self.model(x_train)
         loss = self.criterion(output, y_train)
-        top1, top5 = utils_pt.accuracy(output, y_train, topk=(1, 5))
-
+        #top1, top5 = utils_pt.accuracy(output, y_train, topk=(1, 5))
+        top1 = utils_pt.accuracy(output, y_train, topk=(1,))[0]
 
         self.context.backward(loss)
         self.context.step_optimizer(self.opt)
@@ -165,7 +163,7 @@ class BackboneTrial(PyTorchTrial):
         return {
             'loss': loss,
             'top1_accuracy': top1.item(),
-            'top5_accuracy': top5.item(),
+            #'top5_accuracy': top5.item(),
         }
     
     def evaluate_full_dataset(
@@ -181,14 +179,15 @@ class BackboneTrial(PyTorchTrial):
                 n = input.size(0)
                 logits = self.model(input)
                 loss = self.criterion(logits, target)
-                top1, top5 = utils_pt.accuracy(logits, target, topk=(1, 5))
+                #top1, top5 = utils_pt.accuracy(logits, target, topk=(1, 5))
+                top1 = utils_pt.accuracy(logits, target, topk=(1,))[0]
                 acc_top1.update(top1.item(), n)
-                acc_top5.update(top5.item(), n)
+                #acc_top5.update(top5.item(), n)
                 loss_avg.update(loss, n)
         results = {
             "loss": loss_avg.avg,
             "top1_accuracy": acc_top1.avg,
-            "top5_accuracy": acc_top5.avg,
+            #"top5_accuracy": acc_top5.avg,
         }
         
         if self.hparams.train:
@@ -202,15 +201,16 @@ class BackboneTrial(PyTorchTrial):
                     n = input.size(0)
                     logits = self.model(input)
                     loss = self.criterion(logits, target)
-                    top1, top5 = utils_pt.accuracy(logits, target, topk=(1, 5))
+                    #top1, top5 = utils_pt.accuracy(logits, target, topk=(1, 5))
+                    top1 = utils_pt.accuracy(logits, target, topk=(1,))[0]
                     test_acc_top1.update(top1.item(), n)
-                    test_acc_top5.update(top5.item(), n)
+                    #test_acc_top5.update(top5.item(), n)
                     test_loss.update(loss, n)
 
             results2 = {
                 "test_loss": test_loss.avg,
                 "test_top1_accuracy": test_acc_top1.avg,
-                "test_top5_accuracy": test_acc_top5.avg,
+                #"test_top5_accuracy": test_acc_top5.avg,
             }
 
             results.update(results2)

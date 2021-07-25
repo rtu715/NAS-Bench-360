@@ -19,7 +19,7 @@ bind_mounts:
 
 hyperparameters:
   task: audio
-  train: true
+  train: false
   permute: false
 
   #NN architecture backbone
@@ -39,17 +39,17 @@ hyperparameters:
 resources:
   slots_per_trial: 1
 
-records_per_epoch: 520966
-# 50000 if cifar, 60000 if spherical
+records_per_epoch: 40966 
 
 searcher:
   name: single
-  metric: val_mAP
+  #metric: val_mAP
+  metric: test_mAP
   max_length:
     epochs: 200
 
 min_validation_period:
-  epochs: 10
+  epochs: 100
 
 min_checkpoint_period:
   epochs: 5

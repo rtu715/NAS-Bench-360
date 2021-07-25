@@ -42,6 +42,9 @@ def load_data(task, path, train=True, permute=False):
 
     elif task == 'audio':
         return load_audio(path, 'mel', train)
+    
+    elif task == 'EEG':
+        return load_BCI_data(path, train)
 
     else:
         raise NotImplementedError
@@ -515,3 +518,21 @@ def load_audio(path, feature='mel', train=True):
 
     return train_set, None, test_set
 
+'''
+EEG related
+'''
+def load_BCI_data(path, train='False'):
+    train_features = torch.from_numpy(np.load(os.path.join(path, 'train_data.npy'))).float()
+    train_labels = torch.from_numpy(np.load(os.path.join(path, 'train_labels.npy'))).long()
+    test_features = torch.from_numpy(np.load(os.path.join(path, 'test_data.npy'))).float()
+    test_labels = torch.from_numpy(np.load(os.path.join(path, 'test_labels.npy'))).long()
+
+    #reshape to create extra dim 
+    train_features = torch.unsqueeze(train_features, 1)
+    test_features = torch.unsqueeze(test_features, 1)
+
+    #create dataset 
+    trainset = data_utils.TensorDataset(train_features, train_labels)
+    testset = data_utils.TensorDataset(test_features, test_labels)
+
+    return trainset, None , testset

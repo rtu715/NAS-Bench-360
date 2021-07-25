@@ -4,3 +4,4 @@ data/*
 audio.zip
 __pycache__
 __pycache__/*
+deepCR.ACS-WFC/*
