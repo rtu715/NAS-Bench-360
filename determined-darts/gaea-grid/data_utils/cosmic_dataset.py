@@ -93,7 +93,7 @@ def get_dirs(base_dir, data_base):
     print('------------------------------------------------------------')
     for _filter in os.listdir(test_base):
         filter_dir = os.path.join(test_base,_filter)
-        if os.path.isdir(filter_dir) and filter_dir == 'f435w':
+        if os.path.isdir(filter_dir) and _filter == 'f435w':
             for prop_id in os.listdir(filter_dir):
                 prop_id_dir = os.path.join(filter_dir,prop_id)
                 if os.path.isdir(prop_id_dir):
@@ -111,7 +111,7 @@ def get_dirs(base_dir, data_base):
     print('------------------------------------------------------------')
     for _filter in os.listdir(train_base):
         filter_dir = os.path.join(train_base,_filter)
-        if os.path.isdir(filter_dir) and filter_dir == 'f435w':
+        if os.path.isdir(filter_dir) and _filter == 'f435w':
             for prop_id in os.listdir(filter_dir):
                 prop_id_dir = os.path.join(filter_dir,prop_id)
                 if os.path.isdir(prop_id_dir):

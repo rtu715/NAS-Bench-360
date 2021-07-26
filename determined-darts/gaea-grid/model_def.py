@@ -78,7 +78,7 @@ class GAEASearchTrial(PyTorchTrial):
         elif self.hparams.task == 'cosmic':
             self.criterion = nn.BCEWithLogitsLoss()
             self.in_channels = 1
-            self.n_classes = 200
+            self.n_classes = 1
 
         else:
             raise NotImplementedError
@@ -152,8 +152,9 @@ class GAEASearchTrial(PyTorchTrial):
                 searched_genotype = Genotype(normal=[('dil_conv_3x3', 0), ('skip_connect', 1), ('sep_conv_3x3', 1), ('skip_connect', 0), ('sep_conv_5x5', 2), ('dil_conv_5x5', 0), ('skip_connect', 0), ('dil_conv_3x3', 3)], normal_concat=range(2, 6), reduce=[('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1)], reduce_concat=range(2, 6))
 
             elif self.hparams.task == 'cosmic':
-                raise NotImplementedError
+                #raise NotImplementedError
             
+                searched_genotype = Genotype(normal=[('dil_conv_3x3', 0), ('skip_connect', 1), ('sep_conv_3x3', 1), ('skip_connect', 0), ('sep_conv_5x5', 2), ('dil_conv_5x5', 0), ('skip_connect', 0), ('dil_conv_3x3', 3)], normal_concat=range(2, 6), reduce=[('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1)], reduce_concat=range(2, 6))
             else:
                 raise ValueError
 
@@ -328,6 +329,8 @@ class GAEASearchTrial(PyTorchTrial):
             # extract tar file and get directories
             # base_dir = '/workspace/tasks/cosmic/deepCR.ACS-WFC'
             base_dir = self.download_directory
+            print(base_dir)
+            
             os.makedirs(os.path.join(base_dir, 'data'), exist_ok=True)
             data_base = os.path.join(base_dir, 'data')
             train_tar = tarfile.open(os.path.join(base_dir, 'deepCR.ACS-WFC.train.tar'))
@@ -630,10 +633,10 @@ class GAEASearchTrial(PyTorchTrial):
         with torch.no_grad():
             for batch in data_loader:
                 batch = self.context.to_device(batch)
-                input, target = batch
-                num_batches += 1
-                logits = self.model(input)
                 if self.hparams.task == 'pde':
+                    input, target = batch
+                    num_batches += 1
+                    logits = self.model(input)
                     self.y_normalizer.cuda()
                     logits = logits.squeeze()
                     logits = self.y_normalizer.decode(logits)
@@ -641,6 +644,9 @@ class GAEASearchTrial(PyTorchTrial):
                     loss = loss / logits.size(0)
 
                 elif self.hparams.task == 'protein':
+                    input, target = batch
+                    num_batches += 1
+                    logits = self.model(input)
                     logits = logits.squeeze()
                     target = target.squeeze()
                     loss = self.criterion(logits, target).item()
@@ -654,7 +660,6 @@ class GAEASearchTrial(PyTorchTrial):
                     meter.update(loss, img.shape[0])
                     metric += maskMetric(logits.reshape
                                          (-1, 1, self.data_shape, self.data_shape).detach().cpu().numpy() > 0.5, mask.cpu().numpy())
-
                 loss_sum += loss
 
             if self.hparams.task == 'cosmic':
@@ -715,10 +720,11 @@ class GAEASearchTrial(PyTorchTrial):
                     'test_FPR': test_FPR,
                 }
 
-                return results_cosmic.update(results_cosmic_test)
+                results_cosmic.update(results_cosmic_test)
+                
 
-            else:
-                return results_cosmic
+            
+            return results_cosmic
 
 
         results = {

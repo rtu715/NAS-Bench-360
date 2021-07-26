@@ -240,11 +240,13 @@ class BackboneTrial(PyTorchTrial):
             base_dir = self.download_directory
             os.makedirs(os.path.join(base_dir,'data'), exist_ok=True)
             data_base = os.path.join(base_dir,'data')
+            '''
             train_tar = tarfile.open(os.path.join(base_dir,'deepCR.ACS-WFC.train.tar'))
             test_tar = tarfile.open(os.path.join(base_dir,'deepCR.ACS-WFC.test.tar'))
             
             train_tar.extractall(data_base)
             test_tar.extractall(data_base)
+            '''
             get_dirs(base_dir, data_base)
 
             self.train_dirs = np.load(os.path.join(base_dir,'train_dirs.npy'),allow_pickle = True)
@@ -445,10 +447,10 @@ class BackboneTrial(PyTorchTrial):
                         shape = img0.shape[-2:]
                         img0 = torch.from_numpy(img0).type(torch.cuda.FloatTensor).view(1, -1, shape[0], shape[1])
                         pdt_mask = self.model(img0).permute(0, 3, 1, 2).contiguous()
-                        msk = dat[1]
-                        ignore = dat[2]
+                        msk = dat[1].detach().cpu().numpy()
+                        ignore = dat[2].detach().cpu().numpy()
                         for i in range(nROC):
-                            binary_mask = np.array(pdt_mask > thresholds[i]) * (1 - ignore)
+                            binary_mask = np.squeeze((pdt_mask.detach().cpu().numpy() > thresholds[i]) * (1 - ignore))
                             metric[i] += maskMetric(binary_mask, msk * (1 - ignore))
                     loss = 0.0
 

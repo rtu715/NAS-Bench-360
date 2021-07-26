@@ -74,6 +74,6 @@ class BilevelAudioDataset(Dataset):
     def __getitem__(self, idx):
         train_ind = self.train_inds[idx]
         val_ind = self.val_inds[idx]
-        x_train, _, y_train = self.dataset[train_ind]
-        x_val, _, y_val = self.dataset[val_ind]
+        x_train, y_train = self.dataset[train_ind]
+        x_val, y_val = self.dataset[val_ind]
         return x_train, y_train, x_val, y_val

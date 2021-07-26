@@ -26,7 +26,7 @@ hyperparameters:
 
   init_channels: 36
   layers: 20
-  global_batch_size: 128
+  global_batch_size: 8
   drop_path_prob: 0.3
   clip_gradients_l2_norm: 5
 

@@ -41,8 +41,9 @@ class GAEAEvalTrial(PyTorchTrial):
         self.context = context
         self.hparams = AttrDict(context.get_hparams())
         self.data_config = context.get_data_config()
-        self.criterion = nn.CrossEntropyLoss()
-        self.download_directory = self.download_data_from_s3()
+
+        self.criterion = nn.BCEWithLogitsLoss().cuda()
+        download_directory = self.download_data_from_s3()
 
         self.last_epoch_idx = -1
 
@@ -72,12 +73,12 @@ class GAEAEvalTrial(PyTorchTrial):
 
     def build_model_from_config(self):
 
-        #if self.context.get_hparam('permute'):
-        #    genotype = genotypes['cifar100_permuted']
-        #else:
-        #    genotype = genotypes[self.context.get_hparam('task')]
+        if self.context.get_hparam('permute'):
+            genotype = genotypes['cifar100_permuted']
+        else:
+            genotype = genotypes[self.context.get_hparam('task')]
 
-        genotype = self.get_genotype_from_hps()
+        #genotype = self.get_genotype_from_hps()
 
         print(self.context.get_hparam('task'))
         print(genotype)
@@ -126,8 +127,8 @@ class GAEAEvalTrial(PyTorchTrial):
         s3 = boto3.client("s3")
         os.makedirs(download_directory, exist_ok=True)
 
-        download_from_s3(s3_bucket, self.context.get_hparam('task'), download_directory)
-
+        #download_from_s3(s3_bucket, self.context.get_hparam('task'), download_directory)
+        download_directory = '.'
         self.train_data, _ , self.val_data = load_data(self.context.get_hparam('task'), download_directory,
                                                        False, permute=self.context.get_hparam('permute'))
 
@@ -169,6 +170,7 @@ class GAEAEvalTrial(PyTorchTrial):
         self.last_epoch_idx = epoch_idx
 
         input, _, target = batch
+        print(input.shape)
         logits = self.model(input)
         loss = self.criterion(logits, target)
 

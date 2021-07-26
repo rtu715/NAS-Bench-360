@@ -556,9 +556,10 @@ class SpectrogramDataset(Dataset):
         if self.mixer is not None:
             real, final_label = self.mixer(self, real, label_tensor)
             if self.mode != "multiclass":
-
+                real = real[:, 1:]
                 return real, final_label
 
+            real = real[:, 1:]
         return real, label_tensor
 
     def __parse_labels__(self, lbls: str) -> torch.Tensor:
@@ -640,6 +641,8 @@ class FSD50kEvalDataset(Dataset):
         real, comp = self.__get_feature__(preprocessed_audio)
         if self.transform is not None:
             real = self.transform(real)
+
+        real = real[:, 1:]
         return real, comp, label_tensor
 
     def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:

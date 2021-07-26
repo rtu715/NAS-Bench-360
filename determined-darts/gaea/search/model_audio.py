@@ -119,9 +119,7 @@ class GAEASearchTrial(PyTorchTrial):
         os.makedirs(download_directory, exist_ok=True)
 
         download_from_s3(s3_bucket, self.hparams.task, download_directory)
-
         self.train_data, self.val_data, self.test_data = load_data(self.hparams.task, download_directory, True, self.hparams.permute)
-        self.build_test_data_loader(download_directory)
 
         return download_directory
 
@@ -234,9 +232,9 @@ class GAEASearchTrial(PyTorchTrial):
         if self.last_epoch % 10 == 0:
             test_predictions = []
             test_gts = []
-            for ix in range(self.testset.len):
+            for ix in range(self.test_data.len):
                 with torch.no_grad():
-                    batch = self.testset[ix]
+                    batch = self.test_data[ix]
                     x, y = batch
                     x = x.cuda()
                     y_pred = self.model(x)

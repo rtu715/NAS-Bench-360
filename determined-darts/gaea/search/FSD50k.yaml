@@ -23,7 +23,7 @@ hyperparameters:
 
     # Channel shuffle factor.  1 / shuffle_factor channels are activated at a given time.
     shuffle_factor: 4
-    global_batch_size: 128
+    global_batch_size: 32
     
     # these are default values
     learning_rate: 0.1

@@ -337,7 +337,14 @@ def get_transforms_fsd_chunks(train, size,
 '''
 Dataloader Collate Functions
 '''
-def _collate_fn(batch):
+def _collate_fn(bilevel_batch):
+    batch1 = [(x[0],x[1]) for x in bilevel_batch]
+    batch2 = [(x[2],x[3]) for x in bilevel_batch]
+    t1, l1 = _collate_fn_part(batch1)
+    t2, l2 = _collate_fn_part(batch2)
+    return t1, l1, t2, l2
+
+def _collate_fn_part(batch):
     def func(p):
         return p[0].size(1)
 
@@ -357,7 +364,7 @@ def _collate_fn(batch):
         inputs[x][0].narrow(1, 0, seq_length).copy_(real_tensor)
         targets.append(target.unsqueeze(0))
     targets = torch.cat(targets)
-    return inputs, inputs_complex, targets
+    return inputs, targets
 
 
 def _collate_fn_multiclass(batch):
@@ -556,9 +563,9 @@ class SpectrogramDataset(Dataset):
         if self.mixer is not None:
             real, final_label = self.mixer(self, real, label_tensor)
             if self.mode != "multiclass":
-
+                real = real[:, 1:]
                 return real, final_label
-
+        real = real[:, 1:]
         return real, label_tensor
 
     def __parse_labels__(self, lbls: str) -> torch.Tensor:
@@ -640,6 +647,8 @@ class FSD50kEvalDataset(Dataset):
         real, comp = self.__get_feature__(preprocessed_audio)
         if self.transform is not None:
             real = self.transform(real)
+
+        real = real[:, 1:]
         return real, comp, label_tensor
 
     def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:
