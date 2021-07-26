@@ -1,4 +1,4 @@
-description: cifar100_gaea_search
+description: cosmic_gaea_eval
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -11,52 +11,53 @@ data:
   type: s3
   bucket: pde-xd
 
-
 bind_mounts:
   - host_path: /tmp
     container_path: /data
     read_only: false
 
 hyperparameters:
-    task: cifar100
-    permute: false
+    task: cosmic
+    train: false
 
+    # Number of classes in dataset
+    n_classes: 1
     # Channel shuffle factor.  1 / shuffle_factor channels are activated at a given time.
-    shuffle_factor: 4
-    global_batch_size: 256
-    
-    # these are default values
-    learning_rate: 0.1
+    global_batch_size: 8
+    learning_rate: 0.025
     momentum: 0.9
     min_learning_rate: 0
-    scheduler_epochs: 50
+    scheduler_epochs: 600
     weight_decay: 3e-4
-    arch_learning_rate: 0.1
-    init_channels: 16
-    layers: 8
+    arch_learning_rate: 0.0
+    init_channels: 36 #from pde
+    layers: 20
     nodes: 4
+    multiplier: 4
+    drop_path_prob: 0.3
     clip_gradients_l2_norm: 5
+
+    sub: 5
 
 resources:
   slots_per_trial: 1
 
 min_validation_period: 
-  epochs: 1
+  epochs: 50
 
 min_checkpoint_period:
-  epochs: 2
+  epochs: 5
 
-records_per_epoch: 20000
+records_per_epoch: 3000c
 searcher:
   name: single
-  metric: top1_accuracy 
-  smaller_is_better: false 
+  metric: validation_error 
   max_length: 
-    epochs: 50
+    epochs: 600
 
 optimizations:
   aggregation_frequency:  1
 
-max_restarts: 1000
+max_restarts: 100
 
 entrypoint: model_def:GAEASearchTrial

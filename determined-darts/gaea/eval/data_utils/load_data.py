@@ -13,6 +13,9 @@ import torch.utils.data as data_utils
 import torchvision
 from torchvision import transforms
 
+from .audio_dataset import *
+
+
 
 def load_data(task, path, train=True, permute=False):
     if task == 'smnist':
@@ -36,6 +39,9 @@ def load_data(task, path, train=True, permute=False):
         trainset, valset = load_cifar100_train_data(path, permute, 0.2, train)
         testset = load_cifar100_test_data(path, permute)
         return trainset, valset, testset
+
+    elif task == 'audio':
+        return load_audio(path, 'mel', train)
 
     else:
         raise NotImplementedError
@@ -448,3 +454,67 @@ def load_ninapro(path, whichset):
 
     all_data = data_utils.TensorDataset(data, labels)
     return all_data
+
+'''
+Audio related
+'''
+def load_audio(path, feature='mel', train=True):
+    meta_root = os.path.join(path, "data/chunks")
+    train_manifest = "tr.csv"
+    val_manifest = "val.csv"
+    label_map = "lbl_map.json"
+    test_manifest = 'eval.csv'
+
+    train_manifest = os.path.join(meta_root, train_manifest)
+    val_manifest = os.path.join(meta_root, val_manifest)
+    test_manifest = os.path.join(meta_root, test_manifest)
+    label_map = os.path.join(meta_root, label_map)
+
+    bg_files = os.path.join(path, "data/noise_22050")
+
+    if feature == 'mel':
+        audio_config = {
+            'feature': 'melspectrogram',
+            'sample_rate': 22050,
+            'min_duration': 1,
+            'bg_files': bg_files,
+        }
+    elif feature == 'raw':
+        audio_config = {
+            'feature': 'spectrogram',
+            'n_fft': 441,
+            'hop_len': 220,
+            'normalize': False,
+            'sample_rate': 22050,
+            'min_duration': 1,
+            'bg_files': bg_files,
+        }
+    else:
+        raise KeyError
+
+    mixer = BackgroundAddMixer()
+    train_mixer = UseMixerWithProb(mixer, 0.75)
+    train_transforms = get_transforms_fsd_chunks(True, 101)
+    val_transforms = get_transforms_fsd_chunks(False, 101)
+    #precision = 16
+
+    train_set = SpectrogramDataset(train_manifest,
+                                        label_map,
+                                        audio_config,
+                                        mode="multilabel", augment=True,
+                                        mixer=train_mixer,
+                                        transform=train_transforms)
+
+    val_set = FSD50kEvalDataset(val_manifest, label_map,
+                                     audio_config,
+                                     transform=val_transforms
+                                     )
+
+    test_set = FSD50kEvalDataset(test_manifest, label_map,
+                                 audio_config,
+                                 transform=val_transforms)
+
+    if train:
+        return train_set, val_set, test_set
+
+    return train_set, None, test_set

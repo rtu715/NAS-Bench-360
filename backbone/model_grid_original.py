@@ -235,7 +235,7 @@ class BackboneTrial(PyTorchTrial):
                                           label_engineering = '16.0')
 
         elif self.hparams.task == 'cosmic':
-            #TODO: extract tar file and get directories
+            #extract tar file and get directories
             #base_dir = '/workspace/tasks/cosmic/deepCR.ACS-WFC'
             base_dir = self.download_directory
             os.makedirs(os.path.join(base_dir,'data'), exist_ok=True)
@@ -248,33 +248,16 @@ class BackboneTrial(PyTorchTrial):
             get_dirs(base_dir, data_base)
 
             self.train_dirs = np.load(os.path.join(base_dir,'train_dirs.npy'),allow_pickle = True)
+            self.test_dirs = np.load(os.path.join(base_dir, 'test_dirs.npy'), allow_pickle=True)
 
-            '''
-            f435_train_dirs = []
-            f814_train_dirs = []
-            f606_train_dirs = []
-
-            num_trains = len(train_dirs)
-            for i,train_dir in enumerate(train_dirs):
-                arr = train_dir.split('/')
-                _filter = arr[-4]
-                if _filter == 'f435w':
-                    f435_train_dirs.append(train_dir)
-                elif _filter == 'f606w':
-                    f606_train_dirs.append(train_dir)
-                elif _filter == 'f814w':
-                    f814_train_dirs.append(train_dir)
-                else:
-                    raise ValueError('Check filter')
-            '''
             aug_sky = (-0.9,3)
             
-            #only train f435 for now
+            #only train f435 and GAL flag for now
             print(self.train_dirs[0])
             if self.hparams.train:
-                train_data = PairedDatasetImagePath(self.train_dirs[::], aug_sky[0], aug_sky[1], part='search')
-            else:
                 train_data = PairedDatasetImagePath(self.train_dirs[::], aug_sky[0], aug_sky[1], part='train')
+            else:
+                train_data = PairedDatasetImagePath(self.train_dirs[::], aug_sky[0], aug_sky[1], part='None')
             self.data_shape = train_data[0][0].shape[1]
             print(len(train_data))
 
@@ -346,9 +329,11 @@ class BackboneTrial(PyTorchTrial):
         elif self.hparams.task == 'cosmic':
             aug_sky = (-0.9,3)
             if self.hparams.train:
-                valid_data = PairedDatasetImagePath(self.train_dirs[::], aug_sky[0], aug_sky[1], part='val')
-            else:
                 valid_data = PairedDatasetImagePath(self.train_dirs[::], aug_sky[0], aug_sky[1], part='test')
+            else:
+                valid_data = PairedDatasetImagePath(self.test_dirs[::], aug_sky[0], aug_sky[1], part=None)
+
+            print(len(valid_data))
 
             valid_queue = DataLoader(valid_data, batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=8)
 
@@ -417,7 +402,9 @@ class BackboneTrial(PyTorchTrial):
         
         #for cr
         meter = AverageMeter()
-        metric = np.zeros(4)
+        thresholds = np.linspace(0.001, 0.999, 500)
+        nROC = thresholds.size
+        metric = np.zeros((nROC, 4))
 
         with torch.no_grad():
             for batch in data_loader:
@@ -442,27 +429,42 @@ class BackboneTrial(PyTorchTrial):
 
                     mae = F.l1_loss(logits, target, reduction='mean')
                     error_sum += mae.item()
-                    #target, logits, num = filter_MAE(target, logits, 8.0)
-                    #error = self.error(logits, target)
-                    #error = error / num
 
                 elif self.hparams.task == 'cosmic':
-                    img, mask, ignore = set_input(*batch, self.data_shape)
-                    logits = self.model(img).permute(0,3,1,2).contiguous()
-                    loss = self.criterion(logits*(1-ignore), mask*(1-ignore))
-                    meter.update(loss, img.shape[0])
-                    metric += maskMetric(logits.reshape(-1, 1, self.data_shape, self.data_shape).detach().cpu().numpy() > 0.5, mask.cpu().numpy())
+                    for t in range(len(batch)):
+                        dat = batch[t]
+                        img0 = dat[0]
+                        shape = img0.shape
+                        pad_x = 4 - shape[0] % 4
+                        pad_y = 4 - shape[1] % 4
+                        if pad_x == 4:
+                            pad_x = 0
+                        if pad_y == 4:
+                            pad_y = 0
+                        img0 = np.pad(img0, ((pad_x, 0), (pad_y, 0)), mode='constant')
+                        shape = img0.shape[-2:]
+                        img0 = torch.from_numpy(img0).type(torch.cuda.FloatTensor).view(1, -1, shape[0], shape[1])
+                        pdt_mask = self.model(img0).permute(0, 3, 1, 2).contiguous()
+                        msk = dat[1]
+                        ignore = dat[2]
+                        for i in range(nROC):
+                            binary_mask = np.array(pdt_mask > thresholds[i]) * (1 - ignore)
+                            metric[i] += maskMetric(binary_mask, msk * (1 - ignore))
+                    loss = 0.0
 
                 loss_sum += loss
 
         if self.hparams.task == 'cosmic':
-            TP, TN, FP, FN = metric[0], metric[1], metric[2], metric[3]
+            TP, TN, FP, FN = metric[:,0], metric[:,1], metric[:,2], metric[:,3]
             TPR = TP / (TP + FN)
             FPR = FP / (FP + TN)
+
+            FPR_val = FPR[np.argmin(FPR)]
+            TPR_val = TPR[np.argmin(FPR)]
             
-            return {'validation_loss': meter.avg,
-                    'FPR': FPR,
-                    'TPR': TPR,
+            return {
+                    'FPR': FPR_val,
+                    'TPR': TPR_val,
                     }
 
         results = {

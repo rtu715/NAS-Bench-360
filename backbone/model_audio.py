@@ -9,7 +9,6 @@ from functools import partial
 import os
 import boto3
 import numpy as np
-import tqdm
 from sklearn.metrics import average_precision_score
 
 import torch
@@ -71,13 +70,6 @@ class BackboneTrial(PyTorchTrial):
         if self.hparams.task == 'audio':
             # where is the weights file?
             self.criterion = nn.BCEWithLogitsLoss().cuda()
-            '''
-            mixer = BackgroundAddMixer()
-            self.train_mixer = UseMixerWithProb(mixer, 0.75)
-            self.train_transforms = get_transforms_fsd_chunks(True, 101)
-            self.val_transforms = get_transforms_fsd_chunks(False, 101)
-            precision = 16
-            '''
             self.backbone = Backbone_Audio(depth, n_classes, width,
                                            dropRate=self.hparams.droprate, in_channels=in_channels)
         else:
@@ -184,20 +176,16 @@ class BackboneTrial(PyTorchTrial):
     def train_batch(self, batch: TorchData, epoch_idx: int, batch_idx: int
                     ) -> Dict[str, torch.Tensor]:
 
-        #x_train, y_train = batch
         x_train, _, y_train = batch
         self.model.train()
         output = self.model(x_train)
         loss = self.criterion(output, y_train)
-        #top1, top5 = utils_pt.accuracy(output, y_train, topk=(1, 5))
 
         self.context.backward(loss)
         self.context.step_optimizer(self.opt)
 
         return {
             'loss': loss,
-            #'top1_accuracy': top1.item(),
-            #'top5_accuracy': top5.item(),
         }
     
     def evaluate_full_dataset(
@@ -207,8 +195,6 @@ class BackboneTrial(PyTorchTrial):
         if not self.hparams.train and self.hparams.task == 'audio':
             return self.evaluate_audio_testset(self.val_data)
 
-        #acc_top1 = utils_pt.AverageMeter()
-        #acc_top5 = utils_pt.AverageMeter()
         loss_avg = utils_pt.AverageMeter()
         val_predictions = []
         val_gts = []
@@ -234,9 +220,7 @@ class BackboneTrial(PyTorchTrial):
 
         results = {
             "loss": loss_avg.avg,
-            #"top1_accuracy": acc_top1.avg,
-            #"top5_accuracy": acc_top5.avg,
-            'val_mAP': map_value,
+            "val_mAP": map_value,
         }
 
 
@@ -295,7 +279,7 @@ class BackboneTrial(PyTorchTrial):
 
         results = {
             "test_mAUC": mAP,
-            'test_mAP': mAUC,
+            "test_mAP": mAUC,
         }
 
         return results

@@ -4,6 +4,8 @@ from collections import namedtuple
 import boto3
 import os
 import json
+import tarfile
+
 
 import numpy as np
 import torch
@@ -19,18 +21,19 @@ from determined.pytorch import (
     PyTorchCallback
 )
 
-from data import BilevelDataset
+from data import BilevelDataset, BilevelCosmicDataset
 #from model_search import Network
 from model_search_expansion import Network
 from model_eval import DiscretizedNetwork
 #from model_eval_expansion import DiscretizedNetwork
 from optimizer import EG
-from utils import AttrDict, LpLoss, MatReader, UnitGaussianNormalizer
-from utils import LogCoshLoss, calculate_mae
+from utils import AttrDict, LpLoss, MatReader, UnitGaussianNormalizer, AverageMeter
+from utils import LogCoshLoss, calculate_mae, maskMetric, set_input
 import utils
 
 from data_utils.protein_io import load_list
 from data_utils.protein_gen import PDNetDataset
+from data_utils.cosmic_dataset import PairedDatasetImagePath, get_dirs
 
 TorchData = Union[Dict[str, torch.Tensor], Sequence[torch.Tensor], torch.Tensor]
 Genotype = namedtuple("Genotype", "normal normal_concat reduce reduce_concat")
@@ -71,6 +74,11 @@ class GAEASearchTrial(PyTorchTrial):
             self.error = nn.L1Loss(reduction='sum')
             self.in_channels = 57
             self.n_classes = 1
+
+        elif self.hparams.task == 'cosmic':
+            self.criterion = nn.BCEWithLogitsLoss()
+            self.in_channels = 1
+            self.n_classes = 200
 
         else:
             raise NotImplementedError
@@ -133,7 +141,7 @@ class GAEASearchTrial(PyTorchTrial):
 
                 searched_genotype = self.get_genotype_from_hps()
 
-            elif self.hparams.task =='protein':
+            elif self.hparams.task == 'protein':
                 #seed 0
                 #searched_genotype = Genotype(normal=[('avg_pool_3x3', 0), ('skip_connect', 1), ('avg_pool_3x3', 0), ('dil_conv_5x5', 1), ('dil_conv_3x3', 1), ('avg_pool_3x3', 0), ('sep_conv_5x5', 0), ('dil_conv_3x3', 3)], normal_concat=range(2, 6), reduce=[('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1)], reduce_concat=range(2, 6))
             
@@ -142,6 +150,9 @@ class GAEASearchTrial(PyTorchTrial):
             
                 #seed 2
                 searched_genotype = Genotype(normal=[('dil_conv_3x3', 0), ('skip_connect', 1), ('sep_conv_3x3', 1), ('skip_connect', 0), ('sep_conv_5x5', 2), ('dil_conv_5x5', 0), ('skip_connect', 0), ('dil_conv_3x3', 3)], normal_concat=range(2, 6), reduce=[('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1)], reduce_concat=range(2, 6))
+
+            elif self.hparams.task == 'cosmic':
+                raise NotImplementedError
             
             else:
                 raise ValueError
@@ -220,6 +231,10 @@ class GAEASearchTrial(PyTorchTrial):
                               data_dir + '/psicov/distance/', data_dir + '/cameo/distance/']
             s3_path = None
 
+        elif self.hparams.task == 'cosmic':
+            data_files = ['deepCR.ACS-WFC.train.tar', 'deepCR.ACS-WFC.test.tar']
+            s3_path = 'cosmic'
+
         else:
             raise NotImplementedError
 
@@ -275,7 +290,10 @@ class GAEASearchTrial(PyTorchTrial):
                 train_data = torch.utils.data.TensorDataset(x_train, y_train)
                 print(x_train.shape)
                 print(y_train.shape)
-        
+
+            self.train_data = BilevelDataset(train_data) if self.hparams.train else train_data
+
+
         elif self.hparams.task == 'protein':
             os.chdir(self.download_directory)
             import zipfile
@@ -304,8 +322,36 @@ class GAEASearchTrial(PyTorchTrial):
                                           128, 10, self.context.get_per_slot_batch_size(), 57,
                                           label_engineering = '16.0')
 
+            self.train_data = BilevelDataset(train_data) if self.hparams.train else train_data
 
-        self.train_data = BilevelDataset(train_data) if self.hparams.train else train_data
+        elif self.hparams.task == 'cosmic':
+            # extract tar file and get directories
+            # base_dir = '/workspace/tasks/cosmic/deepCR.ACS-WFC'
+            base_dir = self.download_directory
+            os.makedirs(os.path.join(base_dir, 'data'), exist_ok=True)
+            data_base = os.path.join(base_dir, 'data')
+            train_tar = tarfile.open(os.path.join(base_dir, 'deepCR.ACS-WFC.train.tar'))
+            test_tar = tarfile.open(os.path.join(base_dir, 'deepCR.ACS-WFC.test.tar'))
+
+            train_tar.extractall(data_base)
+            test_tar.extractall(data_base)
+            get_dirs(base_dir, data_base)
+
+            self.train_dirs = np.load(os.path.join(base_dir, 'train_dirs.npy'), allow_pickle=True)
+            self.test_dirs = np.load(os.path.join(base_dir, 'test_dirs.npy'), allow_pickle=True)
+
+            aug_sky = (-0.9, 3)
+
+            # only train f435 and GAL flag for now
+            print(self.train_dirs[0])
+            if self.hparams.train:
+                train_data = PairedDatasetImagePath(self.train_dirs[::], aug_sky[0], aug_sky[1], part='train')
+            else:
+                train_data = PairedDatasetImagePath(self.train_dirs[::], aug_sky[0], aug_sky[1], part='None')
+            self.data_shape = train_data[0][0].shape[1]
+            print(len(train_data))
+
+            self.train_data = BilevelCosmicDataset(train_data) if self.hparams.train else train_data
 
         train_queue = DataLoader(
             self.train_data,
@@ -370,16 +416,30 @@ class GAEASearchTrial(PyTorchTrial):
 
             return valid_queue
 
+        elif self.hparams.task == 'cosmic':
+            aug_sky = (-0.9,3)
+            if self.hparams.train:
+                valid_data = PairedDatasetImagePath(self.train_dirs[::], aug_sky[0], aug_sky[1], part='test')
+            else:
+                valid_data = PairedDatasetImagePath(self.test_dirs[::], aug_sky[0], aug_sky[1], part=None)
+
+            print(len(valid_data))
+
+            valid_queue = DataLoader(valid_data, batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=8)
+
+            return valid_queue
+
         else:
             print('no such dataset')
             raise NotImplementedError
 
-        return valid_queue
+        return None
 
 
 
     def build_test_data_loader(self) -> DataLoader:
-        
+        batch_size = self.context.get_per_slot_batch_size()
+
         if self.hparams.task == 'pde':
             ntest = 100
             s = self.s
@@ -392,7 +452,6 @@ class GAEASearchTrial(PyTorchTrial):
 
             x_test = self.x_normalizer.encode(x_test)
             x_test = torch.cat([x_test.reshape(ntest, s, s, 1), self.grid.repeat(ntest, 1, 1, 1)], dim=3)
-            batch_size=self.context.get_per_slot_batch_size()
 
             test_queue = DataLoader(torch.utils.data.TensorDataset(x_test, y_test),
                        batch_size=batch_size, shuffle=False, num_workers=2, )
@@ -413,6 +472,11 @@ class GAEASearchTrial(PyTorchTrial):
                                      512, 10, 1, 57, label_engineering=None)
             test_queue = DataLoader(test_data, batch_size=2, shuffle=True, num_workers=0)
 
+        elif self.hparams.task == 'cosmic':
+            aug_sky = (-0.9,3)
+            test_data = PairedDatasetImagePath(self.test_dirs[::], aug_sky[0], aug_sky[1], part=None)
+            test_queue = DataLoader(test_data, batch_size=batch_size, shuffle=False, num_workers=8)
+
         return test_queue
 
     def train_batch(
@@ -423,16 +487,23 @@ class GAEASearchTrial(PyTorchTrial):
             if epoch_idx != self.last_epoch:
                 self.train_data.shuffle_val_inds()
             self.last_epoch = epoch_idx
-            x_train, y_train, x_val, y_val = batch
+
+            if self.hparams.task == 'cosmic':
+                img1, mask1, ignore1, img2, mask2, ignore2 = batch
+            else:
+                x_train, y_train, x_val, y_val = batch
         
             if self.test_loader == None:
                 #build test dataloader to eval supernet
                 self.test_loader = self.build_test_data_loader()
         
         else:
-            x_train, y_train = batch
+            if self.hparams.task == 'cosmic':
+                img, mask, ignore = batch
+            else:
+                x_train, y_train = batch
             self.model.drop_path_prob = self.context.get_hparam("drop_path_prob") * epoch_idx / 600.0
-            print('current drop prob is {}'.format(self.model.drop_path_prob))
+            #print('current drop prob is {}'.format(self.model.drop_path_prob))
         
         batch_size = self.context.get_per_slot_batch_size()
 
@@ -443,9 +514,8 @@ class GAEASearchTrial(PyTorchTrial):
             for w in self.model.ws_parameters():
                 w.requires_grad = True
 
-            logits = self.model(x_train)
-            
             if self.hparams.task =='pde':
+                logits = self.model(x_train)
                 logits = logits.squeeze()
                 self.y_normalizer.cuda()
                 target = self.y_normalizer.decode(y_train)
@@ -454,8 +524,15 @@ class GAEASearchTrial(PyTorchTrial):
                 mae = 0
 
             elif self.hparams.task == 'protein':
+                logits = self.model(x_train)
                 loss = self.criterion(logits.squeeze(), y_train.squeeze())
                 mae = F.l1_loss(logits.squeeze(), y_train.squeeze(), reduction='mean').item()
+
+            elif self.hparams.task == 'cosmic':
+                img1, mask1, ignore1 = set_input(img1, mask1, ignore1, self.data_shape)
+                logits = self.model(img1).permute(0, 3, 1, 2).contiguous() #channel on axis 1
+                loss = self.criterion(logits * (1 - ignore1), mask1 * (1 - ignore1))
+                mae = 0.0
 
             else:
                 raise NotImplementedError
@@ -478,14 +555,21 @@ class GAEASearchTrial(PyTorchTrial):
                 for w in self.model.ws_parameters():
                     w.requires_grad = False
 
-                logits = self.model(x_val)
                 if self.hparams.task =='pde':
+                    logits = self.model(x_val)
                     logits = logits.squeeze()
                     target = self.y_normalizer.decode(y_val)
                     logits = self.y_normalizer.decode(logits)
                     arch_loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1))
-                elif self.hparams.task =='protein': 
+
+                elif self.hparams.task =='protein':
+                    logits = self.model(x_val)
                     arch_loss = self.criterion(logits.squeeze(), y_val.squeeze())
+
+                elif self.hparams.task == 'cosmic':
+                    img2, mask2, ignore2 = set_input(img2, mask2, ignore2, self.data_shape)
+                    logits = self.model(img2).permute(0, 3, 1, 2).contiguous()
+                    arch_loss = self.criterion(logits * (1 - ignore2), mask2 * (1 - ignore2))
 
                 self.context.backward(arch_loss)
                 self.context.step_optimizer(self.arch_opt)
@@ -498,12 +582,18 @@ class GAEASearchTrial(PyTorchTrial):
                 target = self.y_normalizer.decode(y_train)
                 logits = self.y_normalizer.decode(logits)
                 loss = self.criterion(logits.view(logits.size(0), -1), target.view(target.size(0), -1))
-                mae = 0
+                mae = 0.0
 
             elif self.hparams.task =='protein':
                 logits = self.model(x_train)
                 loss = self.criterion(logits.squeeze(), y_train.squeeze())
                 mae = F.l1_loss(logits.squeeze(), y_train.squeeze(), reduction='mean').item()
+
+            elif self.hparams.task == 'cosmic':
+                img, mask, ignore = set_input(img, mask, ignore, self.data_shape)
+                logits = self.model(img).permute(0, 3, 1, 2).contiguous()
+                loss = self.criterion(logits * (1 - ignore), mask * (1 - ignore))
+                mae = 0.0
             
             self.context.backward(loss)
             self.context.step_optimizer(
@@ -533,6 +623,10 @@ class GAEASearchTrial(PyTorchTrial):
         error_sum = 0
         num_batches = 0
 
+        #for cr
+        meter = AverageMeter()
+        metric = np.zeros(4)
+
         with torch.no_grad():
             for batch in data_loader:
                 batch = self.context.to_device(batch)
@@ -550,21 +644,36 @@ class GAEASearchTrial(PyTorchTrial):
                     logits = logits.squeeze()
                     target = target.squeeze()
                     loss = self.criterion(logits, target).item()
-                    
-                    #filter the matrices
-                    #target, logits, num = utils.filter_MAE(target, logits, 8.0)
-                    #error = self.error(logits, target)
-                    #error = error / num
                     error = F.l1_loss(logits, target, reduction='mean')
                     error_sum += error.item()
 
+                elif self.hparams.task == 'cosmic':
+                    img, mask, ignore = set_input(*batch, self.data_shape)
+                    logits = self.model(img).permute(0,3,1,2).contiguous()
+                    loss = self.criterion(logits*(1-ignore), mask*(1-ignore))
+                    meter.update(loss, img.shape[0])
+                    metric += maskMetric(logits.reshape
+                                         (-1, 1, self.data_shape, self.data_shape).detach().cpu().numpy() > 0.5, mask.cpu().numpy())
+
                 loss_sum += loss
 
+            if self.hparams.task == 'cosmic':
+                TP, TN, FP, FN = metric[0], metric[1], metric[2], metric[3]
+                TPR = TP / (TP + FN)
+                FPR = FP / (FP + TN)
+
+                results_cosmic = {'validation_error': meter.avg,
+                        'FPR': FPR,
+                        'TPR': TPR,
+                        }
 
 
         test_loss_sum = 0
         test_error_sum = 0
         test_num_batches = 100
+
+        test_meter = AverageMeter()
+        test_metric = np.zeros(4)
         
         if self.hparams.train and self.hparams.task=='pde':
             test_num_batches = 0 
@@ -581,9 +690,36 @@ class GAEASearchTrial(PyTorchTrial):
                     loss = loss / logits.size(0)
                     error = 0 
 
-                    
                     test_loss_sum += loss
                     test_error_sum += error
+
+        if self.hparams.task == 'cosmic':
+            if self.hparams.train:
+                with torch.no_grad():
+                    for batch in self.test_loader:
+                        img, mask, ignore = set_input(*batch, self.data_shape)
+                        logits = self.model(img).permute(0,3,1,2).contiguous()
+                        loss = self.criterion(logits*(1-ignore), mask*(1-ignore))
+                        test_meter.update(loss, img.shape[0])
+                        test_metric += maskMetric(logits.reshape
+                                             (-1, 1, self.data_shape, self.data_shape).detach().cpu().numpy() > 0.5, mask.cpu().numpy())
+
+
+                TP, TN, FP, FN = test_metric[0], test_metric[1], test_metric[2], test_metric[3]
+                test_TPR = TP / (TP + FN)
+                test_FPR = FP / (FP + TN)
+
+                results_cosmic_test = {
+                    'test_error': test_meter.avg,
+                    'test_TPR': test_TPR,
+                    'test_FPR': test_FPR,
+                }
+
+                return results_cosmic.update(results_cosmic_test)
+
+            else:
+                return results_cosmic
+
 
         results = {
             "validation_error": loss_sum / num_batches,

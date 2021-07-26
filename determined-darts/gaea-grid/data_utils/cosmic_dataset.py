@@ -195,4 +195,3 @@ class PairedDatasetImagePath(Dataset):
         # try:#JK
         skyaug = self.get_skyaug(i)
         return image + skyaug, mask, ignore
-

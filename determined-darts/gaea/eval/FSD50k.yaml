@@ -1,18 +1,15 @@
-description: cifar100_gaea_eval_seed2
+description: audio_gaea_eval
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
 
 reproducibility:
-  experiment_seed: 2
+  experiment_seed: 0
 
 data:
   download_dir: /data
   type: s3
   bucket: pde-xd
-
-  num_workers_train: 2
-  num_workers_val: 2
 
 bind_mounts:
   - host_path: /tmp
@@ -20,7 +17,7 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-  task: cifar100
+  task: audio
   permute: false 
 
   learning_rate: 0.025
@@ -37,23 +34,22 @@ resources:
   slots_per_trial: 1
 
 min_validation_period:
-  epochs: 1
+  epochs: 100
 
 min_checkpoint_period:
-  epochs: 2
+  epochs: 5
 
-records_per_epoch: 50000 
+records_per_epoch: 40966
 
 searcher:
   name: single
-  metric: top1_accuracy 
-  smaller_is_better: false 
+  metric: test_mAP
   max_length:
     epochs: 600
 
 optimizations:
   aggregation_frequency:  1
 
-max_restarts: 1000
+max_restarts: 10
 
-entrypoint: model_def:GAEAEvalTrial
+entrypoint: model_audio:GAEAEvalTrial
