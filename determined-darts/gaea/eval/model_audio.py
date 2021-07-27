@@ -72,11 +72,7 @@ class GAEAEvalTrial(PyTorchTrial):
         )
 
     def build_model_from_config(self):
-
-        if self.context.get_hparam('permute'):
-            genotype = genotypes['cifar100_permuted']
-        else:
-            genotype = genotypes[self.context.get_hparam('task')]
+        genotype = genotypes[self.context.get_hparam('task')]
 
         #genotype = self.get_genotype_from_hps()
 

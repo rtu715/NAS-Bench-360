@@ -4,6 +4,7 @@ import pprint
 import boto3
 import json
 from typing import Any, Dict, Sequence, Union
+import tarfile
 
 import torch
 import torch.backends.cudnn as cudnn
@@ -28,12 +29,12 @@ from tools import utils
 from tools.config_yaml import merge_cfg_from_file, update_cfg_from_cfg
 from tools.lr_scheduler import get_lr_scheduler
 from tools.multadds_count import comp_multadds
-from data import BilevelDataset
-from utils_grid import LpLoss, MatReader, UnitGaussianNormalizer, LogCoshLoss
-from utils_grid import create_grid, calculate_mae
+from data import BilevelDataset, BilevelCosmicDataset
+from utils_grid import LpLoss, MatReader, UnitGaussianNormalizer, AverageMeter
+from utils_grid import create_grid, calculate_mae, maskMetric, set_input
 from data_utils.protein_io import load_list
 from data_utils.protein_gen import PDNetDataset
-
+from data_utils.cosmic_dataset import PairedDatasetImagePath, get_dirs
 
 TorchData = Union[Dict[str, torch.Tensor], Sequence[torch.Tensor], torch.Tensor]
 
@@ -65,6 +66,11 @@ class DenseNASSearchTrial(PyTorchTrial):
             #error is reported via MAE
             self.error = nn.L1Loss(reduction='sum')
             self.in_channels = 57
+
+        elif self.hparams.task == 'cosmic':
+            input_shape = (1, 256, 256)
+            self.criterion = nn.BCEWithLogitsLoss()
+            self.in_channels = 1
 
         else:
             raise NotImplementedError
@@ -169,6 +175,10 @@ class DenseNASSearchTrial(PyTorchTrial):
                               data_dir + '/psicov/distance/', data_dir + '/cameo/distance/']
             s3_path = None
 
+        elif self.hparams.task == 'cosmic':
+            data_files = ['deepCR.ACS-WFC.train.tar', 'deepCR.ACS-WFC.test.tar']
+            s3_path = 'cosmic'
+
         else:
             raise NotImplementedError
 
@@ -207,6 +217,8 @@ class DenseNASSearchTrial(PyTorchTrial):
             print(x_train.shape)
             print(y_train.shape)
 
+            self.train_data = BilevelDataset(train_data)
+
         elif self.hparams.task == 'protein':
             os.chdir(self.download_directory)
             import zipfile
@@ -227,9 +239,40 @@ class DenseNASSearchTrial(PyTorchTrial):
             train_data = PDNetDataset(train_pdbs, self.all_feat_paths, self.all_dist_paths,
                                       128, 10, self.context.get_per_slot_batch_size(), 57,
                                       label_engineering = '16.0')
+            self.train_data = BilevelDataset(train_data)
 
+        elif self.hparams.task == 'cosmic':
+            # extract tar file and get directories
+            # base_dir = '/workspace/tasks/cosmic/deepCR.ACS-WFC'
+            base_dir = self.download_directory
+            print(base_dir)
 
-        self.train_data = BilevelDataset(train_data)
+            os.makedirs(os.path.join(base_dir, 'data'), exist_ok=True)
+            data_base = os.path.join(base_dir, 'data')
+            train_tar = tarfile.open(os.path.join(base_dir, 'deepCR.ACS-WFC.train.tar'))
+            test_tar = tarfile.open(os.path.join(base_dir, 'deepCR.ACS-WFC.test.tar'))
+
+            train_tar.extractall(data_base)
+            test_tar.extractall(data_base)
+            get_dirs(base_dir, data_base)
+
+            self.train_dirs = np.load(os.path.join(base_dir, 'train_dirs.npy'), allow_pickle=True)
+            self.test_dirs = np.load(os.path.join(base_dir, 'test_dirs.npy'), allow_pickle=True)
+
+            aug_sky = (-0.9, 3)
+
+            # only train f435 and GAL flag for now
+            print(self.train_dirs[0])
+            train_data = PairedDatasetImagePath(self.train_dirs[::], aug_sky[0], aug_sky[1], part='train')
+
+            self.data_shape = train_data[0][0].shape[1]
+            print(len(train_data))
+
+            self.train_data = BilevelCosmicDataset(train_data) if self.hparams.train else train_data
+
+        else:
+            raise NotImplementedError
+
         train_queue = DataLoader(
             self.train_data,
             batch_size=self.context.get_per_slot_batch_size(),
@@ -263,6 +306,11 @@ class DenseNASSearchTrial(PyTorchTrial):
                                       label_engineering='16.0')
             valid_queue = DataLoader(valid_data, batch_size=2, shuffle=True, num_workers=2)
 
+        elif self.hparams.task == 'cosmic':
+            aug_sky = (-0.9,3)
+            valid_data = PairedDatasetImagePath(self.train_dirs[::], aug_sky[0], aug_sky[1], part='test')
+            print(len(valid_data))
+            valid_queue = DataLoader(valid_data, batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=8)
 
         else:
             raise NotImplementedError
@@ -289,7 +337,6 @@ class DenseNASSearchTrial(PyTorchTrial):
             test_queue = DataLoader(torch.utils.data.TensorDataset(x_test, y_test),
                                     batch_size=batch_size, shuffle=False, num_workers=2, )
 
-
         elif self.hparams.task == 'protein':
             psicov_list = load_list('psicov.lst')
             psicov_length_dict = {}
@@ -305,7 +352,14 @@ class DenseNASSearchTrial(PyTorchTrial):
             test_data = PDNetDataset(self.my_list, self.all_feat_paths, self.all_dist_paths,
                                      512, 10, 1, 57, label_engineering=None)
             test_queue = DataLoader(test_data, batch_size=2, shuffle=True, num_workers=0)
-        
+
+        elif self.hparams.task == 'cosmic':
+            aug_sky = (-0.9,3)
+            test_data = PairedDatasetImagePath(self.test_dirs[::], aug_sky[0], aug_sky[1], part=None)
+            test_queue = DataLoader(test_data, batch_size=batch_size, shuffle=False, num_workers=8)
+
+        else:
+            raise NotImplementedError
         return test_queue
 
         
@@ -318,23 +372,35 @@ class DenseNASSearchTrial(PyTorchTrial):
         if epoch_idx == 0 and self.test_loader == None:
             self.test_loader = self.build_test_data_loader()
         
-        search_stage = 1 if epoch_idx > self.config.search_params.arch_update_epoch else 0 
+        search_stage = 1 if epoch_idx > self.config.search_params.arch_update_epoch else 0
 
-        #x_train, y_train, x_val, y_val = batch
+        if self.hparams.task == 'cosmic':
+            img1, mask1, ignore1, img2, mask2, ignore2, img3, mask3, ignore3,\
+                img4, mask4, ignore4, img_val, mask_val, ignore_val= batch
+            train_img = torch.cat((img1, img2, img3, img4), 0)
+            train_mask = torch.cat((mask1, mask2, mask3, mask4), 0)
+            train_ignore = torch.cat((ignore1, ignore2, ignore3, ignore4), 0)
 
-        x_train1, y_train1, x_train2, y_train2, x_train3, y_train3, x_train4, y_train4, x_val, y_val = batch
-        x_train = torch.cat((x_train1, x_train2, x_train3, x_train4), 0)
-        y_train = torch.cat((y_train1, y_train2, y_train3, y_train4), 0)        
+        else:
+            x_train1, y_train1, x_train2, y_train2, x_train3, y_train3, x_train4, y_train4, x_val, y_val = batch
+            x_train = torch.cat((x_train1, x_train2, x_train3, x_train4), 0)
+            y_train = torch.cat((y_train1, y_train2, y_train3, y_train4), 0)
 
         arch_loss = 0
         if search_stage:
             self.set_param_grad_state('Arch')
-            arch_logits, arch_loss, arch_subobj = self.arch_step(x_val, y_val, self.model, search_stage)
+            if self.hparams.task == 'cosmic':
+                arch_logits, arch_loss, arch_subobj = self.arch_step_cosmic(train_img, train_mask, train_ignore,
+                                                                            self.model, search_stage)
+            else:
+                arch_logits, arch_loss, arch_subobj = self.arch_step(x_val, y_val, self.model, search_stage)
 
         self.scheduler.step()
         self.set_param_grad_state('Weights')
-        logits, loss, subobj, mae = self.weight_step(x_train, y_train, self.model, search_stage)
-
+        if self.hparams.task == 'cosmic':
+            logits, loss, subobj, mae = self.weight_step_cosmic(train_img, train_mask, train_ignore, self.model, search_stage)
+        else:
+            logits, loss, subobj, mae = self.weight_step(x_train, y_train, self.model, search_stage)
 
         return {
                 'loss': loss,
@@ -349,23 +415,40 @@ class DenseNASSearchTrial(PyTorchTrial):
         sub_obj = 0.0
         error_sum = 0.0
         num_batches = 0
+
+        #for cr
+        meter = AverageMeter()
+        metric = np.zeros(4)
+
         self.set_param_grad_state('')
         with torch.no_grad():
             for batch in data_loader:
                 batch = self.context.to_device(batch)
-                input, target = batch
-                logits, loss, subobj, error = self.valid_step(input, target, self.model)
+                if self.hparams.task == 'cosmic':
+                    logits, loss, subobj = self.valid_step_cosmic(*batch, self.model)
+                    meter.update(loss, len(batch))
+                    metric += maskMetric(logits.reshape
+                                         (-1, 1, self.data_shape, self.data_shape).detach().cpu().numpy() > 0.5,
+                                         batch[:,1].cpu().numpy())
 
-                num_batches += 1
-                obj += loss
-                sub_obj += subobj
-                error_sum += error
+                else:
+                    input, target = batch
+                    logits, loss, subobj, error = self.valid_step(input, target, self.model)
+
+                    num_batches += 1
+                    obj += loss
+                    sub_obj += subobj
+                    error_sum += error
 
         test_obj = 0.0
         test_sub_obj = 0.0
         test_error_sum = 0.0
         test_num_batches = 100
         lr8, mlr8, lr12, mlr12 = 0.0, 0.0, 0.0, 0.0
+
+        test_meter = AverageMeter()
+        test_metric = np.zeros(4)
+
         if self.hparams.task == 'pde':
             test_num_batches = 0
             with torch.no_grad():
@@ -373,7 +456,6 @@ class DenseNASSearchTrial(PyTorchTrial):
                     batch = self.context.to_device(batch)
                     input, target = batch
                     logits, loss, subobj, error = self.valid_step(input, target, self.model)
-
                     test_num_batches += 1
                     test_obj += loss
                     test_sub_obj += subobj
@@ -384,7 +466,6 @@ class DenseNASSearchTrial(PyTorchTrial):
             L = 128
             pad_size = 10
             dropped_model = self.Dropped_Network(self.model)
-
             with torch.no_grad():
                 P = []
                 targets = []
@@ -436,6 +517,18 @@ class DenseNASSearchTrial(PyTorchTrial):
             print('Evaluating distances..')
             lr8, mlr8, lr12, mlr12 = calculate_mae(P, Y, self.my_list, self.length_dict)
 
+        elif self.hparams.task == 'cosmic':
+            with torch.no_grad():
+                for batch in self.test_loader:
+                    logits, loss, subobj = self.valid_step_cosmic(*batch, self.model)
+
+                    test_meter.update(loss, len(batch))
+                    test_metric += maskMetric(logits.reshape
+                                         (-1, 1, self.data_shape, self.data_shape).detach().cpu().numpy() > 0.5,
+                                              batch[:, 1].cpu().numpy())
+
+
+
         betas, head_alphas, stack_alphas = self.model.display_arch_params()
         derived_arch = self.arch_gener.derive_archs(betas, head_alphas, stack_alphas)
         derived_arch_str = '|\n'.join(map(str, derived_arch))
@@ -446,7 +539,30 @@ class DenseNASSearchTrial(PyTorchTrial):
         print("Derived Model Num Params = %.2fMB" % derived_params)
         print(derived_arch_str)
         print('num batches is: ', num_batches)
-        
+
+        if self.hparams.task == 'cosmic':
+            TP, TN, FP, FN = metric[0], metric[1], metric[2], metric[3]
+            TPR = TP / (TP + FN)
+            FPR = FP / (FP + TN)
+
+            results_cosmic = {'validation_error': meter.avg,
+                              'FPR': FPR,
+                              'TPR': TPR,
+                              }
+
+            TP, TN, FP, FN = test_metric[0], test_metric[1], test_metric[2], test_metric[3]
+            test_TPR = TP / (TP + FN)
+            test_FPR = FP / (FP + TN)
+
+            results_cosmic_test = {
+                'test_error': test_meter.avg,
+                'test_TPR': test_TPR,
+                'test_FPR': test_FPR,
+            }
+            results_cosmic.update(results_cosmic_test)
+
+            return results_cosmic
+
         return {
                 'validation_loss': obj / num_batches,
                 'validation_subloss': sub_obj / num_batches,
@@ -484,6 +600,24 @@ class DenseNASSearchTrial(PyTorchTrial):
 
         return logits.detach(), loss.item(), sub_obj.item(), mae
 
+    def weight_step_cosmic(self, img, mask, ignore, model, search_stage):
+        _, _ = model.sample_branch('head', self.weight_sample_num, search_stage=search_stage)
+        _, _ = model.sample_branch('stack', self.weight_sample_num, search_stage=search_stage)
+
+        self.weight_optimizer.zero_grad()
+        dropped_model = self.Dropped_Network(model)
+        img, mask, ignore = set_input(img, mask, ignore, self.data_shape)
+        logits, sub_obj = dropped_model(img)
+        sub_obj = torch.mean(sub_obj)
+        logits = logits.reshape(-1, 1, self.data_shape, self.data_shape)
+        loss = self.criterion(logits * (1 - ignore), mask * (1 - ignore))
+        mae = 0.0
+        loss.backward()
+        self.weight_optimizer.step()
+
+        return logits.detach(), loss.item(), sub_obj.item(), mae
+
+
     def set_param_grad_state(self, stage):
         def set_grad_state(params, state):
             for group in params:
@@ -517,6 +651,36 @@ class DenseNASSearchTrial(PyTorchTrial):
 
         elif self.hparams.task == 'protein':
             loss = self.criterion(logits, target_valid.squeeze())
+
+        if self.config.optim.if_sub_obj:
+            loss_sub_obj = torch.log(sub_obj) / torch.log(torch.tensor(self.config.optim.sub_obj.log_base))
+            sub_loss_factor = self.config.optim.sub_obj.sub_loss_factor
+            loss += loss_sub_obj * sub_loss_factor
+
+        loss.backward()
+        self.arch_optimizer.step()
+
+        self.rescale_arch_params(head_sampled_w_old,
+                                stack_sampled_w_old,
+                                alpha_head_index,
+                                alpha_stack_index,
+                                model)
+        return logits.detach(), loss.item(), sub_obj.item()
+
+    def arch_step_cosmic(self, img_valid, mask_valid, ignore_valid, model, search_stage):
+        head_sampled_w_old, alpha_head_index = \
+            model.sample_branch('head', 2, search_stage= search_stage)
+        stack_sampled_w_old, alpha_stack_index = \
+            model.sample_branch('stack', 2, search_stage= search_stage)
+        self.arch_optimizer.zero_grad()
+
+        img, mask, ignore = set_input(img_valid, mask_valid, ignore_valid, self.data_shape)
+        dropped_model = self.Dropped_Network(model)
+        logits, sub_obj = dropped_model(img)
+        #expand dim for logits
+        logits = logits.reshape(-1, 1, self.data_shape, self.data_shape)
+        loss = self.criterion(logits * (1 - ignore), mask * (1 - ignore))
+        sub_obj = torch.mean(sub_obj)
 
         if self.config.optim.if_sub_obj:
             loss_sub_obj = torch.log(sub_obj) / torch.log(torch.tensor(self.config.optim.sub_obj.log_base))
@@ -588,3 +752,16 @@ class DenseNASSearchTrial(PyTorchTrial):
             #    error = 0
 
         return logits, loss.item(), sub_obj.item(), mae
+
+    def valid_step_cosmic(self, img_val, mask_val, ignore_val, model):
+        _, _ = model.sample_branch('head', 1, training=False)
+        _, _ = model.sample_branch('stack', 1, training=False)
+        img, mask, ignore = set_input(img_val, mask_val, ignore_val, self.data_shape)
+        dropped_model = self.Dropped_Network(model)
+        logits, sub_obj = dropped_model(img)
+        sub_obj = torch.mean(sub_obj)
+
+        logits = logits.reshape(-1, 1, self.data_shape, self.data_shape)
+        loss = self.criterion(logits * (1 - ignore), mask * (1 - ignore))
+        return logits, loss.item(), sub_obj.item()
+

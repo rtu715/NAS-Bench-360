@@ -356,6 +356,9 @@ class GAEASearchTrial(PyTorchTrial):
 
             self.train_data = BilevelCosmicDataset(train_data) if self.hparams.train else train_data
 
+        else:
+            raise NotImplementedError
+
         train_queue = DataLoader(
             self.train_data,
             batch_size=self.context.get_per_slot_batch_size(),
@@ -439,7 +442,6 @@ class GAEASearchTrial(PyTorchTrial):
         return None
 
 
-
     def build_test_data_loader(self) -> DataLoader:
         batch_size = self.context.get_per_slot_batch_size()
 
@@ -479,6 +481,9 @@ class GAEASearchTrial(PyTorchTrial):
             aug_sky = (-0.9,3)
             test_data = PairedDatasetImagePath(self.test_dirs[::], aug_sky[0], aug_sky[1], part=None)
             test_queue = DataLoader(test_data, batch_size=batch_size, shuffle=False, num_workers=8)
+
+        else:
+            raise NotImplementedError
 
         return test_queue
 

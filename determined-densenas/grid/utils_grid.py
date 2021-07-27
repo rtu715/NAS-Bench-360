@@ -315,3 +315,43 @@ def calculate_mae(PRED, YTRUE, pdb_list, length_dict):
 
     return (np.nanmean(mae_lr_d8_list), np.nanmean(mae_mlr_d8_list),
             np.nanmean(mae_lr_d12_list), np.nanmean(mae_mlr_d12_list))
+
+# deepCR val metric
+def maskMetric(PD, GT):
+    if len(PD.shape) == 2:
+        PD = PD.reshape(1, *PD.shape)
+    if len(GT.shape) == 2:
+        GT = GT.reshape(1, *GT.shape)
+    TP, TN, FP, FN = 0, 0, 0, 0
+    for i in range(GT.shape[0]):
+        P = GT[i].sum()
+        TP += (PD[i][GT[i] == 1] == 1).sum()
+        TN += (PD[i][GT[i] == 0] == 0).sum()
+        FP += (PD[i][GT[i] == 0] == 1).sum()
+        FN += (PD[i][GT[i] == 1] == 0).sum()
+    return np.array([TP, TN, FP, FN])
+
+
+def set_input(img, mask, ignore, shape):
+    dtype = torch.cuda.FloatTensor
+
+    img = img.type(dtype).view(-1, 1, shape, shape)
+    mask = mask.type(dtype).view(-1, 1, shape, shape)
+    ignore = ignore.type(dtype).view(-1, 1, shape, shape)
+
+    return img, mask, ignore
+
+class AverageMeter(object):
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.avg = 0
+        self.sum = 0
+        self.cnt = 0
+
+    def update(self, val, n=1):
+        self.cur = val
+        self.sum += val * n
+        self.cnt += n
+        self.avg = self.sum / self.cnt

@@ -48,7 +48,7 @@ min_validation_period:
 min_checkpoint_period:
   epochs: 5
 
-records_per_epoch: 3000c
+records_per_epoch: 4347
 searcher:
   name: single
   metric: validation_error 

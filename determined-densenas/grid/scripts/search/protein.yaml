@@ -1,13 +1,10 @@
-description: protein_densenas_search_seed2
+description: protein_densenas_search
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
-  registry_auth:
-    username: renbotu
-    password: 980715tutubo
 
 reproducibility:
-  experiment_seed: 2
+  experiment_seed: 0
 
 data:
   download_dir: /data

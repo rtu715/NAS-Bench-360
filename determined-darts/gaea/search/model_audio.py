@@ -51,16 +51,6 @@ class GAEASearchTrial(PyTorchTrial):
         self.hparams = utils.AttrDict(trial_context.get_hparams())
         self.last_epoch = 0
 
-        '''
-        self.download_directory = tempfile.mkdtemp()
-
-        if self.hparams.task == 'spherical':
-            path = '/workspace/tasks/spherical/s2_mnist.gz'
-            self.train_data, self.test_data = utils.load_spherical_data(path, self.context.get_per_slot_batch_size())
-
-        if self.hparams.task == 'sEMG':
-            self.download_directory = '/workspace/tasks/MyoArmbandDataset/PyTorchImplementation/sEMG'
-        '''
         self.download_directory = self.download_data_from_s3()
 
         dataset_hypers = {'audio': (200, 1)}
@@ -182,22 +172,6 @@ class GAEASearchTrial(PyTorchTrial):
             "arch_loss": arch_loss,
         }
 
-    '''
-    def evaluate_batch(self, batch: TorchData) -> Dict[str, Any]:
-        input, target = batch
-        logits = self.model(input)
-        loss = self.model._loss(input, target)
-        top1, top5 = utils.accuracy(logits, target, topk=(1, 5))
-
-        test_input, test_target = next(iter(self.test_loader))
-        test_input, test_target = test_input.cuda(), test_target.cuda()
-        test_logits = self.model(test_input)
-        test_loss = self.model._loss(test_input, test_target)
-        test_top1, test_top5 = utils.accuracy(test_logits, test_target, topk=(1, 5))
-
-        return {"loss": loss, "top1_accuracy": top1, "top5_accuracy": top5, "test_loss": test_loss,
-                "top1_accuracy_test": test_top1, "top5_accuracy_test": test_top5}
-    '''
     def evaluate_full_dataset(
         self, data_loader: torch.utils.data.DataLoader
     ) -> Dict[str, Any]:

@@ -1,4 +1,4 @@
-description: scifar100_densenas_search
+description: FSD50k_densenas_search
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -18,28 +18,28 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-  task: scifar100 
+  task: audio
   train: true
   permute: false
-  num_examples: 8000
+  num_examples: 8193
 
   net_type: res
-  #global_batch_size: 256
-  global_batch_size: 64
+  global_batch_size: 16
 
 resources:
   slots_per_trial: 1
 
 min_validation_period:
-  epochs: 5
+  epochs: 10
 
 min_checkpoint_period:
   epochs: 5
 
-records_per_epoch: 8000 
+records_per_epoch: 8193
+
 searcher:
   name: single
-  metric: validation_accuracy
+  metric: validation_mAP
   smaller_is_better: false
   max_length:
     epochs: 70
@@ -47,6 +47,6 @@ searcher:
 optimizations:
   aggregation_frequency:  1
 
-max_restarts: 10
+max_restarts: 100
 
-entrypoint: model_bilevel:DenseNASSearchTrial
+entrypoint: model_bilevel_audio:DenseNASSearchTrial

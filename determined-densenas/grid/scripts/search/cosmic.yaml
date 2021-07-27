@@ -1,4 +1,4 @@
-description: scifar100_densenas_search
+description: cosmic_densenas_search
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -18,29 +18,29 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-  task: scifar100 
+  task: protein
   train: true
-  permute: false
-  num_examples: 8000
+  sub: 5
+  num_examples: 869
 
   net_type: res
-  #global_batch_size: 256
-  global_batch_size: 64
+  global_batch_size: 1
 
 resources:
   slots_per_trial: 1
 
 min_validation_period:
-  epochs: 5
+  epochs: 10
 
 min_checkpoint_period:
   epochs: 5
 
-records_per_epoch: 8000 
+records_per_epoch: 869
+#from 4347/5
+
 searcher:
   name: single
-  metric: validation_accuracy
-  smaller_is_better: false
+  metric: validation_error
   max_length:
     epochs: 70
 
@@ -49,4 +49,4 @@ optimizations:
 
 max_restarts: 10
 
-entrypoint: model_bilevel:DenseNASSearchTrial
+entrypoint: search_grid:DenseNASSearchTrial

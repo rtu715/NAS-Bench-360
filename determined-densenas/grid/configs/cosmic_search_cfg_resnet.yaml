@@ -17,26 +17,26 @@ search_params:
 
     adjoin_connect_nums: [10, 10, 10, 10, 10]
     net_scale:
-        chs: [32, 
-            48, 56, 64, 
-            72, 96, 112, 
-            128, 144, 160, 176, 192, 208, 224] 
-        fm_sizes: [60, 
-            30, 30, 30, 
-            15, 15, 15, 
-            7, 7, 7, 7, 7, 7, 7]
+        chs: [32,
+            48, 56, 64,
+            72, 96, 112
+            ]
+
+        fm_sizes: [256,
+            256, 256, 256,
+            256, 256, 256
+            ]
         stage: [0, 
             1, 1, 1, 
             2, 2, 2, 
-            3, 3, 3, 3, 4, 4, 4,
-            5]
+            3]
         num_layers: [0, 
-            0, 0, 0,
+            1, 1, 1,
             5, 5, 5,
-            15, 15, 5, 5, 1, 1, 1]
+            1]
 
 optim:
-    last_dim: 224
+    last_dim: 112
     init_dim: 32
     bn_momentum: 0.1
     bn_eps: 0.001
@@ -64,11 +64,6 @@ optim:
         load_epoch: 9
 
 data:
-    dataset: spherical
-    patch_dataset: False
-    input_size: (3,60,60)
-    type_of_data_aug: random_sized
-    color: False
-    random_sized:
-        min_scale: 0.08
-        
+    dataset: cosmic
+    input_size: (1,256,256)
+

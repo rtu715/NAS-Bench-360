@@ -1,4 +1,4 @@
-description: scifar100_densenas_search
+description: cosmic_densenas_eval
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -18,35 +18,38 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-  task: scifar100 
-  train: true
-  permute: false
-  num_examples: 8000
+  task: cosmic
+  train: false
+  sub: 5
+  num_examples: 4830
 
   net_type: res
-  #global_batch_size: 256
-  global_batch_size: 64
+  net_config: "[[32, 64], 'basic_block', ['basic_block'], 1, 1]|
+  [[64, 112], 'basic_block', ['basic_block', 'basic_block', 'basic_block', 'basic_block'], 4, 1]"
+
+  global_batch_size: 8
+  #bs = 4 * 5 = 20 same as search
 
 resources:
   slots_per_trial: 1
 
 min_validation_period:
-  epochs: 5
+  epochs: 10
 
 min_checkpoint_period:
   epochs: 5
 
-records_per_epoch: 8000 
+records_per_epoch: 4830
 searcher:
   name: single
-  metric: validation_accuracy
+  metric: TPR
   smaller_is_better: false
   max_length:
-    epochs: 70
+    epochs: 240
 
 optimizations:
   aggregation_frequency:  1
 
 max_restarts: 10
 
-entrypoint: model_bilevel:DenseNASSearchTrial
+entrypoint: retrain_grid:DenseNASTrainTrial

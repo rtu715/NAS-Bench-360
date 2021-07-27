@@ -45,7 +45,7 @@ min_validation_period:
 min_checkpoint_period:
   epochs: 5
 
-records_per_epoch: 1500
+records_per_epoch: 2173
 
 searcher:
   name: single

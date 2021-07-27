@@ -26,6 +26,10 @@ def download_from_s3(s3_bucket, task, download_dir):
     elif task =='cifar10' or task =='cifar100': 
         return
 
+    elif task == 'audio':
+        data_files = ['audio.zip']
+        s3_folder = 'audio'
+
     else:
         raise NotImplementedError
 
@@ -37,6 +41,14 @@ def download_from_s3(s3_bucket, task, download_dir):
             s3_path = data_file
         if not os.path.exists(filepath):
             s3.download_file(s3_bucket, s3_path, filepath)    
+
+    #extract zip if audio
+    if task == 'audio' and not os.path.exists(os.path.join(download_dir, 'data')):
+        #raise ValueError('Check dir')
+        os.mkdir(os.path.join(download_dir,'data'))
+        import zipfile
+        with zipfile.ZipFile(os.path.join(download_dir, 'audio.zip'), 'r') as zip_ref:
+            zip_ref.extractall(os.path.join(download_dir, 'data'))
 
     return
 
