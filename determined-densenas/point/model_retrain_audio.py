@@ -56,8 +56,7 @@ class DenseNASTrainTrial(PyTorchTrial):
         cudnn.benchmark = True
         cudnn.enabled = True
 
-        self.criterion = nn.CrossEntropyLoss()
-        self.criterion = self.criterion.cuda()
+        self.criterion = nn.BCEWithLogitsLoss().cuda()
 
         config.net_config, config.net_type = self.hparams.net_config, self.hparams.net_type
         derivedNetwork = getattr(model_derived, '%s_Net' % self.hparams.net_type.upper())
@@ -93,8 +92,8 @@ class DenseNASTrainTrial(PyTorchTrial):
         download_directory = f"/tmp/data-rank{self.context.distributed.get_rank()}"
         s3 = boto3.client("s3")
         os.makedirs(download_directory, exist_ok=True)
-
         download_from_s3(s3_bucket, self.hparams.task, download_directory)
+        
 
         self.train_data, _, self.val_data = load_data(self.hparams.task, download_directory, False, self.hparams.permute)
 
@@ -143,6 +142,7 @@ class DenseNASTrainTrial(PyTorchTrial):
                 input, target = batch
                 n = input.size(0)
                 logits = self.model(input)
+                logits = logits.mean(0).unsqueeze(0)
                 loss = self.criterion(logits, target)
                 obj.update(loss, n)
                 logits_sigmoid = torch.sigmoid(logits)

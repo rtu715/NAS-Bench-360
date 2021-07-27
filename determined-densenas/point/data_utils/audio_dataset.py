@@ -571,9 +571,9 @@ class SpectrogramDataset(Dataset):
         if self.mixer is not None:
             real, final_label = self.mixer(self, real, label_tensor)
             if self.mode != "multiclass":
-                real = real[:, 1:]
+        #        real = real[:, 1:]
                 return real, final_label
-        real = real[:, 1:]
+        #real = real[:, 1:]
         return real, label_tensor
 
     def __parse_labels__(self, lbls: str) -> torch.Tensor:
@@ -656,20 +656,19 @@ class FSD50kEvalDataset(Dataset):
         if self.transform is not None:
             real = self.transform(real)
 
-        real = real[:, 1:]
+        #real = real[:, 1:]
         return real, comp, label_tensor
 
     def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:
         tgt_ext = self.unique_exts[index]
         idxs = np.where(self.exts == tgt_ext)[0]
-
         tensors = []
         label_tensors = []
         for idx in idxs:
             real, comp, label_tensor = self.__get_item_helper__(idx)
             tensors.append(real.unsqueeze(0).unsqueeze(0))
             label_tensors.append(label_tensor.unsqueeze(0))
-
+            
         tensors = torch.cat(tensors)
         return tensors, label_tensors[0]
 

@@ -24,8 +24,8 @@ hyperparameters:
   num_examples: 4830
 
   net_type: res
-  net_config: "[[32, 64], 'basic_block', ['basic_block'], 1, 1]|
-  [[64, 112], 'basic_block', ['basic_block', 'basic_block', 'basic_block', 'basic_block'], 4, 1]"
+  net_config: "[[32, 40], 'basic_block', ['basic_block'], 1, 1]|
+  [[40, 80], 'basic_block', ['basic_block', 'basic_block', 'basic_block', 'basic_block'], 4, 1]"
 
   global_batch_size: 8
   #bs = 4 * 5 = 20 same as search

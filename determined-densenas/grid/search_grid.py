@@ -68,6 +68,7 @@ class DenseNASSearchTrial(PyTorchTrial):
             self.in_channels = 57
 
         elif self.hparams.task == 'cosmic':
+            merge_cfg_from_file('configs/cosmic_search_cfg_resnet.yaml', cfg)
             input_shape = (1, 256, 256)
             self.criterion = nn.BCEWithLogitsLoss()
             self.in_channels = 1
@@ -243,7 +244,7 @@ class DenseNASSearchTrial(PyTorchTrial):
 
         elif self.hparams.task == 'cosmic':
             # extract tar file and get directories
-            # base_dir = '/workspace/tasks/cosmic/deepCR.ACS-WFC'
+            #base_dir = '/tmp/data-rank0'
             base_dir = self.download_directory
             print(base_dir)
 
@@ -277,7 +278,7 @@ class DenseNASSearchTrial(PyTorchTrial):
             self.train_data,
             batch_size=self.context.get_per_slot_batch_size(),
             shuffle=True,
-            num_workers=2,
+            num_workers=8,
         )
         return train_queue
 
@@ -320,6 +321,7 @@ class DenseNASSearchTrial(PyTorchTrial):
 
     def build_test_data_loader(self) -> DataLoader:
 
+        batch_size = self.context.get_per_slot_batch_size()
         if self.hparams.task == 'pde':
             ntest = 100
             s = self.s
@@ -332,7 +334,6 @@ class DenseNASSearchTrial(PyTorchTrial):
 
             x_test = self.x_normalizer.encode(x_test)
             x_test = torch.cat([x_test.reshape(ntest, s, s, 1), self.grid.repeat(ntest, 1, 1, 1)], dim=3)
-            batch_size = self.context.get_per_slot_batch_size()
 
             test_queue = DataLoader(torch.utils.data.TensorDataset(x_test, y_test),
                                     batch_size=batch_size, shuffle=False, num_workers=2, )
@@ -426,10 +427,11 @@ class DenseNASSearchTrial(PyTorchTrial):
                 batch = self.context.to_device(batch)
                 if self.hparams.task == 'cosmic':
                     logits, loss, subobj = self.valid_step_cosmic(*batch, self.model)
-                    meter.update(loss, len(batch))
+                    _, mask, _ = set_input(*batch, self.data_shape)
+                    meter.update(loss, mask.shape[0])
                     metric += maskMetric(logits.reshape
                                          (-1, 1, self.data_shape, self.data_shape).detach().cpu().numpy() > 0.5,
-                                         batch[:,1].cpu().numpy())
+                                         mask.cpu().numpy())
 
                 else:
                     input, target = batch
@@ -521,11 +523,11 @@ class DenseNASSearchTrial(PyTorchTrial):
             with torch.no_grad():
                 for batch in self.test_loader:
                     logits, loss, subobj = self.valid_step_cosmic(*batch, self.model)
-
-                    test_meter.update(loss, len(batch))
+                    _, mask, _ = set_input(*batch, self.data_shape)
+                    test_meter.update(loss, mask.shape[0])
                     test_metric += maskMetric(logits.reshape
                                          (-1, 1, self.data_shape, self.data_shape).detach().cpu().numpy() > 0.5,
-                                              batch[:, 1].cpu().numpy())
+                                              mask.cpu().numpy())
 
 
 

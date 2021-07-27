@@ -1,4 +1,4 @@
-description: FSD50k_densenas_search
+description: FSD50k_densenas_eval
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -24,8 +24,12 @@ hyperparameters:
   num_examples: 40966
 
   net_type: res
-  global_batch_size: 64
+  global_batch_size: 128
 
+  net_config: "[[32, 64], 'basic_block', [], 0, 1]|
+[[64, 112], 'basic_block', [], 0, 2]|
+[[112, 176], 'basic_block', ['basic_block'], 1, 2]|
+[[176, 224], 'basic_block', [], 0, 1]"
 resources:
   slots_per_trial: 1
 
@@ -42,11 +46,11 @@ searcher:
   metric: test_mAP
   smaller_is_better: false
   max_length:
-    epochs: 70
+    epochs: 240
 
 optimizations:
   aggregation_frequency:  1
 
 max_restarts: 100
 
-entrypoint: model_bilevel_audio:DenseNASSearchTrial
+entrypoint: model_retrain_audio:DenseNASTrainTrial

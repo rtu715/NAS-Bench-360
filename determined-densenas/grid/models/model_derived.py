@@ -138,7 +138,7 @@ class RES_Net(nn.Module):
         self.net_config = parse_net_config(net_config)
         self.in_chs = self.net_config[0][0][0]
         self.dataset = task
-        dataset_hypers = {'pde': (1, 3), 'protein': (1, 57)}
+        dataset_hypers = {'pde': (1, 3), 'protein': (1, 57), 'cosmic': (1,1)}
 
         n_classes, in_channels = dataset_hypers[self.dataset]
         self._num_classes = n_classes

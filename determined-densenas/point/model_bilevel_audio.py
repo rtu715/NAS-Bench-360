@@ -167,7 +167,6 @@ class DenseNASSearchTrial(PyTorchTrial):
     def build_validation_data_loader(self) -> DataLoader:
 
         valset = self.val_data
-
         return DataLoader(valset, sampler=None, num_workers=4,
                           collate_fn=_collate_fn_eval,
                           shuffle=False, batch_size=1,
@@ -330,9 +329,9 @@ class DenseNASSearchTrial(PyTorchTrial):
     def valid_step(self, input_valid, target_valid, model):
         _, _ = model.sample_branch('head', 1, training=False)
         _, _ = model.sample_branch('stack', 1, training=False)
-
         dropped_model = self.Dropped_Network(model)
         logits, sub_obj = dropped_model(input_valid)
+        logits = logits.mean(0).unsqueeze(0)
         sub_obj = torch.mean(sub_obj)
         loss = self.criterion(logits, target_valid)
 

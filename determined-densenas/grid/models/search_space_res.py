@@ -15,7 +15,7 @@ class Network(BaseSearchSpace):
         if dilation > 1:
             raise NotImplementedError("Dilation > 1 not supported in BasicBlock")
 
-        dataset_hypers = {'pde': (1, 3), 'protein': (1, 57)}
+        dataset_hypers = {'pde': (1, 3), 'protein': (1, 57), 'cosmic': (1,1)}
         n_classes, in_channels = dataset_hypers[dataset]
         # Both self.conv1 and self.downsample layers downsample the input when stride != 1
         self.input_block = nn.Sequential(

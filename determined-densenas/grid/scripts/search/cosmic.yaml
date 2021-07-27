@@ -18,7 +18,7 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-  task: protein
+  task: cosmic
   train: true
   sub: 5
   num_examples: 869

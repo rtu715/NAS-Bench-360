@@ -139,7 +139,7 @@ class RES_Net(nn.Module):
         self.in_chs = self.net_config[0][0][0]
         self.dataset = task
         dataset_hypers = {'sEMG': (7, 1), 'ninapro': (18, 1), 'cifar10': (10, 3),
-                          'smnist': (10, 1), 'cifar100':(100, 3), 'scifar100': (100, 3)}
+                'smnist': (10, 1), 'cifar100':(100, 3), 'scifar100': (100, 3), 'audio':(200,1)}
 
         n_classes, in_channels = dataset_hypers[self.dataset]
         self._num_classes = n_classes

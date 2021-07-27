@@ -96,7 +96,7 @@ class DenseNASTrainTrial(PyTorchTrial):
 
         self.config = config
         self.download_directory = self.download_data_from_s3()
-
+        #self.download_directory = '/tmp/data-rank0'
     def download_data_from_s3(self):
         '''Download pde data from s3 to store in temp directory'''
 

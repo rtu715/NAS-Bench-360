@@ -16,7 +16,7 @@ class Network(BaseSearchSpace):
             raise NotImplementedError("Dilation > 1 not supported in BasicBlock")
 
         dataset_hypers = {'sEMG': (7, 1), 'ninapro': (18, 1), 'cifar10': (10, 3),
-                          'smnist': (10, 1), 'cifar100':(100, 3), 'scifar100': (100, 3)}
+                'smnist': (10, 1), 'cifar100':(100, 3), 'scifar100': (100, 3), 'audio':(200, 1)}
 
         n_classes, in_channels = dataset_hypers[dataset]
         # Both self.conv1 and self.downsample layers downsample the input when stride != 1

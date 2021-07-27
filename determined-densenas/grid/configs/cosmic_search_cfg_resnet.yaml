@@ -18,8 +18,8 @@ search_params:
     adjoin_connect_nums: [10, 10, 10, 10, 10]
     net_scale:
         chs: [32,
-            48, 56, 64,
-            72, 96, 112
+            40, 48, 56,
+            64, 72, 80,
             ]
 
         fm_sizes: [256,
@@ -36,7 +36,7 @@ search_params:
             1]
 
 optim:
-    last_dim: 112
+    last_dim: 88
     init_dim: 32
     bn_momentum: 0.1
     bn_eps: 0.001
