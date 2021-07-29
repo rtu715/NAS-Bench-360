@@ -11,9 +11,10 @@ import torch.utils.data as data_utils
 from torch.utils.data import Dataset
 
 class ECGDataset(Dataset):
-    def __init__(self, data, label):
+    def __init__(self, data, label, pid=None):
         self.data = data
         self.label = label
+        self.pid = pid
 
     def __getitem__(self, index):
         return (torch.tensor(self.data[index], dtype=torch.float), torch.tensor(self.label[index], dtype=torch.long))
@@ -22,7 +23,7 @@ class ECGDataset(Dataset):
         return len(self.data)
 
 
-def load_data(task, path, train=True, permute=False):
+def load_data(task, path, train=True):
     if task == 'ECG':
         return load_ECG_data(path, train)
     else:
@@ -77,7 +78,7 @@ def read_data_physionet_4(path, window_size=3000, stride=500):
     X_test = np.expand_dims(X_test, 1)
 
     trainset = ECGDataset(X_train, Y_train)
-    testset = ECGDataset(X_test, Y_test)
+    testset = ECGDataset(X_test, Y_test, pid_test)
 
     return trainset, testset#, pid_test
 
@@ -130,8 +131,8 @@ def read_data_physionet_4_with_val(path, window_size=3000, stride=500):
     X_test = np.expand_dims(X_test, 1)
 
     trainset = ECGDataset(X_train, Y_train)
-    valset = ECGDataset(X_val, Y_val)
-    testset = ECGDataset(X_test, Y_test)
+    valset = ECGDataset(X_val, Y_val, pid_val)
+    testset = ECGDataset(X_test, Y_test, pid_test)
 
     return trainset, valset, testset#, pid_val, pid_test
 

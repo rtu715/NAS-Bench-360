@@ -8,3 +8,4 @@ save_temp
 */data
 */*.zip
 */deepCR.ACS-WFC
+*/*/*/*.pkl

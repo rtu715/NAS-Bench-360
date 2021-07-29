@@ -61,7 +61,7 @@ class DilConv(nn.Module):
                 bias=False,
             ),
             nn.Conv1d(C_in, C_out, kernel_size=1, padding=0, bias=False),
-            nn.BatchNorm2d(C_out, affine=affine),
+            nn.BatchNorm1d(C_out, affine=affine),
         )
 
     def forward(self, x):
