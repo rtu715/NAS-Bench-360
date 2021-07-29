@@ -9,6 +9,8 @@ Datasets in the benchmark:
 - Ninapro DB5 (Hand-gesture classification)
 - Darcy Flow (Partial differential equation solver)
 - PSICOV (Protein sequence distance prediction)
+- FSD50k (Sound event classification)
+- Cosmic (Cosmic ray identification and replacement)
 
 ## Prerequisites 
 We use the open-source [Determined](https://docs.determined.ai/latest/how-to/installation/aws.html?highlight=det%20deploy) 
@@ -37,8 +39,8 @@ When running experiments, a docker image is automatically pulled from docker hub
 ## Experiment Reproduction
 We provide pytorch implementations for two state-of-the-art NAS algorithms: GAEA PC-DARTS ([paper link](https://arxiv.org/pdf/2004.07802.pdf))
 and DenseNAS ([paper link](https://arxiv.org/abs/1906.09607)), 
-which can be found inside each folder with the associated name, i.e. "determined-darts/" for GAEA PC-DARTS 
-and "determined-densenas/" for DenseNAS.
+which can be found inside each folder with the associated name, i.e. "darts/" for GAEA PC-DARTS 
+and "densenas/" for DenseNAS.
 
 We also implement procedure for running and tuning hyperparameters of the backbone architecture Wide ResNet ([paper link]( http://arxiv.org/abs/1605.07146)), in "backbone/".
 

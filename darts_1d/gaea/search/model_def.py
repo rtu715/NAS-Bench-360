@@ -6,6 +6,7 @@ import tempfile
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torchvision.datasets as dset
 from torch.optim.lr_scheduler import CosineAnnealingLR
 
 from determined.pytorch import (
@@ -19,12 +20,10 @@ from determined.pytorch import (
 from data import BilevelDataset
 from model_search import Network
 from optimizer import EG
-
-import utils
+from utils import AttrDict, accuracy, AverageMeter
 
 from data_utils.load_data import load_data
-from data_utils.download_data import download_from_s3
-
+#from data_utils.download_data import download_from_s3
 
 
 TorchData = Union[Dict[str, torch.Tensor], Sequence[torch.Tensor], torch.Tensor]
@@ -41,43 +40,28 @@ class GenotypeCallback(PyTorchCallback):
 class GAEASearchTrial(PyTorchTrial):
     def __init__(self, trial_context: PyTorchTrialContext) -> None:
         self.context = trial_context
-        #self.data_config = trial_context.get_data_config()
-        self.hparams = utils.AttrDict(trial_context.get_hparams())
+        self.hparams = AttrDict(trial_context.get_hparams())
         self.last_epoch = 0
 
-        '''
-        self.download_directory = tempfile.mkdtemp()
-
-        if self.hparams.task == 'spherical':
-            path = '/workspace/tasks/spherical/s2_mnist.gz'
-            self.train_data, self.test_data = utils.load_spherical_data(path, self.context.get_per_slot_batch_size())
-
-        if self.hparams.task == 'sEMG':
-            self.download_directory = '/workspace/tasks/MyoArmbandDataset/PyTorchImplementation/sEMG'
-        '''
         self.download_directory = self.download_data_from_s3()
-
-        dataset_hypers = {'sEMG': (7, 1), 'ninapro': (18, 1), 'cifar10': (10, 3), 'smnist': (10, 1), 'cifar100':(100, 3), 'scifar100': (100, 3)}
-        n_classes, in_channels = dataset_hypers[self.hparams.task]
-
 
         # Initialize the models.
         criterion = nn.CrossEntropyLoss()
         self.model = self.context.wrap_model(
             Network(
                 self.hparams.init_channels,
-                n_classes,
+                self.hparams.n_classes,
                 self.hparams.layers,
                 criterion,
                 self.hparams.nodes,
                 k=self.hparams.shuffle_factor,
-                in_channels = in_channels,
+                in_channels=1,
             )
         )
 
         total_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)/ 1e6
         print('Parameter size in MB: ', total_params)
-        
+
         # Initialize the optimizers and learning rate scheduler.
         self.ws_opt = self.context.wrap_optimizer(
             torch.optim.SGD(
@@ -103,7 +87,7 @@ class GAEASearchTrial(PyTorchTrial):
             ),
             step_mode=LRScheduler.StepMode.STEP_EVERY_EPOCH,
         )
-    
+
     def download_data_from_s3(self):
         '''Download data from s3 to store in temp directory'''
 
@@ -112,7 +96,7 @@ class GAEASearchTrial(PyTorchTrial):
         s3 = boto3.client("s3")
         os.makedirs(download_directory, exist_ok=True)
 
-        download_from_s3(s3_bucket, self.hparams.task, download_directory)
+        #download_from_s3(s3_bucket, self.hparams.task, download_directory)
 
         self.train_data, self.val_data, self.test_data = load_data(self.hparams.task, download_directory, True, self.hparams.permute)
         self.build_test_data_loader(download_directory)
@@ -120,26 +104,19 @@ class GAEASearchTrial(PyTorchTrial):
         return download_directory
 
     def build_training_data_loader(self) -> DataLoader:
-
-        trainset = self.train_data
-        bilevel = BilevelDataset(trainset)
+        """
+        For bi-level NAS, we'll need each instance from the dataloader to have one image
+        for training shared-weights and another for updating architecture parameters.
+        """
+        bilevel = BilevelDataset(self.train_data)
         self.train_data = bilevel
         print('Length of bilevel dataset: ', len(bilevel))
 
         return DataLoader(bilevel, batch_size=self.context.get_per_slot_batch_size(), shuffle=True, num_workers=2)
 
     def build_validation_data_loader(self) -> DataLoader:
-
         valset = self.val_data
-
         return DataLoader(valset, batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=2)
-
-    def build_test_data_loader(self, download_directory):
-        
-        testset = self.test_data
-
-        self.test_loader = torch.utils.data.DataLoader(testset, batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=2)
-        return 
 
     def train_batch(
         self, batch: TorchData, epoch_idx: int, batch_idx: int
@@ -148,6 +125,7 @@ class GAEASearchTrial(PyTorchTrial):
             self.train_data.shuffle_val_inds()
         self.last_epoch = epoch_idx
         x_train, y_train, x_val, y_val = batch
+
         # Train shared-weights
         for a in self.model.arch_parameters():
             a.requires_grad = False
@@ -179,28 +157,11 @@ class GAEASearchTrial(PyTorchTrial):
             "arch_loss": arch_loss,
         }
 
-    '''
-    def evaluate_batch(self, batch: TorchData) -> Dict[str, Any]:
-        input, target = batch
-        logits = self.model(input)
-        loss = self.model._loss(input, target)
-        top1, top5 = utils.accuracy(logits, target, topk=(1, 5))
-
-        test_input, test_target = next(iter(self.test_loader))
-        test_input, test_target = test_input.cuda(), test_target.cuda()
-        test_logits = self.model(test_input)
-        test_loss = self.model._loss(test_input, test_target)
-        test_top1, test_top5 = utils.accuracy(test_logits, test_target, topk=(1, 5))
-
-        return {"loss": loss, "top1_accuracy": top1, "top5_accuracy": top5, "test_loss": test_loss,
-                "top1_accuracy_test": test_top1, "top5_accuracy_test": test_top5}
-    '''
     def evaluate_full_dataset(
         self, data_loader: torch.utils.data.DataLoader
     ) -> Dict[str, Any]:
-        acc_top1 = utils.AverageMeter()
-        acc_top5 = utils.AverageMeter()
-        loss_avg = utils.AverageMeter()
+        acc_top1 = AverageMeter()
+        loss_avg = AverageMeter()
 
         with torch.no_grad():
             for batch in data_loader:
@@ -209,39 +170,13 @@ class GAEASearchTrial(PyTorchTrial):
                 n = input.size(0)
                 logits = self.model(input)
                 loss = self.model._loss(input, target)
-                top1, top5 = utils.accuracy(logits, target, topk=(1, 5))
+                top1 = accuracy(logits, target, topk=(1,))
                 acc_top1.update(top1.item(), n)
-                acc_top5.update(top5.item(), n)
                 loss_avg.update(loss, n)
         results = {
             "loss": loss_avg.avg,
             "top1_accuracy": acc_top1.avg,
-            "top5_accuracy": acc_top5.avg,
         }
-
-
-        acc_top1 = utils.AverageMeter()
-        acc_top5 = utils.AverageMeter()
-        loss_avg = utils.AverageMeter()
-        with torch.no_grad():
-            for batch in self.test_loader:
-                batch = self.context.to_device(batch)
-                input, target = batch
-                n = input.size(0)
-                logits = self.model(input)
-                loss = self.model._loss(input, target)
-                top1, top5 = utils.accuracy(logits, target, topk=(1, 5))
-                acc_top1.update(top1.item(), n)
-                acc_top5.update(top5.item(), n)
-                loss_avg.update(loss, n)
-        results2 = {
-            "test_loss": loss_avg.avg,
-            "test_top1_accuracy": acc_top1.avg,
-            "test_top5_accuracy": acc_top5.avg,
-        }
-
-        results.update(results2)
-
         return results
 
     def build_callbacks(self):

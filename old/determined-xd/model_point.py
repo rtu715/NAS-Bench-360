@@ -2,8 +2,7 @@
 Determined model def example:
 https://github.com/determined-ai/determined/tree/master/examples/computer_vision/cifar10_pytorch
 '''
-import tempfile
-from typing import Any, Dict, Sequence, Tuple, Union, cast
+from typing import Any, Dict, Sequence, Union
 from functools import partial
 
 import os
@@ -16,7 +15,6 @@ from determined.pytorch import DataLoader, PyTorchTrial, PyTorchTrialContext, LR
 from backbone_pt import Backbone_Pt
 
 from xd.chrysalis import Chrysalis
-from xd.darts import Supernet
 from xd.nas import MixedOptimizer
 from xd.ops import Conv
 
