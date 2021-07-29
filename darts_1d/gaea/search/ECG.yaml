@@ -47,7 +47,7 @@ min_checkpoint_period:
 records_per_epoch: 20000
 searcher:
   name: single
-  metric: top1_accuracy
+  metric: score
   smaller_is_better: false
   max_length:
     epochs: 50
