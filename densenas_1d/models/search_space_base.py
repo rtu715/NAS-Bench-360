@@ -386,7 +386,8 @@ class Network(nn.Module):
         else:
             raise NotImplementedError
 
-        if len(data_shape) == 3:
+        #expand dim if shape is 2
+        if len(data_shape) == 2:
             input_data = torch.randn((1,) + tuple(data_shape))
         else:
             input_data = torch.randn(tuple(data_shape))

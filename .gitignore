@@ -9,3 +9,4 @@ save_temp
 */*.zip
 */deepCR.ACS-WFC
 */*/*/*.pkl
+**/*.pkl

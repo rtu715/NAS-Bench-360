@@ -35,7 +35,7 @@ from tools.config_yaml import merge_cfg_from_file, update_cfg_from_cfg
 from tools.lr_scheduler import get_lr_scheduler
 from tools.multadds_count import comp_multadds
 from data_utils.load_data import load_data
-from data_utils.download_data import download_from_s3
+#from data_utils.download_data import download_from_s3
 #from .optimizer import Optimizer
 #from .trainer import SearchTrainer
 from data import BilevelDataset
@@ -202,7 +202,6 @@ class DenseNASSearchTrial(PyTorchTrial):
                 input, target = batch
                 n = input.size(0)
                 logits, loss, subobj = self.valid_step(input, target, self.model)
-
                 #prec1, prec5 = utils.accuracy(logits, target, topk=(1,5))
                 obj.update(loss, n)
                 #top1.update(prec1.item(), n)
@@ -242,6 +241,7 @@ class DenseNASSearchTrial(PyTorchTrial):
         return {
                 'validation_loss': obj.avg,
                 'validation_subloss': sub_obj.avg,
+                'score': score,
                 #'validation_accuracy': top1.avg,
                 #'validation_top5': top5.avg
                 }
