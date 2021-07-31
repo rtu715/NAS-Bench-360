@@ -15,6 +15,7 @@ class ECGDataset(Dataset):
         self.data = data
         self.label = label
         self.pid = pid
+
     def __getitem__(self, index):
         return (torch.tensor(self.data[index], dtype=torch.float), torch.tensor(self.label[index], dtype=torch.long))
 
@@ -25,11 +26,55 @@ class ECGDataset(Dataset):
 def load_data(task, path, train=True):
     if task == 'ECG':
         return load_ECG_data(path, train)
+
+    elif task == 'satellite':
+        return load_satellite_data(path, train)
+
     else:
         raise NotImplementedError
 
 def load_ECG_data(path, train):
     return read_data_physionet_4_with_val(path) if train else read_data_physionet_4(path)
+
+def load_satellite_data(path, train):
+    train_file = os.path.join(path, 'satellite_train.npy')
+    test_file = os.path.join(path, 'satellite_test.npy')
+
+    all_train_data, all_train_labels = np.load(train_file, allow_pickle=True)[()]['data'], np.load(train_file)[()]['label']
+    test_data, test_labels = np.load(test_file, allow_pickle=True)[()]['data'], np.load(test_file)[()]['label']
+
+    #normalize data
+    all_train_data = (all_train_data - all_train_data.mean(axis=1, keepdims=True))/all_train_data.std(axis=1, keepdims=True)
+    test_data = (test_data - test_data.mean(axis=1, keepdims=True))/test_data.std(axis=1, keepdims=True)
+
+    #add dimension
+    all_train_data = np.expand_dims(all_train_data, 1)
+    test_data = np.expand_dims(test_data, 1)
+
+    #rerange labels to 0-23
+    all_train_labels = all_train_labels - 1
+    test_labels = test_labels - 1
+
+    #convert to tensor/longtensor
+    all_train_tensors, all_train_labeltensor = torch.from_numpy(all_train_data), \
+                                               torch.from_numpy(all_train_labels).type(torch.LongTensor)
+
+    test_tensors, test_labeltensor = torch.from_numpy(test_data), torch.from_numpy(test_labels).type(torch.LongTensor)
+    testset = data_utils.TensorDataset(test_tensors, test_labeltensor)
+
+    if train:
+        len_val = len(test_data)
+        train_tensors, train_labeltensor = all_train_tensors[:-len_val], all_train_labeltensor[:-len_val]
+        val_tensors, val_labeltensor = all_train_tensors[-len_val:], all_train_labeltensor[-len_val:]
+
+        trainset = data_utils.TensorDataset(train_tensors, train_labeltensor)
+        valset = data_utils.TensorDataset(val_tensors, val_labeltensor)
+
+        return trainset, valset, testset
+
+    trainset = data_utils.TensorDataset(all_train_tensors, all_train_labeltensor)
+
+    return trainset, None, testset
 
 def read_data_physionet_4(path, window_size=3000, stride=500):
 
@@ -79,7 +124,7 @@ def read_data_physionet_4(path, window_size=3000, stride=500):
     trainset = ECGDataset(X_train, Y_train)
     testset = ECGDataset(X_test, Y_test, pid_test)
 
-    return trainset, testset#, pid_test
+    return trainset, None, testset#, pid_test
 
 def read_data_physionet_4_with_val(path, window_size=3000, stride=500):
 

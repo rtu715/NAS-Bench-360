@@ -25,7 +25,7 @@ from optimizer import EG
 from utils import AttrDict, accuracy, AverageMeter
 
 from data_utils.load_data import load_data
-#from data_utils.download_data import download_from_s3
+from data_utils.download_data import download_from_s3
 
 
 TorchData = Union[Dict[str, torch.Tensor], Sequence[torch.Tensor], torch.Tensor]
@@ -94,14 +94,13 @@ class GAEASearchTrial(PyTorchTrial):
         '''Download data from s3 to store in temp directory'''
 
         s3_bucket = self.context.get_data_config()["bucket"]
-        #download_directory = f"/tmp/data-rank{self.context.distributed.get_rank()}"
+        download_directory = f"/tmp/data-rank{self.context.distributed.get_rank()}"
         s3 = boto3.client("s3")
-        #os.makedirs(download_directory, exist_ok=True)
+        os.makedirs(download_directory, exist_ok=True)
 
-        #download_from_s3(s3_bucket, self.hparams.task, download_directory)
-        download_directory = '.'
-        self.train_data, self.val_data, self.test_data = load_data(self.hparams.task, download_directory, True)
-        #self.build_test_data_loader(download_directory)
+        download_from_s3(s3_bucket, self.hparams.task, download_directory)
+        #download_directory = '.'
+        self.train_data, self.val_data, _ = load_data(self.hparams.task, download_directory, True)
 
         return download_directory
 
@@ -160,10 +159,20 @@ class GAEASearchTrial(PyTorchTrial):
         }
 
     def evaluate_full_dataset(
-        self, data_loader: torch.utils.data.DataLoader
+            self, data_loader: torch.utils.data.DataLoader
     ) -> Dict[str, Any]:
-        
-        acc_top1 = AverageMeter()
+        if self.hparams.task == 'ECG':
+            return self.evaluate_full_dataset_ECG(data_loader)
+
+        elif self.hparams.task == 'satellite':
+            return self.evaluate_full_dataset_satellite(data_loader)
+
+        return None
+
+    def evaluate_full_dataset_ECG(
+            self, data_loader: torch.utils.data.DataLoader
+    ) -> Dict[str, Any]:
+
         loss_avg = AverageMeter()
         all_pred_prob = []
         with torch.no_grad():
@@ -173,31 +182,57 @@ class GAEASearchTrial(PyTorchTrial):
                 n = input.size(0)
                 logits = self.model(input)
                 loss = self.model._loss(input, target)
-                #top1 = accuracy(logits, target, topk=(1,))
-                #acc_top1.update(top1.item(), n)
                 loss_avg.update(loss, n)
                 all_pred_prob.append(logits.cpu().data.numpy())
 
         all_pred_prob = np.concatenate(all_pred_prob)
         all_pred = np.argmax(all_pred_prob, axis=1)
+
         ## vote most common
         final_pred = []
         final_gt = []
         pid_test = self.val_data.pid
         for i_pid in np.unique(pid_test):
-            tmp_pred = all_pred[pid_test==i_pid]
-            tmp_gt = self.val_data.label[pid_test==i_pid]
+            tmp_pred = all_pred[pid_test == i_pid]
+            tmp_gt = self.val_data.label[pid_test == i_pid]
             final_pred.append(Counter(tmp_pred).most_common(1)[0][0])
             final_gt.append(Counter(tmp_gt).most_common(1)[0][0])
+
         ## classification report
         tmp_report = classification_report(final_gt, final_pred, output_dict=True)
         print(confusion_matrix(final_gt, final_pred))
-        f1_score = (tmp_report['0']['f1-score'] + tmp_report['1']['f1-score'] + tmp_report['2']['f1-score'] + tmp_report['3']['f1-score'])/4
-        
+        f1_score = (tmp_report['0']['f1-score'] + tmp_report['1']['f1-score'] + tmp_report['2']['f1-score'] +
+                    tmp_report['3']['f1-score']) / 4
+
         results = {
             "loss": loss_avg.avg,
-            #"top1_accuracy": acc_top1.avg,
             "score": f1_score,
+        }
+        return results
+
+    def evaluate_full_dataset_satellite(
+        self, data_loader: torch.utils.data.DataLoader
+    ) -> Dict[str, Any]:
+        
+        acc_top1 = AverageMeter()
+        acc_top5 = AverageMeter()
+        loss_avg = AverageMeter()
+        with torch.no_grad():
+            for batch in data_loader:
+                batch = self.context.to_device(batch)
+                input, target = batch
+                n = input.size(0)
+                logits = self.model(input)
+                loss = self.model._loss(input, target)
+                top1, top5 = accuracy(logits, target, topk=(1,5))
+                acc_top1.update(top1.item(), n)
+                acc_top5.update(top5.item(), n)
+                loss_avg.update(loss, n)
+
+        results = {
+            "loss": loss_avg.avg,
+            "top1_accuracy": acc_top1.avg,
+            "top5_accuracy": acc_top5.avg,
             }
         
         return results

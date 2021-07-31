@@ -35,7 +35,7 @@ from tools.config_yaml import merge_cfg_from_file, update_cfg_from_cfg
 from tools.lr_scheduler import get_lr_scheduler
 from tools.multadds_count import comp_multadds
 from data_utils.load_data import load_data
-#from data_utils.download_data import download_from_s3
+from data_utils.download_data import download_from_s3
 #from .optimizer import Optimizer
 #from .trainer import SearchTrainer
 from data import BilevelDataset
@@ -58,6 +58,10 @@ class DenseNASSearchTrial(PyTorchTrial):
         if self.hparams.task == 'ECG':
             merge_cfg_from_file('configs/ecg_search_cfg_resnet.yaml', cfg)
             input_shape = (1, 3000)
+
+        elif self.hparams.task == 'satellite':
+            merge_cfg_from_file('configs/satellite_search_cfg_resnet.yaml', cfg)
+            input_shape = (1, 46)
 
         else:
             raise NotImplementedError
@@ -96,8 +100,7 @@ class DenseNASSearchTrial(PyTorchTrial):
 
         total_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)/ 1e6
         print('Parameter size in MB: ', total_params)
-        #search_optim = Optimizer(super_model, criterion, config)
-        #self.opt = self.context.wrap_optimizer(search_optim)
+
         self.Dropped_Network = lambda model: Dropped_Network(
                         model, softmax_temp=config.search_params.softmax_temp)
 
@@ -121,9 +124,7 @@ class DenseNASSearchTrial(PyTorchTrial):
 
         scheduler = get_lr_scheduler(config, self.weight_optimizer, self.hparams.num_examples, self.context.get_per_slot_batch_size())
 
-        scheduler.last_step = 0 
-        #scheduler = CosineAnnealingLR(self.weight_optimizer, config.train_params.epochs, config.optim.min_lr)
-        #self.scheduler = self.context.wrap_lr_scheduler(scheduler, step_mode=LRScheduler.StepMode.STEP_EVERY_EPOCH)
+        scheduler.last_step = 0
         self.scheduler = self.context.wrap_lr_scheduler(scheduler, step_mode=LRScheduler.StepMode.MANUAL_STEP)
 
         self.config = config 
@@ -132,15 +133,15 @@ class DenseNASSearchTrial(PyTorchTrial):
     def download_data_from_s3(self):
         '''Download data from s3 to store in temp directory'''
 
-        #s3_bucket = self.context.get_data_config()["bucket"]
-        #download_directory = f"/tmp/data-rank{self.context.distributed.get_rank()}"
+        s3_bucket = self.context.get_data_config()["bucket"]
+        download_directory = f"/tmp/data-rank{self.context.distributed.get_rank()}"
         s3 = boto3.client("s3")
-        #os.makedirs(download_directory, exist_ok=True)
-        download_directory = '.'
+        os.makedirs(download_directory, exist_ok=True)
+        #download_directory = '.'
 
-        #download_from_s3(s3_bucket, self.hparams.task, download_directory)
+        download_from_s3(s3_bucket, self.hparams.task, download_directory)
 
-        self.train_data, self.val_data, self.test_data = load_data(self.hparams.task, download_directory, True)
+        self.train_data, self.val_data, _ = load_data(self.hparams.task, download_directory, True)
 
         return download_directory
 
@@ -178,20 +179,26 @@ class DenseNASSearchTrial(PyTorchTrial):
         self.scheduler.step()
         self.set_param_grad_state('Weights')
         logits, loss, subobj = self.weight_step(x_train, y_train, self.model, search_stage)
-        
-        #prec1, prec5 = utils.accuracy(logits, y_train, topk=(1,5))
 
         return {
                 'loss': loss,
                 'arch_loss': arch_loss,
                 }
 
+    def evaluate_full_dataset(
+            self, data_loader: torch.utils.data.DataLoader
+    ) -> Dict[str, Any]:
+        if self.hparams.task == 'ECG':
+            return self.evaluate_full_dataset_ECG(data_loader)
 
-    def evaluate_full_dataset(self, data_loader: torch.utils.data.DataLoader) -> Dict[str, Any]:
-        
+        elif self.hparams.task == 'satellite':
+            return self.evaluate_full_dataset_ECG(data_loader)
+
+        return None
+
+    def evaluate_full_dataset_ECG(self, data_loader: torch.utils.data.DataLoader) -> Dict[str, Any]:
+
         obj = utils.AverageMeter()
-        #top1 = utils.AverageMeter()
-        #top5 = utils.AverageMeter()
         sub_obj = utils.AverageMeter()
         all_pred_prob = []
 
@@ -202,17 +209,14 @@ class DenseNASSearchTrial(PyTorchTrial):
                 input, target = batch
                 n = input.size(0)
                 logits, loss, subobj = self.valid_step(input, target, self.model)
-                #prec1, prec5 = utils.accuracy(logits, target, topk=(1,5))
                 obj.update(loss, n)
-                #top1.update(prec1.item(), n)
-                #top5.update(prec5.item(), n)
                 sub_obj.update(subobj, n)
-
                 all_pred_prob.append(logits.cpu().data.numpy())
 
         '''for ecg validation'''
         all_pred_prob = np.concatenate(all_pred_prob)
         all_pred = np.argmax(all_pred_prob, axis=1)
+
         ## vote most common
         final_pred = []
         final_gt = []
@@ -222,6 +226,7 @@ class DenseNASSearchTrial(PyTorchTrial):
             tmp_gt = self.val_data.label[pid_test == i_pid]
             final_pred.append(Counter(tmp_pred).most_common(1)[0][0])
             final_gt.append(Counter(tmp_gt).most_common(1)[0][0])
+
         ## classification report
         tmp_report = classification_report(final_gt, final_pred, output_dict=True)
         print(confusion_matrix(final_gt, final_pred))
@@ -239,11 +244,46 @@ class DenseNASSearchTrial(PyTorchTrial):
         print(derived_arch_str)
 
         return {
+            'validation_loss': obj.avg,
+            'validation_subloss': sub_obj.avg,
+            'score': f1_score,
+        }
+
+    def evaluate_full_dataset_satellite(self, data_loader: torch.utils.data.DataLoader) -> Dict[str, Any]:
+        
+        obj = utils.AverageMeter()
+        top1 = utils.AverageMeter()
+        top5 = utils.AverageMeter()
+        sub_obj = utils.AverageMeter()
+
+        self.set_param_grad_state('')
+        with torch.no_grad():
+            for batch in data_loader:
+                batch = self.context.to_device(batch)
+                input, target = batch
+                n = input.size(0)
+                logits, loss, subobj = self.valid_step(input, target, self.model)
+                prec1, prec5 = utils.accuracy(logits, target, topk=(1,5))
+                obj.update(loss, n)
+                top1.update(prec1.item(), n)
+                top5.update(prec5.item(), n)
+                sub_obj.update(subobj, n)
+
+        betas, head_alphas, stack_alphas = self.model.display_arch_params()
+        derived_arch = self.arch_gener.derive_archs(betas, head_alphas, stack_alphas)
+        derived_arch_str = '|\n'.join(map(str, derived_arch))
+        derived_model = self.der_Net(derived_arch_str)
+        derived_flops = comp_multadds(derived_model, input_size=self.input_shape)
+        derived_params = utils.count_parameters_in_MB(derived_model)
+        print("Derived Model Mult-Adds = %.2fMB" % derived_flops)
+        print("Derived Model Num Params = %.2fMB" % derived_params)
+        print(derived_arch_str)
+
+        return {
                 'validation_loss': obj.avg,
                 'validation_subloss': sub_obj.avg,
-                'score': score,
-                #'validation_accuracy': top1.avg,
-                #'validation_top5': top5.avg
+                'validation_accuracy': top1.avg,
+                'validation_top5': top5.avg
                 }
         
 

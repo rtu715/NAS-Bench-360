@@ -5,6 +5,7 @@ import os
 import boto3
 
 import torchvision.transforms as transforms
+import numpy as np
 from torch import nn
 
 from determined.pytorch import (
@@ -15,7 +16,6 @@ from determined.pytorch import (
 )
 
 from model import Network
-from model import AuxNetworkCIFAR
 
 from utils import (
     RandAugment,
@@ -26,9 +26,8 @@ from utils import (
     AverageMeter,
 )
 from torch.optim.lr_scheduler import CosineAnnealingLR
-from lr_schedulers import *
-
-import utils
+from collections import Counter
+from sklearn.metrics import classification_report, confusion_matrix
 
 from data_utils.load_data import load_data
 from data_utils.download_data import download_from_s3
@@ -76,18 +75,12 @@ class GAEAEvalTrial(PyTorchTrial):
         )
 
     def build_model_from_config(self):
-
-        if self.context.get_hparam('permute'):
-            genotype = genotypes['cifar100_permuted']
-        else:
-            genotype = genotypes[self.context.get_hparam('task')]
-
-        #genotype = self.get_genotype_from_hps()
+        genotype = genotypes[self.context.get_hparam('task')]
 
         print(self.context.get_hparam('task'))
         print(genotype)
 
-        dataset_hypers = {'sEMG': (7, 1), 'ninapro': (18, 1), 'cifar10': (10, 3), 'smnist': (10, 1), 'cifar100': (100, 3), 'scifar100': (100, 3)}
+        dataset_hypers = {'ECG': (4, 1), 'satellite': (24, 1)}
         n_classes, in_channels = dataset_hypers[self.context.get_hparam('task')]
         
         model = Network(
@@ -133,7 +126,7 @@ class GAEAEvalTrial(PyTorchTrial):
 
         download_from_s3(s3_bucket, self.context.get_hparam('task'), download_directory)
 
-        self.train_data, _ , self.val_data = load_data(self.context.get_hparam('task'), download_directory, False, permute=self.context.get_hparam('permute'))
+        self.train_data, _, self.val_data = load_data(self.context.get_hparam('task'), download_directory, False, permute=self.context.get_hparam('permute'))
 
         return download_directory
 
@@ -171,10 +164,10 @@ class GAEAEvalTrial(PyTorchTrial):
 
         if batch_idx == 0 or self.last_epoch_idx < epoch_idx:
             current_lr = self.lr_scheduler.get_last_lr()[0]
-            print("Epoch: {} lr {}".format(epoch_idx, current_lr))
+            #print("Epoch: {} lr {}".format(epoch_idx, current_lr))
        
             self.model.drop_path_prob = self.context.get_hparam("drop_path_prob") * epoch_idx / 600.0
-            print('current drop prob is {}'.format(self.model.drop_path_prob))
+            #print('current drop prob is {}'.format(self.model.drop_path_prob))
         
         self.last_epoch_idx = epoch_idx
 
@@ -183,7 +176,6 @@ class GAEAEvalTrial(PyTorchTrial):
 
         logits = self.model(input)
         loss = self.criterion(logits, target)
-        top1, top5 = accuracy(logits, target, topk=(1, 5))
 
         self.context.backward(loss)
         self.context.step_optimizer(
@@ -193,32 +185,25 @@ class GAEAEvalTrial(PyTorchTrial):
             ),
         )
 
-        return {"loss": loss, "top1_accuracy": top1, "top5_accuracy": top5}
-
-
-    '''
-    def evaluate_batch(self, batch: Any) -> Dict[str, Any]:
-        input, target = batch
-        logits  = self.model(input)
-        loss = self.criterion(logits, target)
-        top1, top5 = accuracy(logits, target, topk=(1, 5))
-
-
-        return {
-            "loss": loss,
-            "top1_accuracy": top1,
-            "top5_accuracy": top5,
-
-        }
-    '''
+        return {"loss": loss, }
 
     def evaluate_full_dataset(
-        self, data_loader: torch.utils.data.DataLoader
+            self, data_loader: torch.utils.data.DataLoader
     ) -> Dict[str, Any]:
-        acc_top1 = utils.AverageMeter()
-        acc_top5 = utils.AverageMeter()
-        loss_avg = utils.AverageMeter()
+        if self.hparams.task == 'ECG':
+            return self.evaluate_full_dataset_ECG(data_loader)
 
+        elif self.hparams.task == 'satellite':
+            return self.evaluate_full_dataset_satellite(data_loader)
+
+        return None
+
+    def evaluate_full_dataset_ECG(
+            self, data_loader: torch.utils.data.DataLoader
+    ) -> Dict[str, Any]:
+
+        loss_avg = AverageMeter()
+        all_pred_prob = []
         with torch.no_grad():
             for batch in data_loader:
                 batch = self.context.to_device(batch)
@@ -226,15 +211,60 @@ class GAEAEvalTrial(PyTorchTrial):
                 n = input.size(0)
                 logits = self.model(input)
                 loss = self.criterion(logits, target)
-                top1, top5 = utils.accuracy(logits, target, topk=(1, 5))
+                loss_avg.update(loss, n)
+                all_pred_prob.append(logits.cpu().data.numpy())
+
+        all_pred_prob = np.concatenate(all_pred_prob)
+        all_pred = np.argmax(all_pred_prob, axis=1)
+
+        ## vote most common
+        final_pred = []
+        final_gt = []
+        pid_test = self.val_data.pid
+        for i_pid in np.unique(pid_test):
+            tmp_pred = all_pred[pid_test == i_pid]
+            tmp_gt = self.val_data.label[pid_test == i_pid]
+            final_pred.append(Counter(tmp_pred).most_common(1)[0][0])
+            final_gt.append(Counter(tmp_gt).most_common(1)[0][0])
+
+        ## classification report
+        tmp_report = classification_report(final_gt, final_pred, output_dict=True)
+        print(confusion_matrix(final_gt, final_pred))
+        f1_score = (tmp_report['0']['f1-score'] + tmp_report['1']['f1-score'] + tmp_report['2']['f1-score'] +
+                    tmp_report['3']['f1-score']) / 4
+
+        results = {
+            "loss": loss_avg.avg,
+            "score": f1_score,
+        }
+
+        return results
+
+    def evaluate_full_dataset_satellite(
+            self, data_loader: torch.utils.data.DataLoader
+    ) -> Dict[str, Any]:
+
+        acc_top1 = AverageMeter()
+        acc_top5 = AverageMeter()
+        loss_avg = AverageMeter()
+        with torch.no_grad():
+            for batch in data_loader:
+                batch = self.context.to_device(batch)
+                input, target = batch
+                n = input.size(0)
+                logits = self.model(input)
+                loss = self.criterion(logits, target)
+                top1, top5 = accuracy(logits, target, topk=(1, 5))
                 acc_top1.update(top1.item(), n)
                 acc_top5.update(top5.item(), n)
                 loss_avg.update(loss, n)
+
         results = {
             "loss": loss_avg.avg,
             "top1_accuracy": acc_top1.avg,
             "top5_accuracy": acc_top5.avg,
         }
+
 
         return results
 

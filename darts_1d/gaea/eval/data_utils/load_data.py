@@ -23,12 +23,12 @@ class ECGDataset(Dataset):
         return len(self.data)
 
 
-def load_data(task, path, train=True):
+def load_data(task, path, train=False):
     if task == 'ECG':
-        return load_ECG_data(path, True)
+        return load_ECG_data(path, train)
 
     elif task == 'satellite':
-        return load_satellite_data(path, True)
+        return load_satellite_data(path, train)
 
     else:
         raise NotImplementedError
