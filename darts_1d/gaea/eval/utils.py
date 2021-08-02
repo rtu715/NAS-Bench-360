@@ -14,9 +14,6 @@ import torch.utils.data as data_utils
 import torchvision
 from torchvision import transforms
 
-import randaugment.augmentation_transforms as augmentation_transforms
-import randaugment.policies as found_policies
-
 # From: https://github.com/quark0/DARTS
 Genotype = namedtuple("Genotype", "normal normal_concat reduce reduce_concat")
 
@@ -169,85 +166,5 @@ class CrossEntropyLabelSmooth(nn.Module):
         targets = (1 - self.epsilon) * targets + self.epsilon / self.num_classes
         loss = (-targets * log_probs).mean(0).sum()
         return loss
-
-
-# Memory efficient version for training from: https://github.com/lukemelas/EfficientNet-PyTorch/blob/master/efficientnet_pytorch/utils.py
-class SwishImplementation(torch.autograd.Function):
-    @staticmethod
-    def forward(ctx, i):
-        result = i * torch.sigmoid(i)
-        ctx.save_for_backward(i)
-        return result
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        i = ctx.saved_variables[0]
-        sigmoid_i = torch.sigmoid(i)
-        return grad_output * (sigmoid_i * (1 + i * (1 - sigmoid_i)))
-
-
-class Swish(nn.Module):
-    """Swish activation function.
-    See: https://arxiv.org/abs/1710.05941
-    """
-
-    def forward(self, x):
-        return SwishImplementation.apply(x)
-
-
-class HSwish(nn.Module):
-    """Hard Swish activation function.
-    See: https://arxiv.org/abs/1905.02244
-    """
-
-    def forward(self, x):
-        return x * nn.functional.relu6(x + 3).div_(6)
-
-
-class RandAugment(object):
-    """
-    Augmentation policy learned by RL.  From:
-        https://arxiv.org/abs/1805.09501
-    """
-
-    def __init__(self):
-        self.policies = found_policies.randaug_policies()
-
-    def __call__(self, img):
-        policy = self.policies[np.random.choice(len(self.policies))]
-        final_img = augmentation_transforms.apply_policy(policy, img)
-        return final_img
-
-
-class SqueezeAndExcitation(nn.Module):
-    """Squeeze-and-Excitation module.
-    See: https://arxiv.org/abs/1709.01507
-    """
-
-    def __init__(self, n_feature, n_hidden, spatial_dims=[2, 3], active_fn=None):
-        super(SqueezeAndExcitation, self).__init__()
-        self.n_feature = n_feature
-        self.n_hidden = n_hidden
-        self.spatial_dims = spatial_dims
-        self.se_reduce = nn.Conv2d(n_feature, n_hidden, 1, bias=True)
-        self.se_expand = nn.Conv2d(n_hidden, n_feature, 1, bias=True)
-        self.active_fn = active_fn()
-
-    def forward(self, x):
-        se_tensor = x.mean(self.spatial_dims, keepdim=True)
-        se_tensor = self.se_expand(self.active_fn(self.se_reduce(se_tensor)))
-        return torch.sigmoid(se_tensor) * x
-
-    def __repr__(self):
-        return "{}({}, {}, spatial_dims={}, active_fn={})".format(
-            self._get_name(),
-            self.n_feature,
-            self.n_hidden,
-            self.spatial_dims,
-            self.active_fn,
-        )
-
-
-
 
 

@@ -27,7 +27,7 @@ class MixedOp(nn.Module):
     def __init__(self, C, stride, k=4):
         super(MixedOp, self).__init__()
         self._ops = nn.ModuleList()
-        self.mp = nn.MaxPool1d(2)
+        self.mp = nn.MaxPool1d(2, ceil_mode=True)
         self.k = k
         for primitive in PRIMITIVES:
             op = OPS[primitive](C // self.k, stride, False)

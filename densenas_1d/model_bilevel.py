@@ -61,7 +61,8 @@ class DenseNASSearchTrial(PyTorchTrial):
 
         elif self.hparams.task == 'satellite':
             merge_cfg_from_file('configs/satellite_search_cfg_resnet.yaml', cfg)
-            input_shape = (1, 46)
+            #input_shape = (1, 46)
+            input_shape = (1, 48)
 
         else:
             raise NotImplementedError
@@ -192,7 +193,7 @@ class DenseNASSearchTrial(PyTorchTrial):
             return self.evaluate_full_dataset_ECG(data_loader)
 
         elif self.hparams.task == 'satellite':
-            return self.evaluate_full_dataset_ECG(data_loader)
+            return self.evaluate_full_dataset_satellite(data_loader)
 
         return None
 

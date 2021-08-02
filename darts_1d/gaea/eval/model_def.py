@@ -6,6 +6,7 @@ import boto3
 
 import torchvision.transforms as transforms
 import numpy as np
+import torch
 from torch import nn
 
 from determined.pytorch import (
@@ -18,12 +19,9 @@ from determined.pytorch import (
 from model import Network
 
 from utils import (
-    RandAugment,
-    Cutout,
-    HSwish,
-    Swish,
     accuracy,
     AverageMeter,
+    count_parameters_in_MB
 )
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from collections import Counter
@@ -54,7 +52,7 @@ class GAEAEvalTrial(PyTorchTrial):
 
         #total_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)/ 1e6
         #print('Parameter size in MB: ', total_params)
-        print("param size = %f MB" % utils.count_parameters_in_MB(self.model))
+        print("param size = %f MB" % count_parameters_in_MB(self.model))
         
         self.optimizer = self.context.wrap_optimizer(
             torch.optim.SGD(
@@ -126,7 +124,7 @@ class GAEAEvalTrial(PyTorchTrial):
 
         download_from_s3(s3_bucket, self.context.get_hparam('task'), download_directory)
 
-        self.train_data, _, self.val_data = load_data(self.context.get_hparam('task'), download_directory, False, permute=self.context.get_hparam('permute'))
+        self.train_data, _, self.val_data = load_data(self.context.get_hparam('task'), download_directory, False)
 
         return download_directory
 

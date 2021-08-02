@@ -96,7 +96,7 @@ class DenseNASTrainTrial(PyTorchTrial):
 
         download_from_s3(s3_bucket, self.hparams.task, download_directory)
 
-        self.train_data, _, self.val_data = load_data(self.hparams.task, download_directory, False, self.hparams.permute)
+        self.train_data, _, self.val_data = load_data(self.hparams.task, download_directory, False)
 
         return download_directory
 
@@ -132,25 +132,23 @@ class DenseNASTrainTrial(PyTorchTrial):
             return self.evaluate_full_dataset_ECG(data_loader)
 
         elif self.hparams.task == 'satellite':
-            return self.evaluate_full_dataset_ECG(data_loader)
+            return self.evaluate_full_dataset_satellite(data_loader)
 
         return None
 
     def evaluate_full_dataset_ECG(self, data_loader: torch.utils.data.DataLoader) -> Dict[str, Any]:
 
         obj = utils.AverageMeter()
-        sub_obj = utils.AverageMeter()
         all_pred_prob = []
 
-        self.set_param_grad_state('')
         with torch.no_grad():
             for batch in data_loader:
                 batch = self.context.to_device(batch)
                 input, target = batch
                 n = input.size(0)
-                logits, loss, subobj = self.valid_step(input, target, self.model)
+                logits = self.model(input)
+                loss = self.criterion(logits, target)
                 obj.update(loss, n)
-                sub_obj.update(subobj, n)
                 all_pred_prob.append(logits.cpu().data.numpy())
 
         '''for ecg validation'''
@@ -175,7 +173,6 @@ class DenseNASTrainTrial(PyTorchTrial):
 
         return {
             'validation_loss': obj.avg,
-            'validation_subloss': sub_obj.avg,
             'score': f1_score,
         }
 

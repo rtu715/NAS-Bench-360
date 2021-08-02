@@ -5,7 +5,7 @@ import torch.nn as nn
 from torch.autograd import Variable
 
 from operations import *
-from utils import SqueezeAndExcitation, drop_path
+from utils import drop_path
 
 
 class Cell(nn.Module):

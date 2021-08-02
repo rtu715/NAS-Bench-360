@@ -1,4 +1,4 @@
-description: ECG_gaea1d_search
+description: satellite_gaea1d_search
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -17,10 +17,10 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-    task: ECG
+    task: satellite
 
     # Number of classes in dataset
-    n_classes: 4
+    n_classes: 24
     # Channel shuffle factor.  1 / shuffle_factor channels are activated at a given time.
     shuffle_factor: 4
     global_batch_size: 256
@@ -44,10 +44,10 @@ min_validation_period:
 min_checkpoint_period:
   epochs: 2
 
-records_per_epoch: 98947
+records_per_epoch: 400000
 searcher:
   name: single
-  metric: score
+  metric: top1_accuracy
   smaller_is_better: false
   max_length:
     epochs: 50

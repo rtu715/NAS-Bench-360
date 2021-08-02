@@ -19,10 +19,10 @@ search_params:
             48, 56, 64, 
             72, 96, 112, 
             128, 144, 160, 176, 192, 208, 224] 
-        fm_sizes: [46,
-            23, 23, 23,
+        fm_sizes: [24,
             12, 12, 12,
-            6, 6, 6, 6, 6, 6, 6]
+            6, 6, 6,
+            3, 3, 3, 3, 3, 3, 3]
         stage: [0, 
             1, 1, 1, 
             2, 2, 2, 
@@ -65,7 +65,7 @@ optim:
 data:
     dataset: satellite
     patch_dataset: False
-    input_size: (1,46)
+    input_size: (1,48)
     type_of_data_aug: random_sized
     color: False
     random_sized:

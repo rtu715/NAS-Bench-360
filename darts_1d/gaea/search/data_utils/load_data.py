@@ -40,8 +40,8 @@ def load_satellite_data(path, train):
     train_file = os.path.join(path, 'satellite_train.npy')
     test_file = os.path.join(path, 'satellite_test.npy')
 
-    all_train_data, all_train_labels = np.load(train_file, allow_pickle=True)[()]['data'], np.load(train_file)[()]['label']
-    test_data, test_labels = np.load(test_file, allow_pickle=True)[()]['data'], np.load(test_file)[()]['label']
+    all_train_data, all_train_labels = np.load(train_file, allow_pickle=True)[()]['data'], np.load(train_file,allow_pickle=True)[()]['label']
+    test_data, test_labels = np.load(test_file, allow_pickle=True)[()]['data'], np.load(test_file, allow_pickle=True)[()]['label']
 
     #rerange labels to 0-23
     all_train_labels = all_train_labels - 1
@@ -56,10 +56,10 @@ def load_satellite_data(path, train):
     test_data = np.expand_dims(test_data, 1)
 
     #convert to tensor/longtensor
-    all_train_tensors, all_train_labeltensor = torch.from_numpy(all_train_data), \
+    all_train_tensors, all_train_labeltensor = torch.from_numpy(all_train_data).type(torch.FloatTensor), \
                                                torch.from_numpy(all_train_labels).type(torch.LongTensor)
 
-    test_tensors, test_labeltensor = torch.from_numpy(test_data), torch.from_numpy(test_labels).type(torch.LongTensor)
+    test_tensors, test_labeltensor = torch.from_numpy(test_data).type(torch.FloatTensor), torch.from_numpy(test_labels).type(torch.LongTensor)
     testset = data_utils.TensorDataset(test_tensors, test_labeltensor)
 
     if train:
