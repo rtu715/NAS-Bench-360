@@ -151,15 +151,20 @@ class DenseNASTrainTrial(PyTorchTrial):
 
         val_preds = np.asarray(val_predictions).astype('float32')
         val_gts = np.asarray(val_gts).astype('int32')
+        map_value = average_precision_score(val_gts, val_preds, average="macro")
 
         stats = calculate_stats(val_preds, val_gts)
         mAP = np.mean([stat['AP'] for stat in stats])
         mAUC = np.mean([stat['auc'] for stat in stats])
+        
 
         results = {
             "test_loss": obj.avg,
-            "test_mAUC": mAP,
-            "test_mAP": mAUC,
+            "test_mAUC": mAUC,
+            "test_mAP": mAP,
+            "mAP_value": map_value,
+            "dPrime": d_prime(mAUC),
+
         }
 
         return results

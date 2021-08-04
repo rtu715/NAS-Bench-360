@@ -210,8 +210,8 @@ class GAEAEvalTrial(PyTorchTrial):
 
         results = {
             "test_loss": loss_avg.avg,
-            "test_mAUC": mAP,
-            "test_mAP": mAUC,
+            "test_mAUC": mAUC,
+            "test_mAP": mAP,
         }
 
         return results

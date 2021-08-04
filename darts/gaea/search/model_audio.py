@@ -224,8 +224,8 @@ class GAEASearchTrial(PyTorchTrial):
             mAUC = np.mean([stat['auc'] for stat in stats])
 
             results2 = {
-                "test_mAUC": mAP,
-                'test_mAP': mAUC,
+                "test_mAUC": mAUC,
+                'test_mAP': mAP,
             }
 
             results.update(results2)

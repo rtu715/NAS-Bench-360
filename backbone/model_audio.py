@@ -278,8 +278,8 @@ class BackboneTrial(PyTorchTrial):
         mAUC = np.mean([stat['auc'] for stat in stats])
 
         results = {
-            "test_mAUC": mAP,
-            "test_mAP": mAUC,
+            "test_mAUC": mAUC,
+            "test_mAP": mAP,
         }
 
         return results

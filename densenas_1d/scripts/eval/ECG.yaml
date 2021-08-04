@@ -23,13 +23,7 @@ hyperparameters:
   num_examples: 180000
 
   net_type: res
-
-  #from cifar
-  net_config: "[[32, 64], 'basic_block', [], 0, 1]|
-[[64, 112], 'basic_block', [], 0, 2]|
-[[112, 176], 'basic_block', ['basic_block'], 1, 2]|
-[[176, 224], 'basic_block', [], 0, 1]"
-
+  net_config: "[[32, 48], 'basic_block', [], 0, 2]|[[48, 112], 'basic_block', ['basic_block'], 1, 2] "
   global_batch_size: 256
 
 resources:
