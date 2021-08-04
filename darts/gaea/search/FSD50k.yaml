@@ -41,16 +41,17 @@ resources:
   slots_per_trial: 1
 
 min_validation_period: 
-  epochs: 5
+  epochs: 25
 
 min_checkpoint_period:
   epochs: 5
 
-records_per_epoch: 20483
+records_per_epoch: 18398
 
 searcher:
   name: single
   metric: val_mAP
+  smaller_is_better: false 
   max_length:
     epochs: 50
 

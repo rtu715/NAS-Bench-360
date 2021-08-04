@@ -24,13 +24,13 @@ hyperparameters:
 
   net_type: res
   #global_batch_size: 256
-  global_batch_size: 64
+  global_batch_size: 1024
 
 resources:
   slots_per_trial: 1
 
 min_validation_period:
-  epochs: 1
+  epochs: 10
 
 min_checkpoint_period:
   epochs: 5

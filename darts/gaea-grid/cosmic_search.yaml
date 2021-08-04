@@ -40,7 +40,7 @@ resources:
   slots_per_trial: 1
 
 min_validation_period: 
-  epochs: 10
+  epochs: 25
 
 min_checkpoint_period:
   epochs: 5
@@ -56,6 +56,6 @@ searcher:
 optimizations:
   aggregation_frequency:  1
 
-max_restarts: 10
+max_restarts: 1000
 
 entrypoint: model_def:GAEASearchTrial

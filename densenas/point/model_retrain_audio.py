@@ -89,11 +89,11 @@ class DenseNASTrainTrial(PyTorchTrial):
         '''Download data from s3 to store in temp directory'''
 
         s3_bucket = self.context.get_data_config()["bucket"]
-        download_directory = f"/tmp/data-rank{self.context.distributed.get_rank()}"
+        #download_directory = f"/tmp/data-rank{self.context.distributed.get_rank()}"
         s3 = boto3.client("s3")
-        os.makedirs(download_directory, exist_ok=True)
+        #os.makedirs(download_directory, exist_ok=True)
+        download_directory = '.'
         download_from_s3(s3_bucket, self.hparams.task, download_directory)
-        
 
         self.train_data, _, self.val_data = load_data(self.hparams.task, download_directory, False, self.hparams.permute)
 

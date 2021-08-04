@@ -316,6 +316,9 @@ class DenseNASSearchTrial(PyTorchTrial):
         else:
             raise NotImplementedError
 
+        #build test loader
+        self.test_loader = self.build_test_data_loader()
+        
         return valid_queue
 
 
@@ -370,8 +373,7 @@ class DenseNASSearchTrial(PyTorchTrial):
             self.train_data.shuffle_val_inds()
         self.last_epoch = epoch_idx
 
-        if epoch_idx == 0 and self.test_loader == None:
-            self.test_loader = self.build_test_data_loader()
+        #if epoch_idx == 0 and self.test_loader == None:
         
         search_stage = 1 if epoch_idx > self.config.search_params.arch_update_epoch else 0
 
