@@ -24,17 +24,17 @@ hyperparameters:
   num_examples: 4830
 
   net_type: res
-  net_config: "[[32, 40], 'basic_block', ['basic_block'], 1, 1]|
-  [[40, 80], 'basic_block', ['basic_block', 'basic_block', 'basic_block', 'basic_block'], 4, 1]"
+  net_config: "[[32, 56], 'basic_block', [], 0, 1]|
+[[56, 80], 'basic_block', ['basic_block', 'basic_block'], 2, 1]"
 
-  global_batch_size: 8
+  global_batch_size: 16
   #bs = 4 * 5 = 20 same as search
 
 resources:
   slots_per_trial: 1
 
 min_validation_period:
-  epochs: 10
+  epochs: 30
 
 min_checkpoint_period:
   epochs: 5
@@ -50,6 +50,6 @@ searcher:
 optimizations:
   aggregation_frequency:  1
 
-max_restarts: 10
+max_restarts: 1000
 
 entrypoint: retrain_grid:DenseNASTrainTrial
