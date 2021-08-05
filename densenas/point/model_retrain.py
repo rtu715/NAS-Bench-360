@@ -26,6 +26,7 @@ from determined.pytorch import (
 )
 
 from configs.point_train_cfg import cfg as config
+from generate_random import generate_arch
 from models import model_derived
 from tools import utils
 from tools.lr_scheduler import get_lr_scheduler
@@ -58,8 +59,13 @@ class DenseNASTrainTrial(PyTorchTrial):
 
         config.net_config, config.net_type = self.hparams.net_config, self.hparams.net_type
         derivedNetwork = getattr(model_derived, '%s_Net' % self.hparams.net_type.upper())
-        model = derivedNetwork(config.net_config, task=self.hparams.task, config=config)
 
+        if config.net_config == 'random':
+            rand_arch = generate_arch(self.hparams.task, self.hparams.net_type)
+            model = derivedNetwork(rand_arch, task=self.hparams.task, config=config)
+
+        else:
+            model = derivedNetwork(config.net_config, task=self.hparams.task, config=config)
 
         pprint.pformat("Num params = %.2fMB", utils.count_parameters_in_MB(model))
         self.model = self.context.wrap_model(model)
