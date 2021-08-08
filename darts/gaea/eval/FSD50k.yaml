@@ -24,9 +24,9 @@ hyperparameters:
   momentum: 0.9
   weight_decay: 3e-4
 
-  init_channels: 36
+  init_channels: 16
   layers: 20
-  global_batch_size: 8
+  global_batch_size: 32
   drop_path_prob: 0.3
   clip_gradients_l2_norm: 5
 

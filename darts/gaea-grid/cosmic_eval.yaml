@@ -23,15 +23,15 @@ hyperparameters:
     # Number of classes in dataset
     n_classes: 1
     # Channel shuffle factor.  1 / shuffle_factor channels are activated at a given time.
-    global_batch_size: 4
+    global_batch_size: 8
     learning_rate: 0.025
     momentum: 0.9
     min_learning_rate: 0
     scheduler_epochs: 600
     weight_decay: 3e-4
     arch_learning_rate: 0.0
-    init_channels: 36 #from pde
-    layers: 20
+    init_channels: 16 
+    layers: 10
     nodes: 4
     multiplier: 4
     drop_path_prob: 0.3

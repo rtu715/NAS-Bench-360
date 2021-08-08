@@ -1,4 +1,4 @@
-description: ECG_densenas_eval
+description: satellite_densenas_eval
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -24,12 +24,12 @@ hyperparameters:
 
   net_type: res
 
-  net_config: "[[32, 64], 'basic_block', [], 0, 1]|
-[[64, 112], 'basic_block', [], 0, 2]|
-[[112, 176], 'basic_block', ['basic_block'], 1, 2]|
-[[176, 224], 'basic_block', [], 0, 1]"
+  net_config: "[[32, 64], 'basic_block', [], 0, 2]|
+[[64, 72], 'basic_block', [], 0, 2]|
+ [[72, 176], 'basic_block', [], 0, 2]|
+ [[176, 192], 'basic_block', [], 0, 1]"
 
-  global_batch_size: 256
+  global_batch_size: 4096
 
 resources:
   slots_per_trial: 1
