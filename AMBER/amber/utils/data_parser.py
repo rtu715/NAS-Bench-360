@@ -1,0 +1,245 @@
+# -*- coding: UTF-8 -*-
+"""A set of Data Parsers
+"""
+
+# author : zzj
+# initial date: Nov. 16, 2018
+
+
+import gzip
+
+import numpy as np
+import pandas as pd
+try:
+    import pysam
+    WITH_PYSAM = True
+except ImportError:
+    print("amber.utils.data_parser failed to import pysam; sequence utility will be limited")
+    WITH_PYSAM = False
+
+
+def read_label(fn):
+    df = pd.read_table(fn)
+    df.index = df.ID
+    df.drop(['ID'], axis=1, inplace=True)
+    return df
+
+
+def reverse_complement(dna):
+    complement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A', 'N': 'N'}
+    return ''.join([complement[base] for base in dna[::-1]])
+
+
+def fetch_seq(chrom, start, end, strand, genome):
+    try:
+        seq = genome.fetch(chrom, start, end)
+        if strand == '-':
+            seq = reverse_complement(seq)
+    except Exception as e:
+        raise Exception('pysam cannot fetch sequeces due to %s'%e)
+    return seq
+
+
+def fetch_seq_pygr(chr, start, end, strand, genome):
+    """Fetch a genmoic sequence upon calling `pygr`
+    `genome` is initialized and stored outside the function
+
+    Parameters
+    ----------
+    chr : str
+        chromosome
+    start : int
+        start locus
+    end : int
+        end locuse
+    strand : str
+        either '+' or '-'
+
+    Returns
+    --------
+    seq : str
+        genomic sequence in upper cases
+    """
+    try:
+        seq = genome[chr][start:end]
+        if strand == "-":
+            seq = -seq
+    except Exception as e:
+        raise Exception('pygr cannot fetch sequences; %s' % e)
+    return str(seq).upper()
+
+
+def seq_to_matrix(seq, letter_to_index=None):
+    """Convert a list of characters to an N by 4 integer matrix
+
+    Parameters
+    ----------
+    seq : list
+        list of characters A,C,G,T,-,=; heterozygous locus is separated by semiconlon. '-' is filler
+        for heterozygous indels; '=' is homozygous deletions
+    letter_to_index: dict or None
+        dictionary mapping DNA/RNA/amino-acid letters to array index
+
+    Returns
+    -------
+    seq_mat : numpy.array
+        numpy matrix for the sequences
+    """
+    if letter_to_index is None:
+        letter_to_index = {'A': 0, 'C': 1, 'G': 2, 'T': 3, 'U': 3}
+    mat_len = len(seq)
+    mat = np.zeros((mat_len, 4))
+    n_letter = len(seq)
+    for i in range(n_letter):
+        try:
+            letter = seq[i]
+            if letter in letter_to_index:
+                mat[i, letter_to_index[letter]] += 1
+            elif letter == 'N':
+                mat[i, :] += 0.25
+        except KeyError:
+            print(i, letter, seq[i])
+    return mat
+
+
+def matrix_to_seq(mat, index_to_letter=None):
+    if index_to_letter is None:
+        index_to_letter = {0: 'A', 1: 'C', 2: 'G', 3: 'T'}
+    seq = ''.join([
+        index_to_letter[np.where(mat[i, :] > 0)[0][0]]
+        for i in range(mat.shape[0])
+    ])
+    return seq
+
+
+def get_generator_from_label_df(
+        label_df,
+        genome_fn,
+        batch_size=32,
+        y_idx=None
+):
+    # genome = seqdb.SequenceFileDB(genome_fn)
+    genome = pysam.FastaFile(genome_fn)
+    df_idx = np.array(list(label_df.index.values))
+    while True:
+        np.random.shuffle(df_idx)
+        try:
+            for i in range(0, len(df_idx), batch_size):
+                X_batch = []
+                Y_batch = []
+                this = df_idx[i:(i + batch_size)]
+                for idx in this:
+                    chrom, start, end, strand = idx.split(':')
+                    left = int(start) - FLANKING_SIZE
+                    right = int(end) + FLANKING_SIZE
+                    seq = fetch_seq(chrom, left, right, strand, genome)
+                    x_j = seq_to_matrix(seq)
+                    if y_idx is None:
+                        y_j = label_df.loc[idx].values
+                    else:
+                        y_j = label_df.loc[idx].values[y_idx]
+                    X_batch.append(x_j)
+                    Y_batch.append(y_j)
+                X_batch = np.array(X_batch)
+                Y_batch = np.array(Y_batch)
+                yield (X_batch, Y_batch)
+        except StopIteration:
+            pass
+
+
+def fasta_reader(fn):
+    """reader for FASTA files (a header line starting with '>' and a nucleotide sequence)
+    """
+    List = []
+    tmp_seq = []
+    tmp_seqId = ''
+    f = gzip.GzipFile(fn, 'rb') if fn.endswith('gz') else open(fn, 'r')
+    # with open(fn, 'r') as f:
+    for line in f:
+        line = line.decode('UTF-8').strip()
+        if line.startswith('#'):
+            continue
+        if line.startswith('>'):
+            if tmp_seqId:
+                # List.append( (tmp_seqId, ''.join(tmp_seq) ) )
+                yield ((tmp_seqId, ''.join(tmp_seq)))
+            tmp_seqId = line[1:].split()[0]
+            tmp_seq = []
+        else:
+            tmp_seq.append(line)
+    # List.append( (tmp_seqId, ''.join(tmp_seq) ) )
+    yield ((tmp_seqId, ''.join(tmp_seq)))
+    f.close()
+
+
+# return List
+
+
+def simdata_reader(fn, targets):
+    """reader for .simdata file generated by `simdna` simulation program.
+    .simdata is a tabulated file with three columns: 'seqName', 'sequence', 'embeddings'
+
+    Parameters
+    ----------
+    fn : str
+        filepath for .simdata file
+    targets : list
+        a list of target TFs (will also be in the order of y)
+
+    Returns
+    -------
+    tuple : a tuple of (X, y) in np.array format
+    """
+    assert len(targets) == len(set(targets)), Exception('List `targets` must be unique, found duplication')
+    GZIPPED = True if fn.endswith("gz") else False
+    f = gzip.GzipFile(fn, 'rb') if GZIPPED else open(fn, 'r')
+    f.readline()  # skip the header
+    tmp_X = []
+    tmp_y = []
+    for line in f:
+        if GZIPPED:
+            line = line.decode('UTF-8').strip()
+        else:
+            line = line.strip()
+        ele = line.split('\t')
+        seqName, seq = ele[0], ele[1]
+        embeddings = ele[2] if len(ele) > 2 else ''
+        if embeddings:
+            # below we missed the '_known1' motif info
+            this_target = set([x.split('_')[1] for x in embeddings.split(',')])
+        else:
+            this_target = set([])
+        this_y = np.array([1 if x in this_target else 0 for x in targets], dtype='int32')
+        tmp_y.append(this_y)
+        tmp_X.append(seq_to_matrix(seq))
+    return (np.array(tmp_X), np.array(tmp_y))
+
+
+def get_data_from_fasta_sequence(positive_file, negative_file):
+    """Given two FASTA files, read in the numeric data X and label y
+    """
+    tmp_X = []
+    tmp_y = []
+    for seqId, seq in fasta_reader(positive_file):
+        tmp_X.append(seq_to_matrix(seq))
+        tmp_y.append(1)
+    for seqId, seq in fasta_reader(negative_file):
+        tmp_X.append(seq_to_matrix(seq))
+        tmp_y.append(0)
+    X = np.array(tmp_X, dtype='int32')
+    y = np.array(tmp_y, dtype='int32')
+    idx = np.arange(X.shape[0])
+    np.random.shuffle(idx)
+    return X[idx], y[idx]
+
+
+def get_data_from_simdata(positive_file, negative_file, targets):
+    """Given two simdata files, read in the numeric data X and label y
+    """
+    X_pos, y_pos = simdata_reader(positive_file, targets)
+    X_neg, y_neg = simdata_reader(negative_file, targets)
+    X = np.concatenate([X_pos, X_neg])
+    y = np.concatenate([y_pos, y_neg])
+    idx = np.arange(X.shape[0])
+    np.random.shuffle(idx)
+    return X[idx], y[idx]

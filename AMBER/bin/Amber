@@ -1,0 +1,43 @@
+#!/bin/usr/env python
+import sys
+import os
+import tkinter as tk
+from tkinter import ttk
+from amber.gui.main import AmberApp, TabController
+from amber.gui import config
+import matplotlib.animation as animation
+
+
+#def global_thread_spawner(func, args=(), kwargs={}):
+#import threading
+#    th = threading.Thread(target=func, args=args, kwargs=kwargs)
+#    th.start()
+#    return th
+
+def global_thread_spawner(cmd):
+    import subprocess
+    if type(cmd) is str:
+        cmd = cmd.split(' ')
+    proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return proc
+
+
+print("BioNAS main program")
+
+app = AmberApp()
+wd = tk.StringVar(value='None')
+if len(sys.argv) > 1:
+    wd.set(os.path.realpath(sys.argv[1]))
+
+app._connect_global_wd(wd)
+app._enter()
+
+app.grid_rowconfigure(0, weight=1)
+app.grid_columnconfigure(0, weight=1)
+tc = TabController(master=app, global_wd=wd, global_thread_spawner=global_thread_spawner)
+tc.grid(sticky='nsew')
+tc.tabs[tc.tab_list[0]].load(fp='')
+
+for f, animate in tc.animation_register:
+    _ = animation.FuncAnimation(f, animate, interval=config.REFRESH_INTERVAL)
+app.mainloop()
