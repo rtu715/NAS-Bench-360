@@ -10,3 +10,5 @@ save_temp
 */deepCR.ACS-WFC
 */*/*/*.pkl
 **/*.pkl
+*/*.npy
+*/*.pkl
