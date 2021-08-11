@@ -244,7 +244,7 @@ def load_cifar100_train_data(path, permute=False, val_split=0.2, train=True):
     else:
         transform = transforms.Compose(
             [transforms.RandomCrop(32, padding=4), transforms.RandomHorizontalFlip(), transforms.ToTensor(),
-             normalize,
+             normalize, Cutout(16)
              ]
         )
 

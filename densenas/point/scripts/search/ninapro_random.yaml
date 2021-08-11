@@ -1,4 +1,4 @@
-description: cosmic_densenas_search
+description: ninapro_densenas_rs
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -18,35 +18,37 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-  task: cosmic
-  train: true
-  sub: 5
-  num_examples: 869
-
+  task: ninapro
+  permute: false
+  num_examples: 2638
   net_type: res
-  global_batch_size: 1
+
+  #random 
+  net_config: random
+
+  global_batch_size: 256
 
 resources:
   slots_per_trial: 1
 
 min_validation_period:
-  epochs: 10
+  epochs: 1
 
 min_checkpoint_period:
-  epochs: 5
+  epochs: 2
 
-records_per_epoch: 869
-#from 4347/5
-
+records_per_epoch: 2638 
 searcher:
-  name: single
-  metric: validation_error
+  name: random
+  metric: validation_accuracy
+  smaller_is_better: false
   max_length:
-    epochs: 70
+    epochs: 20
+  max_trials: 10
 
 optimizations:
   aggregation_frequency:  1
 
-max_restarts: 100
+max_restarts: 1000
 
-entrypoint: search_grid:DenseNASSearchTrial
+entrypoint: model_retrain:DenseNASTrainTrial

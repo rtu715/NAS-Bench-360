@@ -63,7 +63,7 @@ class DenseNASTrainTrial(PyTorchTrial):
         config.net_config, config.net_type = self.hparams.net_config, self.hparams.net_type
         derivedNetwork = getattr(model_derived, '%s_Net' % self.hparams.net_type.upper())
 
-        if config.net_config == 'random':
+        if self.hparams.net_config == 'random':
             rand_arch = generate_arch(self.hparams.task, self.hparams.net_type)
             model = derivedNetwork(rand_arch, task=self.hparams.task, config=config)
         else:
@@ -102,7 +102,11 @@ class DenseNASTrainTrial(PyTorchTrial):
 
         download_from_s3(s3_bucket, self.hparams.task, download_directory)
 
-        self.train_data, _, self.val_data = load_data(self.hparams.task, download_directory, False)
+        if self.hparams.net_config == 'random':
+            self.train_data, self.val_data, _ = load_data(self.hparams.task, download_directory, True)
+
+        else:
+            self.train_data, _, self.val_data = load_data(self.hparams.task, download_directory, False)
 
         return download_directory
 

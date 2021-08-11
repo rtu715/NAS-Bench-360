@@ -62,9 +62,9 @@ class DenseNASTrainTrial(PyTorchTrial):
         config.net_config, config.net_type = self.hparams.net_config, self.hparams.net_type
         derivedNetwork = getattr(model_derived, '%s_Net' % self.hparams.net_type.upper())
 
-        if config.net_config == 'random':
-            rand_arch = generate_arch(self.hparams.task, self.hparams.net_type)
-            model = derivedNetwork(rand_arch, task=self.hparams.task, config=config)
+        if self.hparams.net_config == 'random':
+            self.rand_arch = generate_arch(self.hparams.task, self.hparams.net_type)
+            model = derivedNetwork(self.rand_arch, task=self.hparams.task, config=config)
 
         else:
             model = derivedNetwork(config.net_config, task=self.hparams.task, config=config)
@@ -101,7 +101,11 @@ class DenseNASTrainTrial(PyTorchTrial):
         download_directory = '.'
         download_from_s3(s3_bucket, self.hparams.task, download_directory)
 
-        self.train_data, _, self.val_data = load_data(self.hparams.task, download_directory, False, self.hparams.permute)
+        if self.hparams.net_config == 'random':
+            self.train_data, self.val_data, _ = load_data(self.hparams.task, download_directory, True, self.hparams.permute)
+
+        else:
+            self.train_data, _, self.val_data = load_data(self.hparams.task, download_directory, False, self.hparams.permute)
 
         return download_directory
 
@@ -137,6 +141,8 @@ class DenseNASTrainTrial(PyTorchTrial):
         }
 
     def evaluate_full_dataset(self, data_loader: torch.utils.data.DataLoader) -> Dict[str, Any]:
+
+        print(self.rand_arch)
 
         obj = utils.AverageMeter()
         val_predictions = []

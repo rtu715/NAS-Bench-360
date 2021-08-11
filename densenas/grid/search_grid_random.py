@@ -74,13 +74,9 @@ class DenseNASTrainTrial(PyTorchTrial):
 
         config.net_config, config.net_type = self.hparams.net_config, self.hparams.net_type
         derivedNetwork = getattr(model_derived, '%s_Net' % self.hparams.net_type.upper())
-        if config.net_config == 'random':
-            rand_arch = generate_arch(self.hparams.task, self.hparams.net_type)
-            model = derivedNetwork(rand_arch, task=self.hparams.task, config=config)
-        else:
-            model = derivedNetwork(config.net_config, task=self.hparams.task, config=config)
-
-
+        self.rand_arch = generate_arch(self.hparams.task, self.hparams.net_type)
+        model = derivedNetwork(self.rand_arch, task=self.hparams.task, config=config)
+  
         pprint.pformat("Num params = %.2fMB", utils.count_parameters_in_MB(model))
         self.model = self.context.wrap_model(model)
 
@@ -101,7 +97,7 @@ class DenseNASTrainTrial(PyTorchTrial):
 
         self.config = config
         self.download_directory = self.download_data_from_s3()
-        #self.download_directory = '/tmp/data-rank0'
+
     def download_data_from_s3(self):
         '''Download pde data from s3 to store in temp directory'''
 
@@ -147,8 +143,8 @@ class DenseNASTrainTrial(PyTorchTrial):
             r = self.hparams["sub"]
             ntrain = 1000
             ntest = 100
-            x_train = self.reader.read_field('coeff')[:ntrain, ::r, ::r][:, :s, :s]
-            y_train = self.reader.read_field('sol')[:ntrain, ::r, ::r][:, :s, :s]
+            x_train = self.reader.read_field('coeff')[:ntrain - ntest, ::r, ::r][:, :s, :s]
+            y_train = self.reader.read_field('sol')[:ntrain - ntest, ::r, ::r][:, :s, :s]
 
             self.x_normalizer = UnitGaussianNormalizer(x_train)
             x_train = self.x_normalizer.encode(x_train)
@@ -156,6 +152,7 @@ class DenseNASTrainTrial(PyTorchTrial):
             self.y_normalizer = UnitGaussianNormalizer(y_train)
             y_train = self.y_normalizer.encode(y_train)
 
+            ntrain = ntrain - ntest
             x_train = torch.cat([x_train.reshape(ntrain, s, s, 1), self.grid.repeat(ntrain, 1, 1, 1)], dim=3)
             train_data = torch.utils.data.TensorDataset(x_train, y_train)
 
@@ -174,7 +171,7 @@ class DenseNASTrainTrial(PyTorchTrial):
                     allow_pickle=True)
                 self.length_dict[pdb] = ly
 
-            train_pdbs = self.deepcov_list[:]
+            train_pdbs = self.deepcov_list[100:]
 
             train_data = PDNetDataset(train_pdbs, self.all_feat_paths, self.all_dist_paths,
                                       128, 10, self.context.get_per_slot_batch_size(), 57,
@@ -197,11 +194,13 @@ class DenseNASTrainTrial(PyTorchTrial):
 
             self.train_dirs = np.load(os.path.join(base_dir, 'train_dirs.npy'), allow_pickle=True)
             self.test_dirs = np.load(os.path.join(base_dir, 'test_dirs.npy'), allow_pickle=True)
+
             aug_sky = (-0.9, 3)
+
             # only train f435 and GAL flag for now
             print(self.train_dirs[0])
+            train_data = PairedDatasetImagePath(self.train_dirs[::], aug_sky[0], aug_sky[1], part='train')
 
-            train_data = PairedDatasetImagePath(self.train_dirs[::], aug_sky[0], aug_sky[1], part='None')
             self.data_shape = train_data[0][0].shape[1]
             print(len(train_data))
 
@@ -222,42 +221,33 @@ class DenseNASTrainTrial(PyTorchTrial):
             s = self.s
             r = self.hparams["sub"]
 
-            TEST_PATH = os.path.join(self.download_directory, 'piececonst_r421_N1024_smooth2.mat')
-            reader = MatReader(TEST_PATH)
-            x_test = reader.read_field('coeff')[:ntest, ::r, ::r][:, :s, :s]
-            y_test = reader.read_field('sol')[:ntest, ::r, ::r][:, :s, :s]
+            x_test = self.reader.read_field('coeff')[ntrain - ntest:ntrain, ::r, ::r][:, :s, :s]
+            y_test = self.reader.read_field('sol')[ntrain - ntest:ntrain, ::r, ::r][:, :s, :s]
 
             x_test = self.x_normalizer.encode(x_test)
             x_test = torch.cat([x_test.reshape(ntest, s, s, 1), self.grid.repeat(ntest, 1, 1, 1)], dim=3)
 
-            test_queue = DataLoader(torch.utils.data.TensorDataset(x_test, y_test),
-                                    batch_size=batch_size, shuffle=False, num_workers=2, )
+            valid_queue = DataLoader(torch.utils.data.TensorDataset(x_test, y_test),
+                                     batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=2, )
+
 
         elif self.hparams.task == 'protein':
-            psicov_list = load_list('psicov.lst')
-            psicov_length_dict = {}
-            for pdb in psicov_list:
-                (ly, seqy, cb_map) = np.load('psicov/distance/' + pdb + '-cb.npy',
-                                             allow_pickle=True)
-                psicov_length_dict[pdb] = ly
-
-            self.my_list = psicov_list
-            self.length_dict = psicov_length_dict
-
-            # note, when testing batch size should be different
-            test_data = PDNetDataset(self.my_list, self.all_feat_paths, self.all_dist_paths,
-                                     512, 10, 1, 57, label_engineering=None)
-            test_queue = DataLoader(test_data, batch_size=2, shuffle=True, num_workers=0)
+            valid_pdbs = self.deepcov_list[:100]
+            valid_data = PDNetDataset(valid_pdbs, self.all_feat_paths, self.all_dist_paths,
+                                      128, 10, self.context.get_per_slot_batch_size(), 57,
+                                      label_engineering='16.0')
+            valid_queue = DataLoader(valid_data, batch_size=2, shuffle=True, num_workers=2)
 
         elif self.hparams.task == 'cosmic':
             aug_sky = (-0.9,3)
-            test_data = PairedDatasetImagePath(self.test_dirs[::], aug_sky[0], aug_sky[1], part=None)
-            test_queue = DataLoader(test_data, batch_size=batch_size, shuffle=False, num_workers=8)
+            valid_data = PairedDatasetImagePath(self.train_dirs[::], aug_sky[0], aug_sky[1], part='test')
+            print(len(valid_data))
+            valid_queue = DataLoader(valid_data, batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=8)
 
-        else: 
+        else:
             raise NotImplementedError
 
-        return test_queue
+        return valid_queue
 
     def train_batch(self, batch: TorchData, epoch_idx: int, batch_idx: int
                     ) -> Dict[str, torch.Tensor]:
@@ -299,11 +289,10 @@ class DenseNASTrainTrial(PyTorchTrial):
     def evaluate_full_dataset(
         self, data_loader: torch.utils.data.DataLoader
     ) -> Dict[str, Any]:
-
-        if self.hparams.task == 'protein':
-            return self.evaluate_test_protein(data_loader)
+        print(self.rand_arch)
 
         loss_sum = 0
+        error_sum = 0 
         num_batches = 0
         meter = AverageMeter()
         metric = np.zeros(4)
@@ -321,6 +310,17 @@ class DenseNASTrainTrial(PyTorchTrial):
                     loss = loss / logits.size(0)
                     loss_sum += loss
 
+                elif self.hparams.task == 'protein':
+                    input, target = batch
+                    num_batches += 1 
+                    logits = self.model(input)
+                    loss = self.criterion(logits, target.squeeze())
+                    mae = F.l1_loss(logits, target.squeeze(), reduction='mean').item()
+                    loss_sum += loss
+                    error_sum += mae
+
+
+
                 elif self.hparams.task == 'cosmic':
                     img, mask, ignore = set_input(*batch, self.data_shape)
                     logits = self.model(img).permute(0, 3, 1, 2).contiguous()
@@ -335,67 +335,31 @@ class DenseNASTrainTrial(PyTorchTrial):
                 TPR = TP / (TP + FN)
                 FPR = FP / (FP + TN)
 
-                results_cosmic = {'validation_error': meter.avg,
+                results_cosmic = {
+                        'validation_error': meter.avg,
                         'FPR': FPR,
                         'TPR': TPR,
                         }
 
                 return results_cosmic
 
-        results_pde = {
-            "validation_loss": loss_sum / num_batches,
-        }
+            elif self.hparams.task == 'protein':
+                results_protein = {
+                    'validation_loss': loss_sum / num_batches,
+                    'MAE': error_sum / num_batches,
 
-        return results_pde
+                }
 
-    def evaluate_test_protein(
-            self, data_loader: torch.utils.data.DataLoader
-    ) -> Dict[str, Any]:
-        '''performs evaluation on protein'''
 
-        LMAX = 512  # psicov constant
-        pad_size = 10
-        self.model.cuda()
-        with torch.no_grad():
-            P = []
-            targets = []
-            for batch in data_loader:
-                batch = self.context.to_device(batch)
-                data, target = batch
-                for i in range(data.size(0)):
-                    targets.append(
-                        np.expand_dims(
-                            target.cpu().numpy()[i].transpose(1, 2, 0), axis=0))
+            elif self.hparams.task == 'pde':
 
-                out = self.model.forward_window(data, 128)
+                results_pde = {
+                    'validation_loss': loss_sum / num_batches,
+                }
 
-                P.append(out.cpu().numpy().transpose(0,2,3,1))
+                return results_pde
 
-            # Combine P, convert to numpy
-            P = np.concatenate(P, axis=0)
+            else: 
+                return None
 
-        Y = np.full((len(targets), LMAX, LMAX, 1), np.nan)
-        for i, xy in enumerate(targets):
-            Y[i, :, :, 0] = xy[0, :, :, 0]
-        # Average the predictions from both triangles
-        for j in range(0, len(P[0, :, 0, 0])):
-            for k in range(j, len(P[0, :, 0, 0])):
-                P[:, j, k, :] = (P[:, k, j, :] + P[:, j, k, :]) / 2.0
-        P[P < 0.01] = 0.01
 
-        # Remove padding, i.e. shift up and left by int(pad_size/2)
-        P[:, :LMAX - pad_size, :LMAX - pad_size, :] = P[:, int(pad_size / 2): LMAX - int(pad_size / 2),
-                                                      int(pad_size / 2): LMAX - int(pad_size / 2), :]
-        Y[:, :LMAX - pad_size, :LMAX - pad_size, :] = Y[:, int(pad_size / 2): LMAX - int(pad_size / 2),
-                                                      int(pad_size / 2): LMAX - int(pad_size / 2), :]
-
-        print('')
-        print('Evaluating distances..')
-        lr8, mlr8, lr12, mlr12 = calculate_mae(P, Y, self.my_list, self.length_dict)
-
-        return {
-            'mae': lr8,
-            'mlr8': mlr8,
-            'mae12': lr12,
-            'mlr12': mlr12,
-        }

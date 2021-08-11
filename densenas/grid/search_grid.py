@@ -542,7 +542,7 @@ class DenseNASSearchTrial(PyTorchTrial):
         print("Derived Model Mult-Adds = %.2fMB" % derived_flops)
         print("Derived Model Num Params = %.2fMB" % derived_params)
         print(derived_arch_str)
-        print('num batches is: ', num_batches)
+        #print('num batches is: ', num_batches)
 
         if self.hparams.task == 'cosmic':
             TP, TN, FP, FN = metric[0], metric[1], metric[2], metric[3]
