@@ -22,9 +22,9 @@ search_params:
             36, 48, 56,
             ]
 
-        fm_sizes: [256,
-            256, 256, 256,
-            256, 256, 256
+        fm_sizes: [128,
+            128, 128, 128,
+            128, 128, 128
             ]
         stage: [0, 
             1, 1, 1, 
@@ -65,5 +65,5 @@ optim:
 
 data:
     dataset: cosmic
-    input_size: (1,256,256)
+    input_size: (1,128,128)
 

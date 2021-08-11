@@ -64,7 +64,7 @@ class GAEAEvalTrial(PyTorchTrial):
         self.lr_scheduler = self.context.wrap_lr_scheduler(
             lr_scheduler=CosineAnnealingLR(
                 self.optimizer,
-                600.0,
+                150.0,
                 0,
             ),
             step_mode=LRScheduler.StepMode.STEP_EVERY_EPOCH,
@@ -222,7 +222,7 @@ class GAEAEvalTrial(PyTorchTrial):
             #print("Epoch: {} lr {}".format(epoch_idx, current_lr))
         self.last_epoch_idx = epoch_idx
 
-        self.model.drop_path_prob = self.context.get_hparam("drop_path_prob") * epoch_idx / 600.0
+        self.model.drop_path_prob = self.context.get_hparam("drop_path_prob") * epoch_idx / 150.0
         #print('current drop prob is {}'.format(self.model.drop_path_prob))
 
         input, target = batch

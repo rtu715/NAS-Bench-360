@@ -1,13 +1,10 @@
-description: protein_gaea_eval_seed2
+description: protein_gaea_eval
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
-  registry_auth:
-    username: renbotu
-    password: 980715tutubo
 
 reproducibility:
-  experiment_seed: 2
+  experiment_seed: 0
 
 data:
   download_dir: /data
@@ -31,7 +28,7 @@ hyperparameters:
     learning_rate: 0.025
     momentum: 0.9
     min_learning_rate: 0
-    scheduler_epochs: 600
+    scheduler_epochs: 150
     weight_decay: 3e-4
     arch_learning_rate: 0.0
     init_channels: 36 
@@ -57,7 +54,7 @@ searcher:
   name: single
   metric: lr8
   max_length: 
-    epochs: 600
+    epochs: 150
 
 optimizations:
   aggregation_frequency:  1

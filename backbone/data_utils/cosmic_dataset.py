@@ -194,5 +194,23 @@ class PairedDatasetImagePath(Dataset):
             ignore = np.zeros_like(data[0])
         # try:#JK
         skyaug = self.get_skyaug(i)
+        #crop to 128*128
+        image, mask, ignore = get_random_crop([image, mask, ignore], 128, 128)
+
         return image + skyaug, mask, ignore
+
+def get_random_crop(images, crop_height, crop_width):
+
+    max_x = images[0].shape[1] - crop_width
+    max_y = images[0].shape[0] - crop_height
+
+    x = np.random.randint(0, max_x)
+    y = np.random.randint(0, max_y)
+
+    crops = []
+    for image in images:
+        crop = image[y: y + crop_height, x: x + crop_width]
+        crops.append(crop)
+
+    return crops
 

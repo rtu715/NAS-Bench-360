@@ -433,26 +433,12 @@ class BackboneTrial(PyTorchTrial):
                     error_sum += mae.item()
 
                 elif self.hparams.task == 'cosmic':
-                    for t in range(len(batch)):
-                        dat = batch[t]
-                        img0 = dat[0]
-                        shape = img0.shape
-                        pad_x = 4 - shape[0] % 4
-                        pad_y = 4 - shape[1] % 4
-                        if pad_x == 4:
-                            pad_x = 0
-                        if pad_y == 4:
-                            pad_y = 0
-                        img0 = np.pad(img0, ((pad_x, 0), (pad_y, 0)), mode='constant')
-                        shape = img0.shape[-2:]
-                        img0 = torch.from_numpy(img0).type(torch.cuda.FloatTensor).view(1, -1, shape[0], shape[1])
-                        pdt_mask = self.model(img0).permute(0, 3, 1, 2).contiguous()
-                        msk = dat[1].detach().cpu().numpy()
-                        ignore = dat[2].detach().cpu().numpy()
-                        for i in range(nROC):
-                            binary_mask = np.squeeze((pdt_mask.detach().cpu().numpy() > thresholds[i]) * (1 - ignore))
-                            metric[i] += maskMetric(binary_mask, msk * (1 - ignore))
-                    loss = 0.0
+                    img, mask, ignore = set_input(*batch, self.data_shape)
+                    logits = self.model(img).permute(0,3,1,2).contiguous()
+                    loss = self.criterion(logits*(1-ignore), mask*(1-ignore))
+                    meter.update(loss, img.shape[0])
+                    metric += maskMetric(logits.reshape
+                                         (-1, 1, self.data_shape, self.data_shape).detach().cpu().numpy() > 0.5, mask.cpu().numpy())
 
                 loss_sum += loss
 
