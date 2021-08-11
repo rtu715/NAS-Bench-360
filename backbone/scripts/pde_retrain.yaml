@@ -20,9 +20,9 @@ hyperparameters:
   backbone: 16,4
   droprate: 0.0
 
-  learning_rate: 0.001
+  learning_rate: 0.041243660594161465
   momentum: 0.9
-  weight_decay: 5e-4
+  weight_decay: 0.00013742578761515638
   nesterov: true
 
   global_batch_size: 8

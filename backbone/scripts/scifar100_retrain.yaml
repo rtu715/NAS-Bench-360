@@ -24,11 +24,11 @@ hyperparameters:
 
   #NN architecture backbone
   backbone: 16,4
-  droprate: 0.0
+  droprate: 0.3
 
-  learning_rate: 0.1
-  momentum: 0.9
-  weight_decay: 5e-4
+  learning_rate: 0.0452911114885557
+  momentum: 0
+  weight_decay: 0.007217303539978485
   nesterov: true
 
   global_batch_size: 128

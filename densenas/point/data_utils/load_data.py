@@ -248,7 +248,7 @@ def load_cifar100_train_data(path, permute=False, val_split=0.2, train=True):
     all_trainset = torchvision.datasets.CIFAR100(
         root=path, train=True, download=True, transform=transform
     )
-
+    print(transform)
     if val_split==0.0 or not train:
         return all_trainset, None
 

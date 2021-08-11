@@ -30,8 +30,8 @@ hyperparameters:
     scheduler_epochs: 600
     weight_decay: 3e-4
     arch_learning_rate: 0.0
-    init_channels: 16 
-    layers: 10
+    init_channels: 36 
+    layers: 20
     nodes: 4
     multiplier: 4
     drop_path_prob: 0.3

@@ -20,11 +20,11 @@ hyperparameters:
   task: protein
   backbone: 16,4
   train: false
-  droprate: 0.0
+  droprate: 0.3
 
-  learning_rate: 0.001 
-  momentum: 0.9
-  weight_decay: 5e-4 
+  learning_rate: 0.012384930898256393
+  momentum: 0.3
+  weight_decay: 0.00811759169863413 
   nesterov: true
 
   global_batch_size: 8

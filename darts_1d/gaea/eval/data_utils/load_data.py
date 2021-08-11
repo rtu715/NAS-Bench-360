@@ -76,7 +76,7 @@ def load_satellite_data(path, train):
 
     return trainset, None, testset
 
-def read_data_physionet_4(path, window_size=3000, stride=500):
+def read_data_physionet_4(path, window_size=1000, stride=500):
 
     # read pkl
     with open(os.path.join(path,'challenge2017.pkl'), 'rb') as fin:
@@ -126,7 +126,7 @@ def read_data_physionet_4(path, window_size=3000, stride=500):
 
     return trainset, None, testset#, pid_test
 
-def read_data_physionet_4_with_val(path, window_size=3000, stride=500):
+def read_data_physionet_4_with_val(path, window_size=1000, stride=500):
 
     # read pkl
     with open(os.path.join(path,'challenge2017.pkl'), 'rb') as fin:
