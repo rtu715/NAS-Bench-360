@@ -27,6 +27,7 @@ hyperparameters:
 
 resources:
   slots_per_trial: 1
+  max_slots: 5
 
 min_validation_period:
   epochs: 1

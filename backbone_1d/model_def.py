@@ -39,26 +39,19 @@ class BackboneTrial(PyTorchTrial):
 
         self.download_directory = self.download_data_from_s3()
 
-        self.criterion = nn.CrossEntropyLoss().cuda()
+        dataset_hypers = {'ECG': (4, 1), 'satellite': (24, 1), 'deepsea': (36, 4)}
 
+        if self.hparams.task == 'deepsea':
+            self.criterion = nn.BCEWithLogitsLoss().cuda()
+            self.accuracy = False
 
-        dataset_hypers = {'ECG': (4, 1), 'satellite': (24, 1)}
+        else: 
+            self.criterion = nn.CrossEntropyLoss().cuda()
+            self.accuracy = True
 
         n_classes, in_channels = dataset_hypers[self.hparams.task]
         print('task: ', self.hparams.task, 'in_channels: ',  in_channels, 'classes: ', n_classes)
-        # Changing our backbone
-        '''
-        depth = list(map(int, self.hparams.backbone.split(',')))[0]
-        width = list(map(int, self.hparams.backbone.split(',')))[1]
-
-        self.backbone = Backbone_Pt(
-            depth,
-            n_classes,
-            width,
-            dropRate=self.hparams.droprate,
-            in_channels=in_channels,
-        )
-        '''
+        
         self.backbone = ResNet1D(in_channels, 64, n_classes)
 
         total_params = sum(p.numel() for p in self.backbone.parameters() if p.requires_grad)/ 1e6
@@ -110,6 +103,7 @@ class BackboneTrial(PyTorchTrial):
         else:
             self.train_data, _, self.val_data = load_data(self.hparams.task, download_directory, False)
 
+        print('train size: %d, val size: %d' % (len(self.train_data), len(self.val_data)))
         return download_directory
 
 
@@ -147,17 +141,19 @@ class BackboneTrial(PyTorchTrial):
         x_train, y_train = batch
         self.model.train()
         output = self.model(x_train)
-        loss = self.criterion(output, y_train)
-        top1 = utils.accuracy(output, y_train, topk=(1,))[0]
+        loss = self.criterion(output, y_train.float())
 
         self.context.backward(loss)
         self.context.step_optimizer(self.opt)
 
-        return {
+        results = {
             'loss': loss,
-            'top1_accuracy': top1.item(),
         }
-    
+        
+        if self.accuracy: 
+            top1 = utils.accuracy(output, y_train, topk=(1,))[0]
+            results['top1_accuracy'] = top1.item()
+        
         return results
 
     def evaluate_full_dataset(
@@ -168,6 +164,9 @@ class BackboneTrial(PyTorchTrial):
 
         elif self.hparams.task == 'satellite':
             return self.evaluate_full_dataset_satellite(data_loader)
+    
+        elif self.hparams.task == 'deepsea':
+            return self.evaluate_full_dataset_deepsea(data_loader)
 
         return None
 
@@ -241,4 +240,35 @@ class BackboneTrial(PyTorchTrial):
 
         return results
 
+    def evaluate_full_dataset_deepsea(
+            self, data_loader: torch.utils.data.DataLoader
+        ) -> Dict[str, Any]:
+        
+        loss_avg = utils.AverageMeter()
+        test_predictions = []
+        test_gts = [] 
+        with torch.no_grad():
+            for batch in data_loader:
+                batch = self.context.to_device(batch)
+                input, target = batch
+                n = input.size(0)
+                logits = self.model(input)
+                loss = self.criterion(logits, target.float())
+                loss_avg.update(loss, n)
+                logits_sigmoid = torch.sigmoid(logits)
+                test_predictions.append(logits_sigmoid.detach().cpu().numpy())
+                test_gts.append(target.detach().cpu().numpy()) 
 
+        test_predictions = np.concatenate(test_predictions).astype(np.float32)
+        test_gts = np.concatenate(test_gts).astype(np.int32)
+
+        stats = utils.calculate_stats(test_predictions, test_gts)
+        mAP = np.mean([stat['AP'] for stat in stats])
+        mAUC = np.mean([stat['auc'] for stat in stats])
+
+        results = {
+            "test_mAUC": mAUC,
+            "test_mAP": mAP,
+        }
+
+        return results

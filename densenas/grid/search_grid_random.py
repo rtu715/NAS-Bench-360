@@ -40,7 +40,7 @@ class AttrDict(dict):
         self.__dict__ = self
 
 
-class DenseNASTrainTrial(PyTorchTrial):
+class DenseNASSearchTrial(PyTorchTrial):
 
     def __init__(self, trial_context: PyTorchTrialContext) -> None:
         self.context = trial_context

@@ -1,0 +1,56 @@
+description: deepsea__backbone_default
+
+environment:
+  image: "renbotu/xd-nas:determined1.8"
+
+reproducibility:
+  experiment_seed: 0
+
+data:
+  download_dir: /data
+  type: s3
+  bucket: pde-xd
+
+
+bind_mounts:
+  - host_path: /tmp
+    container_path: /data
+    read_only: false
+
+hyperparameters:
+  task: deepsea
+  train: true
+
+  #NN architecture backbone
+  learning_rate: 0.1
+  momentum: 0.9
+  weight_decay: 5e-4
+  nesterov: true
+
+  global_batch_size: 256
+
+  start_epoch: 0
+  epochs: 200
+
+resources:
+  slots_per_trial: 1
+
+records_per_epoch: 71753 
+
+searcher:
+  name: single
+  metric: test_mAUC
+  smaller_is_better: false 
+  max_length:
+    epochs: 200
+
+min_validation_period:
+  epochs: 20
+
+min_checkpoint_period:
+  epochs: 5
+
+max_restarts: 100
+
+entrypoint: model_def:BackboneTrial
+

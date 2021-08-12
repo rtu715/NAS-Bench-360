@@ -1,5 +1,6 @@
 import os
 import numpy as np
+from sklearn import metrics
 
 class AverageMeter(object):
     def __init__(self):
@@ -30,3 +31,37 @@ def accuracy(output, target, topk=(1,)):
         correct_k = correct[:k].contiguous().view(-1).float().sum(0)
         res.append(correct_k.mul_(100.0 / batch_size))
     return res
+
+def calculate_stats(output, target, class_indices=None):
+    """Calculate statistics including mAP, AUC, etc.
+
+    Args:
+      output: 2d array, (samples_num, classes_num)
+      target: 2d array, (samples_num, classes_num)
+      class_indices: list
+        explicit indices of classes to calculate statistics for
+
+    Returns:
+      stats: list of statistic of each class.
+    """
+
+    classes_num = target.shape[-1]
+    if class_indices is None:
+        class_indices = range(classes_num)
+    stats = []
+
+    # Class-wise statistics
+    for k in class_indices:
+        # Average precision
+        avg_precision = metrics.average_precision_score(
+            target[:, k], output[:, k], average=None)
+
+        # AUC
+        auc = metrics.roc_auc_score(target[:, k], output[:, k], average=None)
+
+
+        dict = {'AP': avg_precision,
+                'auc': auc}
+        stats.append(dict)
+
+    return stats
