@@ -34,7 +34,7 @@ min_validation_period:
   epochs: 1
 
 min_checkpoint_period:
-  epochs: 2
+  epochs: 5
 
 records_per_epoch: 40000
 searcher:
@@ -42,8 +42,8 @@ searcher:
   metric: validation_accuracy
   smaller_is_better: false
   max_length:
-    epochs: 20
-  max_trials: 10
+    epochs: 10
+  max_trials: 30
 
 optimizations:
   aggregation_frequency:  1

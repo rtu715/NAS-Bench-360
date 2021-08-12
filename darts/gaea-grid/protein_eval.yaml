@@ -44,7 +44,7 @@ resources:
   slots_per_trial: 1
 
 min_validation_period: 
-  epochs: 10
+  epochs: 30
 
 min_checkpoint_period:
   epochs: 5

@@ -40,8 +40,8 @@ searcher:
   name: random
   metric: validation_loss
   max_length:
-    epochs: 20
-  max_trials: 10
+    epochs: 10
+  max_trials: 30
 
 optimizations:
   aggregation_frequency:  1

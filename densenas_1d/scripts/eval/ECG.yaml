@@ -20,7 +20,7 @@ bind_mounts:
 hyperparameters:
   task: ECG
   train: false
-  num_examples: 180000
+  num_examples: 295021
 
   net_type: res
   net_config: "[[32, 48], 'basic_block', [], 0, 2]|[[48, 112], 'basic_block', ['basic_block'], 1, 2] "
@@ -30,12 +30,12 @@ resources:
   slots_per_trial: 1
 
 min_validation_period:
-  epochs: 1
+  epochs: 20
 
 min_checkpoint_period:
   epochs: 2
 
-records_per_epoch: 180000
+records_per_epoch: 295021
 searcher:
   name: single
   metric: score

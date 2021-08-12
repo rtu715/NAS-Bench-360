@@ -49,7 +49,7 @@ searcher:
   metric: top1_accuracy 
   smaller_is_better: false 
   max_length:
-    epochs: 600
+    epochs: 150
 
 optimizations:
   aggregation_frequency:  1

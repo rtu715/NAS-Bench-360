@@ -30,7 +30,12 @@ hyperparameters:
   #[[64, 112], 'basic_block', ['basic_block'], 1, 2]|
   #[[112, 176], 'basic_block', [], 0, 1]|
   #[[176, 192], 'basic_block', [], 0, 1]"
- 
+
+  net_config: "[[32, 64], 'basic_block', [], 0, 2]|
+[[64, 112], 'basic_block', [], 0, 2]|
+ [[112, 176], 'basic_block', ['basic_block', 'basic_block', 'basic_block'], 3, 1]|
+[[176, 224], 'basic_block', ['basic_block'], 1, 1]"
+
   #seed1
   #net_config: "[[32, 64], 'basic_block', [], 0, 2]|
   #[[64, 72], 'basic_block', ['basic_block'], 1, 2]|
@@ -38,10 +43,10 @@ hyperparameters:
   #[[160, 224], 'basic_block', [], 0, 1]"
 
   #seed2
-  net_config: "[[32, 64], 'basic_block', [], 0, 2]|
-[[64, 112], 'basic_block', ['basic_block'], 1, 2]|
-[[112, 144], 'basic_block', ['basic_block'], 1, 1]|
- [[144, 224], 'basic_block', [], 0, 1]"
+  #net_config: "[[32, 64], 'basic_block', [], 0, 2]|
+  #[[64, 112], 'basic_block', ['basic_block'], 1, 2]|
+  #[[112, 144], 'basic_block', ['basic_block'], 1, 1]|
+  # [[144, 224], 'basic_block', [], 0, 1]"
 
   global_batch_size: 256
 
