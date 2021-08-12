@@ -1,4 +1,4 @@
-description: satellite_densenas_rs
+description: deepsea_densenas_rs
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -18,15 +18,12 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-  task: satellite
-  train: false
-  num_examples: 900000
+  task: deepsea
+  num_examples: 71753
 
   net_type: res
-
   net_config: random
-
-  global_batch_size: 4096
+  global_batch_size: 256
 
 resources:
   slots_per_trial: 1
@@ -37,18 +34,19 @@ min_validation_period:
 min_checkpoint_period:
   epochs: 2
 
-records_per_epoch: 900000
+records_per_epoch: 71753
 searcher:
   name: random
-  metric: validation_accuracy
+  metric: test_mAUC
   smaller_is_better: false
   max_length:
-    epochs: 10
+    epochs: 10 
   max_trials: 30
 
 optimizations:
   aggregation_frequency:  1
 
-max_restarts: 100
+max_restarts: 1000
 
 entrypoint: model_retrain:DenseNASTrainTrial
+

@@ -1,4 +1,4 @@
-description: ECG_gaea1d_search
+description: deepsea_gaea1d_search
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -17,10 +17,10 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-    task: ECG
+    task: deepsea
 
     # Number of classes in dataset
-    n_classes: 4
+    n_classes: 36
     # Channel shuffle factor.  1 / shuffle_factor channels are activated at a given time.
     shuffle_factor: 4
     global_batch_size: 64
@@ -39,15 +39,15 @@ resources:
   slots_per_trial: 1
 
 min_validation_period:
-  epochs: 25
+  epochs: 10
 
 min_checkpoint_period:
   epochs: 10
 
-records_per_epoch: 130870
+records_per_epoch: 35877
 searcher:
   name: single
-  metric: score
+  metric: test_mAUC
   smaller_is_better: false
   max_length:
     epochs: 50

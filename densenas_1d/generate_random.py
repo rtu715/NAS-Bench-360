@@ -14,11 +14,16 @@ def generate_arch(task, net_type):
     update_cfg_from_cfg(search_cfg, cfg)
     if task == 'ECG':
         merge_cfg_from_file('configs/ecg_search_cfg_resnet.yaml', cfg)
-        input_shape = (1, 3000)
+        input_shape = (1, 1000)
 
     elif task == 'satellite':
         merge_cfg_from_file('configs/satellite_search_cfg_resnet.yaml', cfg)
         input_shape = (1, 48)
+
+    elif task == 'deepsea':
+        merge_cfg_from_file('configs/deepsea_search_cfg_resnet.yaml', cfg)
+        input_shape = (4, 1000)
+
 
     else:
         raise NotImplementedError

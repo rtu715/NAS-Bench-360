@@ -12,6 +12,10 @@ def download_from_s3(s3_bucket, task, download_dir):
         data_files = ["satellite_train.npy", "satellite_test.npy"]
         s3_folder = 'satellite'
 
+    elif task == 'deepsea':
+        data_files = ["deepsea_filtered.npz"]
+        s3_folder = 'deepsea'
+
     else:
         raise NotImplementedError
 

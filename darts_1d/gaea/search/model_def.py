@@ -47,17 +47,28 @@ class GAEASearchTrial(PyTorchTrial):
 
         self.download_directory = self.download_data_from_s3()
 
+        dataset_hypers = {'ECG': (4, 1), 'satellite': (24, 1), 'deepsea': (36, 4)}
+        n_classes, in_channels = dataset_hypers[self.hparams.task]
+
+
+        if self.hparams.task == 'deepsea':
+            criterion = nn.BCEWithLogitsLoss().cuda()
+            self.accuracy = False
+
+        else: 
+            criterion = nn.CrossEntropyLoss().cuda()
+            self.accuracy = True
+
         # Initialize the models.
-        criterion = nn.CrossEntropyLoss()
         self.model = self.context.wrap_model(
             Network(
                 self.hparams.init_channels,
-                self.hparams.n_classes,
+                n_classes,
                 self.hparams.layers,
                 criterion,
                 self.hparams.nodes,
                 k=self.hparams.shuffle_factor,
-                in_channels=1,
+                in_channels=in_channels,
             )
         )
 
@@ -127,6 +138,10 @@ class GAEASearchTrial(PyTorchTrial):
         self.last_epoch = epoch_idx
         x_train, y_train, x_val, y_val = batch
 
+        if self.hparams.task == 'deepsea':
+            y_train = y_train.float()
+            y_val = y_val.float()
+
         # Train shared-weights
         for a in self.model.arch_parameters():
             a.requires_grad = False
@@ -166,6 +181,9 @@ class GAEASearchTrial(PyTorchTrial):
 
         elif self.hparams.task == 'satellite':
             return self.evaluate_full_dataset_satellite(data_loader)
+
+        elif self.hparams.task == 'deepsea':
+            return self.evaluate_full_dataset_deepsea(data_loader)
 
         return None
 
@@ -235,6 +253,39 @@ class GAEASearchTrial(PyTorchTrial):
             "top5_accuracy": acc_top5.avg,
             }
         
+        return results
+
+    def evaluate_full_dataset_deepsea(
+            self, data_loader: torch.utils.data.DataLoader
+        ) -> Dict[str, Any]:
+        
+        loss_avg = utils.AverageMeter()
+        test_predictions = []
+        test_gts = [] 
+        with torch.no_grad():
+            for batch in data_loader:
+                batch = self.context.to_device(batch)
+                input, target = batch
+                n = input.size(0)
+                logits = self.model(input)
+                loss = self.model._loss(logits, target.float())
+                loss_avg.update(loss, n)
+                logits_sigmoid = torch.sigmoid(logits)
+                test_predictions.append(logits_sigmoid.detach().cpu().numpy())
+                test_gts.append(target.detach().cpu().numpy()) 
+
+        test_predictions = np.concatenate(test_predictions).astype(np.float32)
+        test_gts = np.concatenate(test_gts).astype(np.int32)
+
+        stats = utils.calculate_stats(test_predictions, test_gts)
+        mAP = np.mean([stat['AP'] for stat in stats])
+        mAUC = np.mean([stat['auc'] for stat in stats])
+
+        results = {
+            "test_mAUC": mAUC,
+            "test_mAP": mAP,
+        }
+
         return results
 
     def build_callbacks(self):

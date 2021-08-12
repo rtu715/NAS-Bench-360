@@ -60,9 +60,9 @@ optim:
         load_epoch: 9
 
 data:
-    dataset: ecg
+    dataset: deepsea
     patch_dataset: False
-    input_size: (1,1000)
+    input_size: (4,1000)
     type_of_data_aug: random_sized
     color: False
     random_sized:

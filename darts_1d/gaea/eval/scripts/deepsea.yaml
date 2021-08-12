@@ -1,4 +1,4 @@
-description: satellite_densenas_rs
+description: deepsea_gaea_eval
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -11,6 +11,8 @@ data:
   type: s3
   bucket: pde-xd
 
+  num_workers_train: 2
+  num_workers_val: 2
 
 bind_mounts:
   - host_path: /tmp
@@ -18,15 +20,17 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-  task: satellite
-  train: false
-  num_examples: 900000
+  task: deepsea
 
-  net_type: res
+  learning_rate: 0.025
+  momentum: 0.9
+  weight_decay: 3e-4
 
-  net_config: random
-
-  global_batch_size: 4096
+  init_channels: 36
+  layers: 20
+  global_batch_size: 64
+  drop_path_prob: 0.3
+  clip_gradients_l2_norm: 5
 
 resources:
   slots_per_trial: 1
@@ -37,18 +41,18 @@ min_validation_period:
 min_checkpoint_period:
   epochs: 2
 
-records_per_epoch: 900000
+records_per_epoch: 71753
+
 searcher:
-  name: random
-  metric: validation_accuracy
-  smaller_is_better: false
+  name: single
+  metric: test_mAUC
+  smaller_is_better: false 
   max_length:
-    epochs: 10
-  max_trials: 30
+    epochs: 150
 
 optimizations:
   aggregation_frequency:  1
 
 max_restarts: 100
 
-entrypoint: model_retrain:DenseNASTrainTrial
+entrypoint: model_def:GAEAEvalTrial

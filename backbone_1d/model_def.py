@@ -141,7 +141,11 @@ class BackboneTrial(PyTorchTrial):
         x_train, y_train = batch
         self.model.train()
         output = self.model(x_train)
-        loss = self.criterion(output, y_train.float())
+
+        if self.hparams.task == 'deepsea':
+            y_train = y_train.float()
+
+        loss = self.criterion(output, y_train)
 
         self.context.backward(loss)
         self.context.step_optimizer(self.opt)

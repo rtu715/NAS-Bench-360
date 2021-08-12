@@ -22,6 +22,7 @@ from utils import (
     accuracy,
     AverageMeter,
     count_parameters_in_MB
+    calculate_stats
 )
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from collections import Counter
@@ -43,7 +44,15 @@ class GAEAEvalTrial(PyTorchTrial):
         self.context = context
         self.hparams = AttrDict(context.get_hparams())
         self.data_config = context.get_data_config()
-        self.criterion = nn.CrossEntropyLoss()
+
+        if self.context.get_hparam('task') == 'deepsea':
+            criterion = nn.BCEWithLogitsLoss().cuda()
+            self.accuracy = False
+
+        else: 
+            criterion = nn.CrossEntropyLoss().cuda()
+            self.accuracy = True
+
         self.download_directory = self.download_data_from_s3()
 
         self.last_epoch_idx = -1
@@ -66,7 +75,7 @@ class GAEAEvalTrial(PyTorchTrial):
         self.lr_scheduler = self.context.wrap_lr_scheduler(
             lr_scheduler=CosineAnnealingLR(
                 self.optimizer,
-                600.0,
+                150.0,
                 0,
             ),
             step_mode=LRScheduler.StepMode.STEP_EVERY_EPOCH,
@@ -78,7 +87,7 @@ class GAEAEvalTrial(PyTorchTrial):
         print(self.context.get_hparam('task'))
         print(genotype)
 
-        dataset_hypers = {'ECG': (4, 1), 'satellite': (24, 1)}
+        dataset_hypers = {'ECG': (4, 1), 'satellite': (24, 1), 'deepsea': (36, 4)}
         n_classes, in_channels = dataset_hypers[self.context.get_hparam('task')]
         
         model = Network(
@@ -164,13 +173,14 @@ class GAEAEvalTrial(PyTorchTrial):
             current_lr = self.lr_scheduler.get_last_lr()[0]
             #print("Epoch: {} lr {}".format(epoch_idx, current_lr))
        
-            self.model.drop_path_prob = self.context.get_hparam("drop_path_prob") * epoch_idx / 600.0
+            self.model.drop_path_prob = self.context.get_hparam("drop_path_prob") * epoch_idx / 150.0
             #print('current drop prob is {}'.format(self.model.drop_path_prob))
         
         self.last_epoch_idx = epoch_idx
 
-        
         input, target = batch
+        if self.context.get_hparam('task') == 'deepsea':
+            target = target.float()
 
         logits = self.model(input)
         loss = self.criterion(logits, target)
@@ -193,6 +203,9 @@ class GAEAEvalTrial(PyTorchTrial):
 
         elif self.hparams.task == 'satellite':
             return self.evaluate_full_dataset_satellite(data_loader)
+
+        elif self.hparams.task == 'deepsea':
+            return self.evaluate_full_dataset_deepsea(data_loader)
 
         return None
 
@@ -263,6 +276,39 @@ class GAEAEvalTrial(PyTorchTrial):
             "top5_accuracy": acc_top5.avg,
         }
 
+
+        return results
+
+    def evaluate_full_dataset_deepsea(
+            self, data_loader: torch.utils.data.DataLoader
+        ) -> Dict[str, Any]:
+        
+        loss_avg = AverageMeter()
+        test_predictions = []
+        test_gts = [] 
+        with torch.no_grad():
+            for batch in data_loader:
+                batch = self.context.to_device(batch)
+                input, target = batch
+                n = input.size(0)
+                logits = self.model(input)
+                loss = self.model._loss(logits, target.float())
+                loss_avg.update(loss, n)
+                logits_sigmoid = torch.sigmoid(logits)
+                test_predictions.append(logits_sigmoid.detach().cpu().numpy())
+                test_gts.append(target.detach().cpu().numpy()) 
+
+        test_predictions = np.concatenate(test_predictions).astype(np.float32)
+        test_gts = np.concatenate(test_gts).astype(np.int32)
+
+        stats = calculate_stats(test_predictions, test_gts)
+        mAP = np.mean([stat['AP'] for stat in stats])
+        mAUC = np.mean([stat['auc'] for stat in stats])
+
+        results = {
+            "test_mAUC": mAUC,
+            "test_mAP": mAP,
+        }
 
         return results
 

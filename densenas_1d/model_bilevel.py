@@ -57,12 +57,20 @@ class DenseNASSearchTrial(PyTorchTrial):
         update_cfg_from_cfg(search_cfg, cfg)
         if self.hparams.task == 'ECG':
             merge_cfg_from_file('configs/ecg_search_cfg_resnet.yaml', cfg)
-            input_shape = (1, 3000)
+            input_shape = (1, 1000)
+            self.criterion = nn.CrossEntropyLoss()
 
         elif self.hparams.task == 'satellite':
             merge_cfg_from_file('configs/satellite_search_cfg_resnet.yaml', cfg)
             #input_shape = (1, 46)
             input_shape = (1, 48)
+            self.criterion = nn.CrossEntropyLoss()
+
+
+        elif task == 'deepsea':
+            merge_cfg_from_file('configs/deepsea_search_cfg_resnet.yaml', cfg)
+            input_shape = (4, 1000)
+            self.criterion = nn.BCEWithLogitsLoss()
 
         else:
             raise NotImplementedError
@@ -73,8 +81,6 @@ class DenseNASSearchTrial(PyTorchTrial):
         
         cudnn.benchmark = True
         cudnn.enabled = True
-
-        self.criterion = nn.CrossEntropyLoss()
         self.criterion = self.criterion.cuda()
 
         SearchSpace = importlib.import_module('models.search_space_'+self.hparams.net_type).Network
@@ -195,6 +201,9 @@ class DenseNASSearchTrial(PyTorchTrial):
         elif self.hparams.task == 'satellite':
             return self.evaluate_full_dataset_satellite(data_loader)
 
+        elif self.hparams.task == 'deepsea':
+            return self.evaluate_full_dataset_deepsea(data_loader)
+
         return None
 
     def evaluate_full_dataset_ECG(self, data_loader: torch.utils.data.DataLoader) -> Dict[str, Any]:
@@ -286,6 +295,38 @@ class DenseNASSearchTrial(PyTorchTrial):
                 'validation_accuracy': top1.avg,
                 'validation_top5': top5.avg
                 }
+
+    def evaluate_full_dataset_deepsea(
+            self, data_loader: torch.utils.data.DataLoader
+        ) -> Dict[str, Any]:
+        
+        loss_avg = utils.AverageMeter()
+        test_predictions = []
+        test_gts = [] 
+        with torch.no_grad():
+            for batch in data_loader:
+                batch = self.context.to_device(batch)
+                input, target = batch
+                n = input.size(0)
+                logits, loss, subobj = self.valid_step(input, target, self.model)
+                loss_avg.update(loss, n)
+                logits_sigmoid = torch.sigmoid(logits)
+                test_predictions.append(logits_sigmoid.detach().cpu().numpy())
+                test_gts.append(target.detach().cpu().numpy()) 
+
+        test_predictions = np.concatenate(test_predictions).astype(np.float32)
+        test_gts = np.concatenate(test_gts).astype(np.int32)
+
+        stats = utils.calculate_stats(test_predictions, test_gts)
+        mAP = np.mean([stat['AP'] for stat in stats])
+        mAUC = np.mean([stat['auc'] for stat in stats])
+
+        results = {
+            "test_mAUC": mAUC,
+            "test_mAP": mAP,
+        }
+
+        return results
         
 
     def weight_step(self, input_train, target_train, model, search_stage):

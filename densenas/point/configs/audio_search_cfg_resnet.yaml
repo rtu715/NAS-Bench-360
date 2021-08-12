@@ -63,7 +63,7 @@ optim:
         load_epoch: 9
 
 data:
-    dataset: spherical
+    dataset: FSD50k
     patch_dataset: False
     input_size: (1,96,101)
     type_of_data_aug: random_sized

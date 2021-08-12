@@ -13,6 +13,8 @@ import torch.utils.data as data_utils
 
 import torchvision
 from torchvision import transforms
+from sklearn import metrics
+
 
 # From: https://github.com/quark0/DARTS
 Genotype = namedtuple("Genotype", "normal normal_concat reduce reduce_concat")
@@ -168,3 +170,36 @@ class CrossEntropyLabelSmooth(nn.Module):
         return loss
 
 
+def calculate_stats(output, target, class_indices=None):
+    """Calculate statistics including mAP, AUC, etc.
+
+    Args:
+      output: 2d array, (samples_num, classes_num)
+      target: 2d array, (samples_num, classes_num)
+      class_indices: list
+        explicit indices of classes to calculate statistics for
+
+    Returns:
+      stats: list of statistic of each class.
+    """
+
+    classes_num = target.shape[-1]
+    if class_indices is None:
+        class_indices = range(classes_num)
+    stats = []
+
+    # Class-wise statistics
+    for k in class_indices:
+        # Average precision
+        avg_precision = metrics.average_precision_score(
+            target[:, k], output[:, k], average=None)
+
+        # AUC
+        auc = metrics.roc_auc_score(target[:, k], output[:, k], average=None)
+
+
+        dict = {'AP': avg_precision,
+                'auc': auc}
+        stats.append(dict)
+
+    return stats

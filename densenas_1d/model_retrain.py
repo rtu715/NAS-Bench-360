@@ -57,7 +57,10 @@ class DenseNASTrainTrial(PyTorchTrial):
         cudnn.benchmark = True
         cudnn.enabled = True
 
-        self.criterion = nn.CrossEntropyLoss()
+        if self.hparams.task == 'deepsea':
+            self.criterion = nn.BCEWithLogitsLoss()
+        else:
+            self.criterion = nn.CrossEntropyLoss()
         self.criterion = self.criterion.cuda()
 
         config.net_config, config.net_type = self.hparams.net_config, self.hparams.net_type
@@ -144,6 +147,9 @@ class DenseNASTrainTrial(PyTorchTrial):
         elif self.hparams.task == 'satellite':
             return self.evaluate_full_dataset_satellite(data_loader)
 
+        elif self.hparams.task == 'deepsea':
+            return self.evaluate_full_dataset_deepsea(data_loader)
+
         return None
 
     def evaluate_full_dataset_ECG(self, data_loader: torch.utils.data.DataLoader) -> Dict[str, Any]:
@@ -208,4 +214,37 @@ class DenseNASTrainTrial(PyTorchTrial):
             'validation_accuracy': top1.avg,
             'validation_top5': top5.avg
         }
+
+    def evaluate_full_dataset_deepsea(
+            self, data_loader: torch.utils.data.DataLoader
+        ) -> Dict[str, Any]:
+        
+        loss_avg = utils.AverageMeter()
+        test_predictions = []
+        test_gts = [] 
+        with torch.no_grad():
+            for batch in data_loader:
+                batch = self.context.to_device(batch)
+                input, target = batch
+                n = input.size(0)
+                logits = self.model(input)
+                loss = self.criterion(logits, target)
+                loss_avg.update(loss, n)
+                logits_sigmoid = torch.sigmoid(logits)
+                test_predictions.append(logits_sigmoid.detach().cpu().numpy())
+                test_gts.append(target.detach().cpu().numpy()) 
+
+        test_predictions = np.concatenate(test_predictions).astype(np.float32)
+        test_gts = np.concatenate(test_gts).astype(np.int32)
+
+        stats = utils.calculate_stats(test_predictions, test_gts)
+        mAP = np.mean([stat['AP'] for stat in stats])
+        mAUC = np.mean([stat['auc'] for stat in stats])
+
+        results = {
+            "test_mAUC": mAUC,
+            "test_mAP": mAP,
+        }
+
+        return results
 

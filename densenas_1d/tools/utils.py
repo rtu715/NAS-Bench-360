@@ -7,6 +7,8 @@ import time
 import numpy as np
 import torch
 import torch.nn as nn
+from sklearn import metrics
+
 
 
 class AverageMeter(object):
@@ -196,3 +198,38 @@ def record_topk(k, rec_list, data, comp_attr, check_attr):
     while len(rec_list) > k:
         rec_list.pop()
     return if_insert
+
+
+def calculate_stats(output, target, class_indices=None):
+    """Calculate statistics including mAP, AUC, etc.
+
+    Args:
+      output: 2d array, (samples_num, classes_num)
+      target: 2d array, (samples_num, classes_num)
+      class_indices: list
+        explicit indices of classes to calculate statistics for
+
+    Returns:
+      stats: list of statistic of each class.
+    """
+
+    classes_num = target.shape[-1]
+    if class_indices is None:
+        class_indices = range(classes_num)
+    stats = []
+
+    # Class-wise statistics
+    for k in class_indices:
+        # Average precision
+        avg_precision = metrics.average_precision_score(
+            target[:, k], output[:, k], average=None)
+
+        # AUC
+        auc = metrics.roc_auc_score(target[:, k], output[:, k], average=None)
+
+
+        dict = {'AP': avg_precision,
+                'auc': auc}
+        stats.append(dict)
+
+    return stats

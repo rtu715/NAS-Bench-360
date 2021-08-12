@@ -19,7 +19,7 @@ bind_mounts:
 
 hyperparameters:
   task: ECG
-  num_examples: 180000
+  num_examples: 295021
 
   net_type: res
   net_config: random
@@ -34,14 +34,14 @@ min_validation_period:
 min_checkpoint_period:
   epochs: 2
 
-records_per_epoch: 180000
+records_per_epoch: 295021
 searcher:
   name: random
   metric: score
   smaller_is_better: false
   max_length:
-    epochs: 20 #change? 
-  max_trials: 10
+    epochs: 10 #change? 
+  max_trials: 30
 
 optimizations:
   aggregation_frequency:  1

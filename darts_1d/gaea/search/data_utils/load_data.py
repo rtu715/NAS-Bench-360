@@ -30,6 +30,9 @@ def load_data(task, path, train=True):
     elif task == 'satellite':
         return load_satellite_data(path, True)
 
+    elif task == 'deepsea':
+        return load_deepsea_data(path, True)
+
     else:
         raise NotImplementedError
 
@@ -210,3 +213,23 @@ def slide_and_cut(X, Y, window_size, stride, output_pid=False, datatype=4):
         return np.array(out_X), np.array(out_Y), np.array(out_pid)
     else:
         return np.array(out_X), np.array(out_Y)
+
+
+def load_deepsea_data(path, train):
+    data = np.load(os.path.join(path, 'deepsea_filtered.npz'))
+    train_data, train_labels = torch.from_numpy(data['x_train']).type(torch.FloatTensor), \
+                                           torch.from_numpy(data['y_train']).type(torch.LongTensor)
+    train_data = train_data.permute(0, 2, 1)
+    trainset = data_utils.TensorDataset(train_data, train_labels)
+
+    val_data, val_labels = torch.from_numpy(data['x_val']).type(torch.FloatTensor), \
+            torch.from_numpy(data['y_val']).type(torch.LongTensor)
+    val_data = val_data.permute(0, 2, 1)
+    valset = data_utils.TensorDataset(val_data, val_labels)
+
+    test_data, test_labels = torch.from_numpy(data['x_test']).type(torch.FloatTensor), \
+            torch.from_numpy(data['y_test']).type(torch.LongTensor)
+    test_data = test_data.permute(0, 2, 1)
+    testset = data_utils.TensorDataset(test_data, test_labels)
+
+    return trainset, valset, testset
