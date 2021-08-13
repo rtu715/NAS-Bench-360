@@ -26,6 +26,10 @@ hyperparameters:
   global_batch_size: 512
 
   net_config: random
+  target_arch: "[[32, 64], 'basic_block', [], 0, 2]|
+[[64, 72], 'basic_block', [], 0, 2]|
+[[72, 176], 'basic_block', [], 0, 2]|
+[[176, 224], 'basic_block', [], 0, 1]"
 
 resources:
   slots_per_trial: 1

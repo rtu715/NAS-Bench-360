@@ -23,8 +23,11 @@ hyperparameters:
   num_examples: 40000
 
   net_type: res
-  
   net_config: random
+  target_arch: "[[32, 64], 'basic_block', [], 0, 2]|
+  [[64, 112], 'basic_block', ['basic_block'], 1, 2]|
+  [[112, 176], 'basic_block', [], 0, 1]|
+  [[176, 192], 'basic_block', [], 0, 1]"
 
   global_batch_size: 256
 

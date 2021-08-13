@@ -67,7 +67,7 @@ class DenseNASTrainTrial(PyTorchTrial):
         derivedNetwork = getattr(model_derived, '%s_Net' % self.hparams.net_type.upper())
 
         if self.hparams.net_config == 'random':
-            rand_arch = generate_arch(self.hparams.task, self.hparams.net_type)
+            rand_arch = generate_arch(self.hparams.task, self.hparams.net_type, self.hparams.target_arch)
             model = derivedNetwork(rand_arch, task=self.hparams.task, config=config)
         else:
             model = derivedNetwork(config.net_config, task=self.hparams.task, config=config)

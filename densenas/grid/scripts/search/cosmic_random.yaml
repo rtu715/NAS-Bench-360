@@ -23,6 +23,8 @@ hyperparameters:
   num_examples: 4347
 
   net_type: res
+  target_arch: "[[32, 56], 'basic_block', [], 0, 1]|
+[[56, 80], 'basic_block', ['basic_block', 'basic_block'], 2, 1]"
   global_batch_size: 16
 
 resources:
