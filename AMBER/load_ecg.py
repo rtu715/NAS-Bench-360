@@ -8,7 +8,7 @@ from collections import Counter
 from tensorflow.keras import backend as K
 from sklearn.metrics import classification_report, confusion_matrix
 
-def read_data_physionet_4_with_val(path, window_size=3000, stride=500):
+def read_data_physionet_4_with_val(path, window_size=1000, stride=500):
 
     # read pkl
     with open(os.path.join(path,'challenge2017.pkl'), 'rb') as fin:
@@ -59,7 +59,7 @@ def read_data_physionet_4_with_val(path, window_size=3000, stride=500):
 
     return X_train, Y_train, X_val, Y_val
 
-def read_data_physionet_4(path, window_size=3000, stride=500):
+def read_data_physionet_4(path, window_size=1000, stride=500):
 
     # read pkl
     with open(os.path.join(path,'challenge2017.pkl'), 'rb') as fin:
