@@ -21,7 +21,7 @@ from model import Network
 from utils import (
     accuracy,
     AverageMeter,
-    count_parameters_in_MB
+    count_parameters_in_MB,
     calculate_stats
 )
 from torch.optim.lr_scheduler import CosineAnnealingLR
@@ -46,11 +46,11 @@ class GAEAEvalTrial(PyTorchTrial):
         self.data_config = context.get_data_config()
 
         if self.context.get_hparam('task') == 'deepsea':
-            criterion = nn.BCEWithLogitsLoss().cuda()
+            self.criterion = nn.BCEWithLogitsLoss().cuda()
             self.accuracy = False
 
         else: 
-            criterion = nn.CrossEntropyLoss().cuda()
+            self.criterion = nn.CrossEntropyLoss().cuda()
             self.accuracy = True
 
         self.download_directory = self.download_data_from_s3()
@@ -292,7 +292,7 @@ class GAEAEvalTrial(PyTorchTrial):
                 input, target = batch
                 n = input.size(0)
                 logits = self.model(input)
-                loss = self.model._loss(logits, target.float())
+                loss = self.criterion(logits, target.float())
                 loss_avg.update(loss, n)
                 logits_sigmoid = torch.sigmoid(logits)
                 test_predictions.append(logits_sigmoid.detach().cpu().numpy())

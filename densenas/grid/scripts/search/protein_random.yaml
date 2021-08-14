@@ -22,7 +22,7 @@ hyperparameters:
   train: true
   sub: 5
   num_examples: 3356
-
+  net_config: random
   net_type: res
   target_arch: "[[32, 64], 'basic_block', [], 0, 1]|
   [[64, 72], 'basic_block', ['basic_block', 'basic_block', 'basic_block'], 3, 1]|
@@ -32,6 +32,7 @@ hyperparameters:
 
 resources:
   slots_per_trial: 1
+  max_slots: 5
 
 min_validation_period:
   epochs: 5

@@ -67,7 +67,7 @@ class DenseNASSearchTrial(PyTorchTrial):
             self.criterion = nn.CrossEntropyLoss()
 
 
-        elif task == 'deepsea':
+        elif self.hparams.task == 'deepsea':
             merge_cfg_from_file('configs/deepsea_search_cfg_resnet.yaml', cfg)
             input_shape = (4, 1000)
             self.criterion = nn.BCEWithLogitsLoss()
@@ -320,7 +320,16 @@ class DenseNASSearchTrial(PyTorchTrial):
         stats = utils.calculate_stats(test_predictions, test_gts)
         mAP = np.mean([stat['AP'] for stat in stats])
         mAUC = np.mean([stat['auc'] for stat in stats])
-
+        
+        betas, head_alphas, stack_alphas = self.model.display_arch_params()
+        derived_arch = self.arch_gener.derive_archs(betas, head_alphas, stack_alphas)
+        derived_arch_str = '|\n'.join(map(str, derived_arch))
+        derived_model = self.der_Net(derived_arch_str)
+        derived_flops = comp_multadds(derived_model, input_size=self.input_shape)
+        derived_params = utils.count_parameters_in_MB(derived_model)
+        print("Derived Model Mult-Adds = %.2fMB" % derived_flops)
+        print("Derived Model Num Params = %.2fMB" % derived_params)
+        print(derived_arch_str)
         results = {
             "test_mAUC": mAUC,
             "test_mAP": mAP,

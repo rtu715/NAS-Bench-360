@@ -22,7 +22,7 @@ from determined.pytorch import (
 from data import BilevelDataset
 from model_search import Network
 from optimizer import EG
-from utils import AttrDict, accuracy, AverageMeter
+from utils import AttrDict, accuracy, AverageMeter, calculate_stats
 
 from data_utils.load_data import load_data
 from data_utils.download_data import download_from_s3
@@ -259,7 +259,7 @@ class GAEASearchTrial(PyTorchTrial):
             self, data_loader: torch.utils.data.DataLoader
         ) -> Dict[str, Any]:
         
-        loss_avg = utils.AverageMeter()
+        loss_avg = AverageMeter()
         test_predictions = []
         test_gts = [] 
         with torch.no_grad():
@@ -268,7 +268,7 @@ class GAEASearchTrial(PyTorchTrial):
                 input, target = batch
                 n = input.size(0)
                 logits = self.model(input)
-                loss = self.model._loss(logits, target.float())
+                loss = self.model._loss(input, target.float())
                 loss_avg.update(loss, n)
                 logits_sigmoid = torch.sigmoid(logits)
                 test_predictions.append(logits_sigmoid.detach().cpu().numpy())
@@ -277,7 +277,7 @@ class GAEASearchTrial(PyTorchTrial):
         test_predictions = np.concatenate(test_predictions).astype(np.float32)
         test_gts = np.concatenate(test_gts).astype(np.int32)
 
-        stats = utils.calculate_stats(test_predictions, test_gts)
+        stats = calculate_stats(test_predictions, test_gts)
         mAP = np.mean([stat['AP'] for stat in stats])
         mAUC = np.mean([stat['auc'] for stat in stats])
 

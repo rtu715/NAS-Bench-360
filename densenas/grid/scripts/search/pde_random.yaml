@@ -21,7 +21,7 @@ hyperparameters:
   task: pde
   sub: 5
   num_examples: 900
-
+  net_config: random
   net_type: res
   target_arch: "[[32, 64], 'basic_block', [], 0, 1]| [[64, 96], 'basic_block', [], 0, 1]"
   global_batch_size: 8

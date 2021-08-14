@@ -24,7 +24,7 @@ hyperparameters:
   num_examples: 869
 
   net_type: res
-  global_batch_size: 1
+  global_batch_size: 2
 
 resources:
   slots_per_trial: 1

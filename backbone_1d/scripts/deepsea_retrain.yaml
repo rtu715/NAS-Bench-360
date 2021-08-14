@@ -1,4 +1,4 @@
-description: deepsea__backbone_default
+description: deepsea_backbone_eval
 
 environment:
   image: "renbotu/xd-nas:determined1.8"

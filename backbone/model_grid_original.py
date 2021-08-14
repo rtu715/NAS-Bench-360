@@ -240,13 +240,13 @@ class BackboneTrial(PyTorchTrial):
             base_dir = self.download_directory
             os.makedirs(os.path.join(base_dir,'data'), exist_ok=True)
             data_base = os.path.join(base_dir,'data')
-            '''
+            
             train_tar = tarfile.open(os.path.join(base_dir,'deepCR.ACS-WFC.train.tar'))
             test_tar = tarfile.open(os.path.join(base_dir,'deepCR.ACS-WFC.test.tar'))
             
             train_tar.extractall(data_base)
             test_tar.extractall(data_base)
-            '''
+            
             get_dirs(base_dir, data_base)
 
             self.train_dirs = np.load(os.path.join(base_dir,'train_dirs.npy'),allow_pickle = True)

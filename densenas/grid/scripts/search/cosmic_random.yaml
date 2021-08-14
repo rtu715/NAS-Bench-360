@@ -21,7 +21,7 @@ hyperparameters:
   task: cosmic
   sub: 5
   num_examples: 4347
-
+  net_config: random
   net_type: res
   target_arch: "[[32, 56], 'basic_block', [], 0, 1]|
 [[56, 80], 'basic_block', ['basic_block', 'basic_block'], 2, 1]"
@@ -29,6 +29,7 @@ hyperparameters:
 
 resources:
   slots_per_trial: 1
+  max_slots: 5
 
 min_validation_period:
   epochs: 10

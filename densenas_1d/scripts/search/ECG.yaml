@@ -24,7 +24,7 @@ hyperparameters:
 
   net_type: res
   #global_batch_size: 256
-  global_batch_size: 64
+  global_batch_size: 32
 
 resources:
   slots_per_trial: 1
