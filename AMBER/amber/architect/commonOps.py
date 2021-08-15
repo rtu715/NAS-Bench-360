@@ -50,6 +50,28 @@ def batchify(x, y=None, batch_size=None, shuffle=True, drop_remainder=True):
         batch_size = n
     if shuffle:
         idx = np.random.choice(idx, n, replace=False)
+    while True:
+        for i in range(0, n, batch_size):
+            tmp_x = [x_[idx[i:i + batch_size]] for x_ in x]
+            if drop_remainder and tmp_x[0].shape[0] != batch_size:
+                continue
+            if y is not None:
+                tmp_y = [y_[idx[i:i + batch_size]] for y_ in y]
+                yield tmp_x, tmp_y
+            else:
+                yield tmp_x
+
+
+def batchify_infer(x, y=None, batch_size=None, shuffle=True, drop_remainder=True):
+    if not type(x) is list: x = [x]
+    if y is not None and type(y) is not list: y = [y]
+    # assuming batch_size is axis=0
+    n = len(x[0])
+    idx = np.arange(n)
+    if batch_size is None:
+        batch_size = n
+    if shuffle:
+        idx = np.random.choice(idx, n, replace=False)
     for i in range(0, n, batch_size):
         tmp_x = [x_[idx[i:i + batch_size]] for x_ in x]
         if drop_remainder and tmp_x[0].shape[0] != batch_size:
@@ -59,7 +81,6 @@ def batchify(x, y=None, batch_size=None, shuffle=True, drop_remainder=True):
             yield tmp_x, tmp_y
         else:
             yield tmp_x
-
 
 def numpy_shuffle_in_unison(List):
     rng_state = np.random.get_state()

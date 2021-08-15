@@ -48,7 +48,7 @@ Y_train = to_categorical(Y_train, num_classes=4)
 Y_val = to_categorical(Y_val, num_classes=4)
 train_data = (X_train, Y_train)
 val_data = (X_val, Y_val)
-input_node = Operation('input', shape=(3000, 1), name="input")
+input_node = Operation('input', shape=(1000, 1), name="input")
 output_node = Operation('dense', units=4, activation='sigmoid')
 model_compile_dict = {
     'loss': 'categorical_crossentropy',

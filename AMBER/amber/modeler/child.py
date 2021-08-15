@@ -20,7 +20,7 @@ from keras.models import Model
 from keras.utils.data_utils import GeneratorEnqueuer
 from tqdm import trange
 
-from ..architect.commonOps import batchify, numpy_shuffle_in_unison
+from ..architect.commonOps import batchify, batchify_infer, numpy_shuffle_in_unison
 
 
 class GeneralChild(Model):
@@ -789,9 +789,9 @@ class EnasCnnModel:
         batch_size = batch_size or self.batch_size
         y_pred_ = []
         if verbose:
-            gen = tqdm(batchify(x, None, batch_size=batch_size, shuffle=False, drop_remainder=False))
+            gen = tqdm(batchify_infer(x, None, batch_size=batch_size, shuffle=False, drop_remainder=False))
         else:
-            gen = batchify(x, None, batch_size=batch_size, shuffle=False, drop_remainder=False)
+            gen = batchify_infer(x, None, batch_size=batch_size, shuffle=False, drop_remainder=False)
         for x_ in gen:
             feed_dict = self._make_feed_dict(x_)
             y_pred = self.session.run(self.outputs, feed_dict)
