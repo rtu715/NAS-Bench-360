@@ -314,8 +314,8 @@ class DenseNASSearchTrial(PyTorchTrial):
                     input, target = batch
                     num_batches += 1 
                     logits = self.model(input)
-                    loss = self.criterion(logits, target.squeeze())
-                    mae = F.l1_loss(logits, target.squeeze(), reduction='mean').item()
+                    loss = self.criterion(logits.squeeze(), target.squeeze())
+                    mae = F.l1_loss(logits.squeeze(), target.squeeze(), reduction='mean').item()
                     loss_sum += loss
                     error_sum += mae
 
@@ -349,6 +349,7 @@ class DenseNASSearchTrial(PyTorchTrial):
                     'MAE': error_sum / num_batches,
 
                 }
+                return results_protein
 
 
             elif self.hparams.task == 'pde':

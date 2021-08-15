@@ -18,7 +18,7 @@ def generate_arch(task, net_type, threshold_arch):
         input_shape = (3, 32, 32)
 
     elif task in ['scifar100', 'smnist']:
-        merge_cfg_from_file('configs/spherical_search_cfg_resnet.yaml', cfg)
+        merge_cfg_from_file('configs/spherical_random_cfg_resnet.yaml', cfg)
         input_shape = (3, 60, 60) if task == 'scifar100' else (1, 60, 60)
 
     elif task == 'ninapro':
@@ -26,7 +26,7 @@ def generate_arch(task, net_type, threshold_arch):
         input_shape = (1, 16, 52)
 
     elif task == 'audio':
-        merge_cfg_from_file('configs/audio_search_cfg_resnet.yaml', cfg)
+        merge_cfg_from_file('configs/audio_random_cfg_resnet.yaml', cfg)
         input_shape = (1, 96, 101)
 
     else:

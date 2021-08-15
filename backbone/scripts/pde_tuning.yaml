@@ -68,8 +68,8 @@ searcher:
   metric: validation_loss
   max_length:
     epochs: 200
-  max_trials: 128
-  mode: standard
+  max_trials: 104
+  mode: aggressive
   divisor: 4
   max_rungs: 5
   max_concurrent_trials: 4

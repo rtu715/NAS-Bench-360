@@ -71,7 +71,7 @@ searcher:
   smaller_is_better: false
   max_length:
     epochs: 200
-  max_trials: 128
+  max_trials: 16
   mode: standard
   divisor: 4
   max_rungs: 5

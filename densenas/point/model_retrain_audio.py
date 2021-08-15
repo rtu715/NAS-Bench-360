@@ -9,6 +9,7 @@ import time
 import boto3
 from typing import Any, Dict, Sequence, Tuple, Union, cast
 
+from sklearn.metrics import average_precision_score
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
 import numpy as np
@@ -141,8 +142,6 @@ class DenseNASTrainTrial(PyTorchTrial):
         }
 
     def evaluate_full_dataset(self, data_loader: torch.utils.data.DataLoader) -> Dict[str, Any]:
-
-        print(self.rand_arch)
 
         obj = utils.AverageMeter()
         val_predictions = []

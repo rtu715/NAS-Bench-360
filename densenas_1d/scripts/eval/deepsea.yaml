@@ -18,7 +18,7 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-  task: ECG
+  task: deepsea
   train: false
   num_examples: 71753
 

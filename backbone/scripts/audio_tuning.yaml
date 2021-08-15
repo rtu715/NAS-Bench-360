@@ -1,4 +1,4 @@
-description: cifar100_backbone_tuning
+description: audio_backbone_tuning
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -18,7 +18,7 @@ bind_mounts:
     read_only: false
 
 hyperparameters:
-  task: cifar100
+  task: audio
   train: true
   permute: false
 
@@ -54,7 +54,7 @@ hyperparameters:
   
   nesterov: true
 
-  global_batch_size: 128
+  global_batch_size: 256
 
   start_epoch: 0
   epochs: 200
@@ -64,11 +64,11 @@ resources:
   slots_per_trial: 1
   max_slots: 4
 
-records_per_epoch: 40000
+records_per_epoch: 40966
 
 searcher:
   name: adaptive_asha
-  metric: top1_accuracy
+  metric: val_mAP
   smaller_is_better: false
   max_length:
     epochs: 200
@@ -83,4 +83,4 @@ min_validation_period:
 
 max_restarts: 100
 
-entrypoint: model_point:BackboneTrial
+entrypoint: model_audio:BackboneTrial
