@@ -12,3 +12,5 @@ save_temp
 **/*.pkl
 */*.npy
 */*.pkl
+*/*.mat
+autodeeplab/run/*

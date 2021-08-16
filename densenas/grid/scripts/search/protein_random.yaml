@@ -32,7 +32,7 @@ hyperparameters:
 
 resources:
   slots_per_trial: 1
-  max_slots: 5
+  max_slots: 3
 
 min_validation_period:
   epochs: 5
@@ -47,7 +47,7 @@ searcher:
   metric: validation_loss
   max_length:
     epochs: 10
-  max_trials: 30
+  max_trials: 7
 
 optimizations:
   aggregation_frequency:  1

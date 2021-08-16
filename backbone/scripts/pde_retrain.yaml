@@ -1,9 +1,9 @@
-description: pde_backbone_retrain_2
+description: pde_backbone_retrain
 environment:
   image: "renbotu/xd-nas:determined1.8"
 
 reproducibility:
-  experiment_seed: 2
+  experiment_seed: 0
 
 data:
   download_dir: /data
@@ -20,9 +20,9 @@ hyperparameters:
   backbone: 16,4
   droprate: 0.0
 
-  learning_rate: 0.001
-  momentum: 0.9
-  weight_decay: 5e-4
+  learning_rate: 0.08070218545326338
+  momentum: 0
+  weight_decay: 0.00019690434802692797
   nesterov: true
 
   global_batch_size: 8

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-DOCKER_IMG_NAME=xd:$1
-DOCKERFILE_PATH=aws/Dockerfile1.7.1
+DOCKER_IMG_NAME=renbotu/nb360:$1
+DOCKERFILE_PATH=aws/Dockerfile_TF
 MY_URL=212469337107.dkr.ecr.us-east-1.amazonaws.com
 
 # Assume that the script runs from the root directory.

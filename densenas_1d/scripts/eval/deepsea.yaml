@@ -23,8 +23,10 @@ hyperparameters:
   num_examples: 71753
 
   net_type: res
-  net_config: "[[32, 64], 'basic_block', [], 0, 2]|
-[[64, 96], 'basic_block', ['basic_block', 'basic_block'], 2, 2] "
+  #net_config: "[[32, 64], 'basic_block', [], 0, 2]|
+  #[[64, 96], 'basic_block', ['basic_block', 'basic_block'], 2, 2] "
+  net_config: "[[32, 64], 'basic_block', ['basic_block'], 1, 2]| 
+[[64, 112], 'basic_block', ['basic_block'], 1, 2] "
   global_batch_size: 128
 
 resources:
