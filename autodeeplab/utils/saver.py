@@ -25,7 +25,7 @@ class Saver(object):
         if (self.use_dist and dist.get_rank() == 0) or not self.use_dist:
             torch.save(state, filename)
             if is_best:
-                best_pred = state['best_pred']
+                best_pred = state['best_loss']
                 with open(os.path.join(self.experiment_dir, 'best_pred.txt'), 'w') as f:
                     f.write(str(best_pred))
                 if self.runs:

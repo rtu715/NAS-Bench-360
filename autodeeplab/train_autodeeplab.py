@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import torch.nn as nn
+from torchsummary import summary
 from tqdm import tqdm
 from collections import OrderedDict
 from mypath import Path
@@ -53,7 +54,7 @@ class LogCoshLoss(object):
 class Trainer(object):
     def __init__(self, args):
         self.args = args
-        args.dataset = 'darcyflow'
+        #args.dataset = 'darcyflow'
         # Define Saver
         self.saver = Saver(args)
         self.saver.save_experiment_config()
@@ -79,14 +80,15 @@ class Trainer(object):
             self.nclass = 1
             self.channels = 57
         elif args.dataset == 'cosmic':
-            self.criterion = nn.BCEWithLogitsLoss()
+            self.criterion = nn.BCEWithLogitsLoss() 
+            self.data_shape = self.nclass
             self.nclass = 1
             self.pad = None
             self.channels=1
-            self.data_shape = self.nclass
         else:
             raise NotImplementedError
         # Define network
+        print(args.dataset)
         model = AutoDeeplab (self.nclass, 12, self.criterion, self.args.filter_multiplier,
                              self.args.block_multiplier, self.args.step, input_channels=self.channels)
         optimizer = torch.optim.SGD(
@@ -97,7 +99,7 @@ class Trainer(object):
             )
 
         self.model, self.optimizer = model, optimizer
-
+        #print(summary(self.model, (1, 128, 128), device='cpu'))
         self.architect_optimizer = torch.optim.Adam(self.model.arch_parameters(),
                                                     lr=args.arch_lr, betas=(0.9, 0.999),
                                                     weight_decay=args.arch_weight_decay)
@@ -195,6 +197,8 @@ class Trainer(object):
             if self.pad is None:
                 #cosmic
                 image, target, ignore = set_input(*sample, self.data_shape)
+                print(image.shape)
+                print(target.shape)
                 if self.args.cuda: 
                     ignore = ignore.cuda()
             elif sum(self.pad):
@@ -257,10 +261,6 @@ class Trainer(object):
             tbar.set_description('Train loss: %.3f' % (train_loss / (i + 1)))
             #self.writer.add_scalar('train/total_loss_iter', loss.item(), i + num_img_tr * epoch)
 
-            # Show 10 * 3 inference results each epoch
-            if self.pad is None and i % (num_img_tr // 10) == 0:
-                global_step = i + num_img_tr * epoch
-                self.summary.visualize_image(self.writer, self.args.dataset, image, target, output, global_step)
 
             #torch.cuda.empty_cache()
         self.writer.add_scalar('train/total_loss_epoch', train_loss, epoch)
@@ -311,8 +311,9 @@ class Trainer(object):
                 loss = self.criterion(output, target)
             test_loss += loss.item()
             tbar.set_description('Test loss: %.3f' % (test_loss / (i + 1)))
-            if not sum(self.pad):
-                test_mae += F.l1_loss(output, target, reduction='sum').item()
+            if self.pad is not None:
+                if not sum(self.pad):
+                    test_mae += F.l1_loss(output, target, reduction='sum').item()
 
 
         # Fast test during the training
@@ -365,14 +366,17 @@ def main():
 
     # default settings for epochs, batch_size and lr
     if args.epochs is None:
+        '''
         epoches = {
             'coco': 30,
             'cityscapes': 40,
             'pascal': 50,
             'kd':10,
         }
+        
         args.epochs = epoches[args.dataset.lower()]
-
+        '''
+        args.epochs = 40
     if args.batch_size is None:
         args.batch_size = 4 * len(args.gpu_ids)
 

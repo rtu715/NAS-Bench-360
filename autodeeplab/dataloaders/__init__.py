@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import tarfile
 import torch.utils.data.distributed
 from torch.utils.data import DataLoader
 from utilities3 import *
@@ -120,22 +121,21 @@ def make_data_loader(args, **kwargs):
         base_dir = '.'
         os.makedirs(os.path.join(base_dir, 'data'), exist_ok=True)
         data_base = os.path.join(base_dir, 'data')
-        train_tar = tarfile.open(os.path.join(base_dir, 'deepCR.ACS-WFC.train.tar'))
-        test_tar = tarfile.open(os.path.join(base_dir, 'deepCR.ACS-WFC.test.tar'))
         
         if not os.path.exists(os.path.join(base_dir, 'train_dirs.npy')):
+            train_tar = tarfile.open(os.path.join(base_dir, 'deepCR.ACS-WFC.train.tar'))
+            test_tar = tarfile.open(os.path.join(base_dir, 'deepCR.ACS-WFC.test.tar'))
             train_tar.extractall(data_base)
             test_tar.extractall(data_base)
             get_dirs(base_dir, data_base)
-
         train_dirs = np.load(os.path.join(base_dir, 'train_dirs.npy'), allow_pickle=True)
         test_dirs = np.load(os.path.join(base_dir, 'test_dirs.npy'), allow_pickle=True)
-
+        print('got dirs')
         aug_sky = (-0.9, 3)
 
         # only train f435 and GAL flag for now
         if args.autodeeplab == 'train':
-            train_data = PairedDatasetImagePath(self.train_dirs[::], aug_sky[0], aug_sky[1], part=None)
+            train_data = PairedDatasetImagePath(train_dirs[::], aug_sky[0], aug_sky[1], part=None)
             train_loader = DataLoader(train_data, shuffle=True, batch_size=args.batch_size, **kwargs)
             test_loader = DataLoader(test_data, shuffle=False, batch_size=args.batch_size, num_workers=0, pin_memory=True)
             data_shape = train_data[0][0].shape[1]
@@ -143,10 +143,10 @@ def make_data_loader(args, **kwargs):
             return train_loader, test_loader, data_shape
 
         else:
-            train_data = PairedDatasetImagePath(self.train_dirs[::], aug_sky[0], aug_sky[1], part='train')
-            valid_data = PairedDatasetImagePath(self.train_dirs[::], aug_sky[0], aug_sky[1], part='test')
-            test_data = PairedDatasetImagePath(self.test_dirs[::], aug_sky[0], aug_sky[1], part=None)
-            
+            train_data = PairedDatasetImagePath(train_dirs[::], aug_sky[0], aug_sky[1], part='train')
+            valid_data = PairedDatasetImagePath(train_dirs[::], aug_sky[0], aug_sky[1], part='test')
+            test_data = PairedDatasetImagePath(test_dirs[::], aug_sky[0], aug_sky[1], part=None)
+            print(len(train_data), len(valid_data), len(test_data))
             train_loader = DataLoader(train_data, batch_size=args.batch_size, shuffle=True, **kwargs)
             val_loader = DataLoader(valid_data, batch_size=args.batch_size, shuffle=True, **kwargs)
             test_loader = DataLoader(test_data, shuffle=False, batch_size=args.batch_size, num_workers=0, pin_memory=True)
