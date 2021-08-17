@@ -8,8 +8,7 @@ ZZ, May 5, 2020
 
 from amber import Amber
 from amber.architect import ModelSpace, Operation
-from deepsea_keras.read_data import read_train_data, read_val_data
-
+from load_deepsea import load_deepsea_data
 
 def get_model_space(out_filters=64, num_layers=9):
     model_space = ModelSpace()
@@ -44,6 +43,7 @@ type_dict = {
 
 # Next, define the specifics
 wd = "./outputs/AmberDeepSea/"
+train_data, val_data = load_deepsea_data('.', True)
 input_node = Operation('input', shape=(1000, 4), name="input")
 output_node = Operation('dense', units=36, activation='sigmoid')
 model_compile_dict = {
@@ -94,8 +94,8 @@ specs = {
 
     'manager': {
         'data': {
-            'train_data': read_val_data('/workspace/tasks/deepsea/train.mat'),
-            'validation_data': read_val_data('/workspace/tasks/deepsea/valid.mat')
+            'train_data': train_data,
+            'validation_data': val_data
         },
         'params': {
             'epochs': 1,

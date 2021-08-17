@@ -14,6 +14,7 @@ from amber.utils.io import read_history
 
 from load_ecg import read_data_physionet_4, custom_f1, f1_score
 from load_satellite import load_satellite_data 
+from load_deepsea import load_deepsea_data, calculate_stats
 
 
 class Metrics(keras.callbacks.Callback):
@@ -37,6 +38,9 @@ class Metrics(keras.callbacks.Callback):
         return self._data
 
 
+def sigmoid(z):
+    return 1/(1 + np.exp(-z))
+
 def get_model_space(out_filters=64, num_layers=9):
     model_space = ModelSpace()
     num_pool = 4
@@ -58,26 +62,42 @@ def get_model_space(out_filters=64, num_layers=9):
 
 def main():
     args = sys.argv[1:]
-    metrics = Metrics()
+    metrics = Metrics() if not args[0] == 'deepsea' else None
 
     wd = '.'
     if args[0] == 'ECG':
         input_node = Operation('input', shape=(1000, 1), name="input")
         output_node = Operation('dense', units=4, activation='sigmoid')
         
-        X_train, Y_train, X_test, Y_test, pid_test = read_data_physionet_4('.')
+        X_train, Y_train, X_test, Y_test, pid_test = read_data_physionet_4(wd)
         Y_train = to_categorical(Y_train, num_classes=4)
         Y_test = to_categorical(Y_test, num_classes=4)
         bs = 128
+        loss = 'categorical_crossentropy'
+
 
     elif args[0] == 'satellite':
         input_node = Operation('input', shape=(46, 1), name="input")
         output_node = Operation('dense', units=24, activation='sigmoid')
 
-        X_train, Y_train, X_test, Y_test = load_satellite_data('.', False)
+        X_train, Y_train, X_test, Y_test = load_satellite_data(wd, False)
         Y_train = to_categorical(Y_train, num_classes=24)
         Y_test = to_categorical(Y_test, num_classes=24)
         bs = 1024
+        loss = 'categorical_crossentropy'
+
+
+    elif args[0] == 'deepsea':
+        input_node = Operation('input', shape=(1000, 4), name="input")
+        output_node = Operation('dense', units=36, activation='sigmoid')
+        
+        train, test = load_deepsea_data(wd, False)
+        X_train, Y_train = train
+        X_test, Y_test = test
+
+        bs = 128
+        loss = 'binary_crossentropy'
+       
 
     else:
         raise NotImplementedError
@@ -94,7 +114,7 @@ def main():
         fc_units=100,
         flatten_mode='Flatten',
         model_compile_dict={
-            'loss': 'categorical_crossentropy',
+            'loss': loss,
             'optimizer': 'adam',
             'metrics': ['acc']
             },
@@ -121,7 +141,7 @@ def main():
         all_pred_prob = []
         for item in X_test:
             logits = searched_mod.predict(item)
-            all_pred_prob.append(logits.eval())
+            all_pred_prob.append(logits)
 
         all_pred_prob = np.concatenate(all_pred_prob)
         all_pred = np.argmax(all_pred_prob, axis=1)
@@ -129,6 +149,25 @@ def main():
         final= f1_score(all_pred, Y_test, pid_test)
         print(final)
         np.savetxt('score.txt', np.array(final))
+
+    elif args[0] == 'deepsea':
+        test_predictions = []
+        for item in X_test:
+            logits = searched_mod.predict(item)
+            logits_sigmoid = sigmoid(logits)
+            test_predictions.append(logits_sigmoid)
+
+        test_predictions = np.concatenate(test_predictions).astype(np.float32)
+        test_gts = Y_test.astype(np.int32)
+
+        stats = calculate_stats(test_predictions, test_gts)
+        mAP = np.mean([stat['AP'] for stat in stats])
+        mAUC = np.mean([stat['auc'] for stat in stats])
+
+        print(mAP)
+        print(mAUC)
+        np.savetxt('stats.txt', np.array([mAP, mAUC]))
+
     
     np.savetxt('metrics.txt',history.history)
 
