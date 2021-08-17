@@ -1453,7 +1453,8 @@ class EnasConv1dDAG:
             # input = self.input_node
             input = self.input_ph if input_tensor is None else input_tensor
             layers = []
-            has_stem_conv = self.stem_config['has_stem_conv'] if 'has_stem_conv' in self.stem_config else True
+            #has_stem_conv = self.stem_config['has_stem_conv'] if 'has_stem_conv' in self.stem_config else True
+            has_stem_conv = True
             if has_stem_conv:
                 with tf.variable_scope("stem_conv"):
                     stem_kernel_size = self.stem_config.pop('stem_kernel_size', 8)

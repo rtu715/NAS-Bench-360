@@ -19,8 +19,8 @@ def get_model_space(out_filters=64, num_layers=9):
         model_space.add_layer(i, [
             Operation('conv1d', filters=out_filters, kernel_size=8, activation='relu'),
             Operation('conv1d', filters=out_filters, kernel_size=4, activation='relu'),
-            #Operation('conv1d', filters=out_filters, kernel_size=8, activation='relu', dilation=10),
-            #Operation('conv1d', filters=out_filters, kernel_size=4, activation='relu', dilation=10),
+            Operation('conv1d', filters=out_filters, kernel_size=8, activation='relu', dilation=10),
+            Operation('conv1d', filters=out_filters, kernel_size=4, activation='relu', dilation=10),
             # max/avg pool has underlying 1x1 conv
             Operation('maxpool1d', filters=out_filters, pool_size=4, strides=1),
             Operation('avgpool1d', filters=out_filters, pool_size=4, strides=1),
@@ -45,7 +45,7 @@ type_dict = {
 # Next, define the specifics
 wd = "./outputs/AmberDeepSea/"
 input_node = Operation('input', shape=(1000, 4), name="input")
-output_node = Operation('dense', units=919, activation='sigmoid')
+output_node = Operation('dense', units=36, activation='sigmoid')
 model_compile_dict = {
     'loss': 'binary_crossentropy',
     'optimizer': 'adam',
@@ -76,7 +76,7 @@ specs = {
 
     'model_builder': {
         'dag_func': 'EnasConv1dDAG',
-        'batch_size': 1000,
+        'batch_size': 500,
         'inputs_op': [input_node],
         'outputs_op': [output_node],
         'model_compile_dict': model_compile_dict,
@@ -94,12 +94,12 @@ specs = {
 
     'manager': {
         'data': {
-            'train_data': read_val_data('/workspace/tasks/deepsea/valid.mat'),
+            'train_data': read_val_data('/workspace/tasks/deepsea/train.mat'),
             'validation_data': read_val_data('/workspace/tasks/deepsea/valid.mat')
         },
         'params': {
             'epochs': 1,
-            'child_batchsize': 1000,
+            'child_batchsize': 500,
             'store_fn': 'minimal',
             'working_dir': wd,
             'verbose': 2

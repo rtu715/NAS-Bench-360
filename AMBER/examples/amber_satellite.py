@@ -17,8 +17,8 @@ def get_model_space(out_filters=64, num_layers=9):
         model_space.add_layer(i, [
             Operation('conv1d', filters=out_filters, kernel_size=8, activation='relu'),
             Operation('conv1d', filters=out_filters, kernel_size=4, activation='relu'),
-            #Operation('conv1d', filters=out_filters, kernel_size=8, activation='relu', dilation=10),
-            #Operation('conv1d', filters=out_filters, kernel_size=4, activation='relu', dilation=10),
+            Operation('conv1d', filters=out_filters, kernel_size=8, activation='relu', dilation=10),
+            Operation('conv1d', filters=out_filters, kernel_size=4, activation='relu', dilation=10),
             # max/avg pool has underlying 1x1 conv
             Operation('maxpool1d', filters=out_filters, pool_size=4, strides=1),
             Operation('avgpool1d', filters=out_filters, pool_size=4, strides=1),
@@ -77,7 +77,7 @@ specs = {
 
     'model_builder': {
         'dag_func': 'EnasConv1dDAG',
-        'batch_size': 1000,
+        'batch_size': 2000,
         'inputs_op': [input_node],
         'outputs_op': [output_node],
         'model_compile_dict': model_compile_dict,
@@ -100,7 +100,7 @@ specs = {
         },
         'params': {
             'epochs': 1,
-            'child_batchsize': 1000,
+            'child_batchsize': 2000,
             'store_fn': 'minimal',
             'working_dir': wd,
             'verbose': 2
