@@ -715,7 +715,13 @@ class EnasCnnModel:
             t = trange(nsteps) if verbose == 1 else range(nsteps)
             callback_list.on_epoch_begin(epoch)
             for it in t:
-                x_, y_ = next(g) if g else (None, None)
+                for epoch in range(epochs):
+                    try:
+                        x_, y_ = next(g)
+                    except StopIteration:
+                        g = batchify(x, y, batch_size)
+                        x_, y_ = next(g)
+                #x_, y_ = next(g) if g else (None, None)
                 batch_logs = self.train_on_batch(x_, y_)
                 callback_list.on_batch_end(it, batch_logs)
                 curr_loss = base_logger.totals['loss'] / base_logger.seen
