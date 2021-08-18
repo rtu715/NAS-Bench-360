@@ -4,6 +4,7 @@ import numpy as np
 from tensorflow import keras
 from keras.utils.np_utils import to_categorical   
 from sklearn.metrics import precision_score, recall_score
+from sklearn.metrics import roc_auc_score
 
 import amber
 import os
@@ -16,6 +17,39 @@ from load_ecg import read_data_physionet_4, custom_f1, f1_score
 from load_satellite import load_satellite_data 
 from load_deepsea import load_deepsea_data, calculate_stats
 
+class RocCallback(keras.callbacks.Callback):
+    def __init__(self,training_data,validation_data):
+        self.x = training_data[0]
+        self.y = training_data[1]
+        self.x_val = validation_data[0]
+        self.y_val = validation_data[1]
+
+
+    def on_train_begin(self, logs={}):
+        return
+
+    def on_train_end(self, logs={}):
+        return
+
+    def on_epoch_begin(self, epoch, logs={}):
+        return
+
+    def on_epoch_end(self, epoch, logs={}):
+        y_pred_train = self.model.predict(self.x)
+        roc_train = roc_auc_score(self.y, y_pred_train)
+        y_pred_val = self.model.predict(self.x_val)
+        roc_val = roc_auc_score(self.y_val, y_pred_val)
+        print('\rroc-auc_train: %s - roc-auc_val: %s' % (str(round(roc_train,4)),str(round(roc_val,4))),end=100*' '+'\n')
+        return
+
+    def on_batch_begin(self, batch, logs={}):
+        return
+
+    def on_batch_end(self, batch, logs={}):
+        return
+
+roc = RocCallback(training_data=(X_train, y_train),
+                  validation_data=(X_test, y_test))
 
 class Metrics(keras.callbacks.Callback):
     def on_train_begin(self, logs={}):
@@ -62,7 +96,6 @@ def get_model_space(out_filters=64, num_layers=9):
 
 def main():
     args = sys.argv[1:]
-    metrics = Metrics() if not args[0] == 'deepsea' else None
 
     wd = '.'
     if args[0] == 'ECG':
@@ -102,7 +135,10 @@ def main():
     else:
         raise NotImplementedError
 
-    
+    metrics = Metrics() if not args[0] == 'deepsea' else RocCallback(training_data=(X_train, Y_train),
+        validation_data=(X_test,Y_test))
+
+    history_dir = os.path.join(wd, 'outputs/AmberDeepSea')
     hist = read_history([os.path.join(wd, "train_history.csv")], 
                         metric_name_dict={'zero':0, 'auc': 1})
     hist = hist.sort_values(by='auc', ascending=False)
@@ -170,4 +206,9 @@ def main():
 
     
     np.savetxt('metrics.txt',history.history)
+
+
+if __name__ == '__main__':
+    main()
+
 
