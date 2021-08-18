@@ -1,7 +1,6 @@
 import os
 import numpy as np
 import torch.nn as nn
-from torchsummary import summary
 from tqdm import tqdm
 from collections import OrderedDict
 from mypath import Path

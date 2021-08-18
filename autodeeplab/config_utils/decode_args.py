@@ -5,9 +5,9 @@ def obtain_decode_args():
     parser.add_argument('--backbone', type=str, default='resnet',
                         choices=['resnet', 'xception', 'drn', 'mobilenet'],
                         help='backbone name (default: resnet)')
-    parser.add_argument('--dataset', type=str, default='cityscapes',
-                        choices=['pascal', 'coco', 'cityscapes', 'kd', 'darcyflow', 'protein'],
-                        help='dataset name (default: pascal)')
+    parser.add_argument('--dataset', type=str, default='darcyflow',
+                        choices=['darcyflow', 'protein', 'cosmic'],
+                        help='dataset name (default: darcyflow)')
     parser.add_argument('--autodeeplab', type=str, default='train',
                         choices=['search', 'train'])
     parser.add_argument('--load-parallel', type=int, default=0)

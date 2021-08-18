@@ -8,9 +8,7 @@ from config_utils.decode_args import obtain_decode_args
 class Loader(object):
     def __init__(self, args):
         self.args = args
-        if self.args.dataset == 'cityscapes':
-            self.nclass = 19
-
+        self.args.nclass = 1
         # Resuming checkpoint
         self.best_pred = 0.0
         assert args.resume is not None, RuntimeError("No model to decode in resume path: '{:}'".format(args.resume))

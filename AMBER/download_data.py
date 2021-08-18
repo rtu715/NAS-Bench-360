@@ -23,12 +23,12 @@ def download_data_from_s3(task):
     else:
         raise NotImplementedError
 
-    os.makedirs(download_directory, exist_ok=True)
+    #os.makedirs(download_directory, exist_ok=True)
 
     for data_file in data_files:
         if not os.path.exists(data_file):
             fileurl = s3_base + '/' + s3_folder + '/' + data_file
-            urlretrieve(fileurl)
+            urlretrieve(fileurl, data_file)
 
     return None
 

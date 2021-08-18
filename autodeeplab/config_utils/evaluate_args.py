@@ -7,7 +7,7 @@ def obtain_evaluate_args():
     parser.add_argument('--exp', type=str, default='bnlr7e-3', help='name of experiment')
     parser.add_argument('--gpu', type=int, default=0, help='test time gpu device id')
     parser.add_argument('--backbone', type=str, default='resnet101', help='resnet101')
-    parser.add_argument('--dataset', type=str, default='cityscapes', help='pascal or cityscapes')
+    parser.add_argument('--dataset', type=str, default='darcyflow', help='darcyflow, protein, or cosmic')
     parser.add_argument('--groups', type=int, default=None, help='num of groups for group normalization')
     parser.add_argument('--epochs', type=int, default=30, help='num of training epochs')
     parser.add_argument('--batch_size', type=int, default=8, help='batch size')

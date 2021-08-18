@@ -106,7 +106,7 @@ specs = {
             'child_batchsize': 500,
             'store_fn': 'minimal',
             'working_dir': wd,
-            'verbose': 2
+            'verbose': 1
         }
     },
 
