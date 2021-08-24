@@ -39,7 +39,6 @@ def read_data_physionet_4_with_val(path, window_size=1000, stride=500):
 
     # slide and cut
     print('before: ')
-    print(Counter(Y_train), Counter(Y_val), Counter(Y_test))
     X_train, Y_train = slide_and_cut(X_train, Y_train, window_size=window_size, stride=stride)
     X_val, Y_val, pid_val = slide_and_cut(X_val, Y_val, window_size=window_size, stride=stride, output_pid=True)
     X_test, Y_test, pid_test = slide_and_cut(X_test, Y_test, window_size=window_size, stride=stride,

@@ -5,7 +5,7 @@ from tensorflow import keras
 from keras.utils.np_utils import to_categorical   
 from sklearn.metrics import precision_score, recall_score
 from sklearn.metrics import roc_auc_score
-
+import json
 import amber
 import os
 import shutil
@@ -48,8 +48,7 @@ class RocCallback(keras.callbacks.Callback):
     def on_batch_end(self, batch, logs={}):
         return
 
-roc = RocCallback(training_data=(X_train, y_train),
-                  validation_data=(X_test, y_test))
+
 
 class Metrics(keras.callbacks.Callback):
     def on_train_begin(self, logs={}):
@@ -100,22 +99,20 @@ def main():
     wd = '.'
     if args[0] == 'ECG':
         input_node = Operation('input', shape=(1000, 1), name="input")
-        output_node = Operation('dense', units=4, activation='sigmoid')
+        output_node = Operation('dense', units=4, activation='softmax')
         
         X_train, Y_train, X_test, Y_test, pid_test = read_data_physionet_4(wd)
         Y_train = to_categorical(Y_train, num_classes=4)
         Y_test = to_categorical(Y_test, num_classes=4)
-        bs = 128
+        bs = 512
         loss = 'categorical_crossentropy'
 
 
     elif args[0] == 'satellite':
         input_node = Operation('input', shape=(46, 1), name="input")
-        output_node = Operation('dense', units=24, activation='sigmoid')
+        output_node = Operation('dense', units=24, activation='softmax')
 
         X_train, Y_train, X_test, Y_test = load_satellite_data(wd, False)
-        Y_train = to_categorical(Y_train, num_classes=24)
-        Y_test = to_categorical(Y_test, num_classes=24)
         bs = 1024
         loss = 'categorical_crossentropy'
 
@@ -176,6 +173,7 @@ def main():
     if args[0] == 'ECG':
         all_pred_prob = []
         for item in X_test:
+            item = np.expand_dims(item, 0)
             logits = searched_mod.predict(item)
             all_pred_prob.append(logits)
 
@@ -204,8 +202,8 @@ def main():
         print(mAUC)
         np.savetxt('stats.txt', np.array([mAP, mAUC]))
 
-    
-    np.savetxt('metrics.txt',history.history)
+    with open('metrics.txt', 'w') as file:
+        file.write(json.dumps(history.history))
 
 
 if __name__ == '__main__':

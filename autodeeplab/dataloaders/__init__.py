@@ -137,6 +137,7 @@ def make_data_loader(args, **kwargs):
         if args.autodeeplab == 'train':
             train_data = PairedDatasetImagePath(train_dirs[::], aug_sky[0], aug_sky[1], part=None)
             train_loader = DataLoader(train_data, shuffle=True, batch_size=args.batch_size, **kwargs)
+            test_data = PairedDatasetImagePath(test_dirs[::], aug_sky[0], aug_sky[1], part=None)       
             test_loader = DataLoader(test_data, shuffle=False, batch_size=args.batch_size, num_workers=0, pin_memory=True)
             data_shape = train_data[0][0].shape[1]
 

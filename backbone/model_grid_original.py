@@ -404,9 +404,7 @@ class BackboneTrial(PyTorchTrial):
         
         #for cr
         meter = AverageMeter()
-        thresholds = np.linspace(0.001, 0.999, 500)
-        nROC = thresholds.size
-        metric = np.zeros((nROC, 4))
+        metric = np.zeros(4)
 
         with torch.no_grad():
             for batch in data_loader:
@@ -443,16 +441,13 @@ class BackboneTrial(PyTorchTrial):
                 loss_sum += loss
 
         if self.hparams.task == 'cosmic':
-            TP, TN, FP, FN = metric[:,0], metric[:,1], metric[:,2], metric[:,3]
+            TP, TN, FP, FN = metric[0], metric[1], metric[2], metric[3]
             TPR = TP / (TP + FN)
             FPR = FP / (FP + TN)
 
-            FPR_val = FPR[np.argmin(FPR)]
-            TPR_val = TPR[np.argmin(FPR)]
-            
             return {
-                    'FPR': FPR_val,
-                    'TPR': TPR_val,
+                    'FPR': FPR,
+                    'TPR': TPR,
                     }
 
         results = {
