@@ -1,10 +1,10 @@
-description: deepsea_densenas_rs
+description: deepsea_densenas_rs_1
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
 
 reproducibility:
-  experiment_seed: 0
+  experiment_seed: 1
 
 data:
   download_dir: /data
@@ -23,13 +23,22 @@ hyperparameters:
 
   net_type: res
   net_config: random
+  #target_arch: "[[32, 64], 'basic_block', [], 0, 2]| 
+  #[[64, 96], 'basic_block', ['basic_block', 'basic_block'], 2, 2] "
+   
+  #1
   target_arch: "[[32, 64], 'basic_block', [], 0, 2]| 
-[[64, 96], 'basic_block', ['basic_block', 'basic_block'], 2, 2] "
+  [[64, 96], 'basic_block', ['basic_block', 'basic_block'], 2, 2] "
+
+  #2
+  #target_arch: "[[32, 64], 'basic_block', [], 0, 2]| 
+  #[[64, 96], 'basic_block', ['basic_block', 'basic_block'], 2, 2] "
+  
   global_batch_size: 256
 
 resources:
   slots_per_trial: 1
-  max_slots: 5
+  max_slots: 3
 
 min_validation_period:
   epochs: 1

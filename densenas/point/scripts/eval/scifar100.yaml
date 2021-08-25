@@ -1,10 +1,10 @@
-description: scifar100_densenas_eval
+description: scifar100_densenas_eval_2
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
 
 reproducibility:
-  experiment_seed: 0
+  experiment_seed: 2
 
 data:
   download_dir: /data
@@ -31,10 +31,10 @@ hyperparameters:
   #[[112, 176], 'basic_block', [], 0, 1]|
   #[[176, 192], 'basic_block', [], 0, 1]"
   #random
-  net_config: "[[32, 64], 'basic_block', [], 0, 2]|
- [[64, 112], 'basic_block', [], 0, 2]|
- [[112, 176], 'basic_block', [], 0, 1]|
- [[176, 224], 'basic_block', [], 0, 1]"
+  #net_config: "[[32, 64], 'basic_block', [], 0, 2]|
+  #[[64, 112], 'basic_block', [], 0, 2]|
+  #[[112, 176], 'basic_block', [], 0, 1]|
+  #[[176, 224], 'basic_block', [], 0, 1]"
 
   #seed1
   #net_config: "[[32, 64], 'basic_block', [], 0, 2]|
@@ -42,12 +42,22 @@ hyperparameters:
   #[[72, 160], 'basic_block', ['basic_block'], 1, 1]|
   #[[160, 224], 'basic_block', [], 0, 1]"
 
+  #random
+  #net_config: "[[32, 64], 'basic_block', [], 0, 2]|
+  #[[64, 112], 'basic_block', ['basic_block'], 1, 2]|
+  #[[112, 176], 'basic_block', ['basic_block'], 1, 1]|
+  #[[176, 224], 'basic_block', [], 0, 1]"
+
   #seed2
   #net_config: "[[32, 64], 'basic_block', [], 0, 2]|
   #[[64, 112], 'basic_block', ['basic_block'], 1, 2]|
   #[[112, 144], 'basic_block', ['basic_block'], 1, 1]|
   # [[144, 224], 'basic_block', [], 0, 1]"
 
+  net_config: " [[32, 64], 'basic_block', [], 0, 2]|
+[[64, 112], 'basic_block', [], 0, 2]|
+[[112, 176], 'basic_block', ['basic_block', 'basic_block'], 2, 1]|
+[[176, 224], 'basic_block', [], 0, 1]"
   global_batch_size: 256
 
 resources:

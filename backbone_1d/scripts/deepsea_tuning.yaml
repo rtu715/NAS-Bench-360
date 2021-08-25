@@ -1,4 +1,4 @@
-description: ninapro_backbone_tuning_2
+description: deepsea_backbone_tuning_2
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -11,19 +11,17 @@ data:
   type: s3
   bucket: pde-xd
 
+
 bind_mounts:
   - host_path: /tmp
     container_path: /data
     read_only: false
 
 hyperparameters:
-  task: ninapro
+  task: deepsea
   train: true
-  permute: false
 
   #NN architecture backbone
-  backbone: 16,4
-
   droprate: 
     type: categorical
     vals:
@@ -53,7 +51,7 @@ hyperparameters:
   
   nesterov: true
 
-  global_batch_size: 128
+  global_batch_size: 256
 
   start_epoch: 0
   epochs: 200
@@ -61,26 +59,25 @@ hyperparameters:
 
 resources:
   slots_per_trial: 1
-  max_slots: 2
+  max_slots: 4
 
-records_per_epoch: 2638
-
+records_per_epoch: 71753
 
 searcher:
   name: adaptive_asha
-  metric: top1_accuracy
+  metric: test_mAUC
   smaller_is_better: false
   max_length:
     epochs: 200
-  max_trials: 28
+  max_trials: 256
   mode: aggressive
   divisor: 4
   max_rungs: 5
   max_concurrent_trials: 4
 
 min_validation_period:
-  epochs: 5
+  epochs: 10
 
 max_restarts: 100
 
-entrypoint: model_point:BackboneTrial
+entrypoint: model_def:BackboneTrial

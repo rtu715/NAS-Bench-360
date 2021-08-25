@@ -1,10 +1,10 @@
-description: ECG_backbone_eval
+description: ECG_backbone_eval_2
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
 
 reproducibility:
-  experiment_seed: 0
+  experiment_seed: 2
 
 data:
   download_dir: /data
@@ -22,9 +22,9 @@ hyperparameters:
   train: false
 
   #NN architecture backbone
-  learning_rate: 0.1
+  learning_rate: 0.003038858737081515
   momentum: 0.9
-  weight_decay: 5e-4
+  weight_decay: 0.00003395892008889067
   nesterov: true
 
   global_batch_size: 256

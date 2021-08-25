@@ -1,10 +1,10 @@
-description: ninapro_densenas_eval
+description: ninapro_densenas_eval_2
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
 
 reproducibility:
-  experiment_seed: 0
+  experiment_seed: 2
 
 data:
   download_dir: /data
@@ -34,10 +34,10 @@ hyperparameters:
   #[[64, 112], 'basic_block', ['basic_block', 'basic_block'], 2, 2]|
   #[[112, 176], 'basic_block', ['basic_block', 'basic_block', 'basic_block', 'basic_block', 'basic_block', 'basic_block', 'basic_block', 'basic_block'], 8, 2]|
   #[[176, 224], 'basic_block', ['basic_block'], 1, 1]"
-  net_config: "[[32, 64], 'basic_block', [], 0, 1]|
- [[64, 112], 'basic_block', ['basic_block', 'basic_block'], 2, 2]|
-[[112, 176], 'basic_block', ['basic_block', 'basic_block', 'basic_block', 'basic_block', 'basic_block'], 5, 2]|
-[[176, 224], 'basic_block', ['basic_block'], 1, 1]"
+  #net_config: "[[32, 64], 'basic_block', [], 0, 1]|
+  #[[64, 112], 'basic_block', ['basic_block', 'basic_block'], 2, 2]|
+  #[[112, 176], 'basic_block', ['basic_block', 'basic_block', 'basic_block', 'basic_block', 'basic_block'], 5, 2]|
+  #[[176, 224], 'basic_block', ['basic_block'], 1, 1]"
   
   #seed 1
   #net_config: "[[32, 64], 'basic_block', [], 0, 1]|
@@ -45,11 +45,21 @@ hyperparameters:
   #[[112, 176], 'basic_block', ['basic_block', 'basic_block', 'basic_block', 'basic_block', 'basic_block', 'basic_block'], 6, 2]|
   #[[176, 224], 'basic_block', ['basic_block', 'basic_block'], 2, 1]"
 
+  #net_config: "[[32, 64], 'basic_block', [], 0, 1]|
+  # [[64, 112], 'basic_block', ['basic_block', 'basic_block'], 2, 2]|
+  #[[112, 176], 'basic_block', ['basic_block', 'basic_block', 'basic_block', 'basic_block', 'basic_block', 'basic_block'], 6, 2]|
+  #[[176, 224], 'basic_block', ['basic_block'], 1, 1]"
+
   #seed 2
   #net_config: "[[32, 64], 'basic_block', [], 0, 1]|
   #[[64, 112], 'basic_block', ['basic_block', 'basic_block'], 2, 2]|
   #[[112, 176], 'basic_block', ['basic_block', 'basic_block', 'basic_block', 'basic_block', 'basic_block', 'basic_block', 'basic_block', 'basic_block'], 8, 2]|
   #[[176, 224], 'basic_block', [], 0, 1]"
+
+  net_config: "[[32, 64], 'basic_block', [], 0, 1]|
+ [[64, 112], 'basic_block', ['basic_block', 'basic_block', 'basic_block'], 3, 2]|
+[[112, 176], 'basic_block', ['basic_block', 'basic_block', 'basic_block', 'basic_block', 'basic_block', 'basic_block', 'basic_block', 'basic_block'], 8, 2]|
+[[176, 224], 'basic_block', [], 0, 1]"
 
   #random 
   #net_config: "[[32, 64], 'basic_block', [], 0, 1]|

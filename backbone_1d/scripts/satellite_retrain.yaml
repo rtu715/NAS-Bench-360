@@ -1,10 +1,10 @@
-description: satellite_backbone_eval
+description: satellite_backbone_eval_1
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
 
 reproducibility:
-  experiment_seed: 0
+  experiment_seed: 1
 
 data:
   download_dir: /data
@@ -22,9 +22,9 @@ hyperparameters:
   train: false
 
   #NN architecture backbone
-  learning_rate: 0.1
+  learning_rate: 0.01211157082591751
   momentum: 0.9
-  weight_decay: 5e-4
+  weight_decay: 0.000418602219267825
   nesterov: true
 
   global_batch_size: 4096

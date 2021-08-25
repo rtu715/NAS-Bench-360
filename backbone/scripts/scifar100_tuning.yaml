@@ -1,10 +1,10 @@
-description: scifar100_backbone_tuning
+description: scifar100_backbone_tuning_2
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
 
 reproducibility:
-  experiment_seed: 0
+  experiment_seed: 2
 
 data:
   download_dir: /data
@@ -61,7 +61,7 @@ hyperparameters:
 
 resources:
   slots_per_trial: 1
-  max_slots: 4
+  max_slots: 2
 
 records_per_epoch: 40000
 

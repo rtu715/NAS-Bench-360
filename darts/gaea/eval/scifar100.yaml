@@ -1,13 +1,13 @@
 # NOTE: this config uses randomly generated data on single GPU.
 # Please use distributed.yaml if you want to run on the
 # the actual imagenet data.
-description: scifar100_gaea_eval
+description: scifar100_gaea_eval_2
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
 
 reproducibility:
-  experiment_seed: 0
+  experiment_seed: 2
 
 data:
   download_dir: /data

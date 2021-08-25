@@ -1,10 +1,10 @@
-description: ECG_densenas_eval
+description: ECG_densenas_eval_1
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
 
 reproducibility:
-  experiment_seed: 0
+  experiment_seed: 1
 
 data:
   download_dir: /data
@@ -25,8 +25,24 @@ hyperparameters:
   net_type: res
   #net_config: "[[32, 56], 'basic_block', [], 0, 2]| 
   #[[56, 96], 'basic_block', ['basic_block'], 1, 2] "
-  net_config: "[[32, 64], 'basic_block', [], 0, 2]| 
- [[64, 112], 'basic_block', ['basic_block', 'basic_block'], 2, 2] "
+  #net_config: "[[32, 64], 'basic_block', [], 0, 2]| 
+  #[[64, 112], 'basic_block', ['basic_block', 'basic_block'], 2, 2] "
+  
+  #1
+  #net_config: "[[32, 56], 'basic_block', [], 0, 2]| 
+  #[[56, 112], 'basic_block', ['basic_block'], 1, 2] "
+  
+  net_config: "[[32, 64], 'basic_block', ['basic_block'], 1, 2]| 
+[[64, 112], 'basic_block', ['basic_block'], 1, 2]"
+
+  #2
+  #net_config: "[[32, 48], 'basic_block', [], 0, 2]| 
+  #[[48, 72], 'basic_block', [], 0, 2] "
+
+  #net_config: "[[32, 64], 'basic_block', ['basic_block'], 1, 2]| 
+  #[[64, 112], 'basic_block', [], 0, 2] "
+
+
   global_batch_size: 128
 
 

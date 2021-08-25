@@ -1,10 +1,10 @@
-description: scifar100_backbone_retrain
+description: scifar100_backbone_retrain_2
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
 
 reproducibility:
-  experiment_seed: 0
+  experiment_seed: 2
 
 data:
   download_dir: /data
@@ -26,9 +26,9 @@ hyperparameters:
   backbone: 16,4
   droprate: 0.6
 
-  learning_rate: 0.021023308743480115
-  momentum: 0.9
-  weight_decay: 0.00004463248454508335 
+  learning_rate: 0.026762449321952597
+  momentum: 0.6
+  weight_decay: 0.0021363753335547383 
   nesterov: true
 
   global_batch_size: 128

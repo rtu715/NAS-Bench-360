@@ -1,10 +1,10 @@
-description: FSD50k_densenas_rs
+description: FSD50k_densenas_rs_2
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
 
 reproducibility:
-  experiment_seed: 0
+  experiment_seed: 2
 
 data:
   download_dir: /data
@@ -26,14 +26,23 @@ hyperparameters:
   global_batch_size: 512
 
   net_config: random
-  target_arch: "[[32, 64], 'basic_block', [], 0, 2]|
-[[64, 72], 'basic_block', [], 0, 2]|
-[[72, 176], 'basic_block', [], 0, 2]|
-[[176, 224], 'basic_block', [], 0, 1]"
+  #target_arch: "[[32, 64], 'basic_block', [], 0, 2]|
+  #[[64, 72], 'basic_block', [], 0, 2]|
+  #[[72, 176], 'basic_block', [], 0, 2]|
+  #[[176, 224], 'basic_block', [], 0, 1]"
 
+  #target_arch:  "[[32, 64], 'basic_block', [], 0, 2]|
+  #[[64, 96], 'basic_block', [], 0, 2]|
+  #[[96, 176], 'basic_block', [], 0, 2]|
+  #[[176, 224], 'basic_block', [], 0, 1]"
+
+  target_arch: "[[32, 64], 'basic_block', [], 0, 2]|
+ [[64, 72], 'basic_block', [], 0, 2]|
+ [[72, 176], 'basic_block', [], 0, 2]|
+ [[176, 224], 'basic_block', [], 0, 1]"
 resources:
   slots_per_trial: 1
-  max_slots: 5
+  max_slots: 3
 
 min_validation_period:
   epochs: 10

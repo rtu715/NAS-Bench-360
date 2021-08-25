@@ -1,4 +1,4 @@
-description: ECG_backbone_default_2
+description: ECG_backbone_tuning_2
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -22,9 +22,33 @@ hyperparameters:
   train: true
 
   #NN architecture backbone
-  learning_rate: 0.1
-  momentum: 0.9
-  weight_decay: 5e-4
+  droprate: 
+    type: categorical
+    vals:
+      - 0.0
+      - 0.3
+      - 0.6
+
+  learning_rate:
+    type: log
+    minval: -4.0
+    maxval: -1.0
+    base: 10.0
+ 
+  momentum:
+    type: categorical
+    vals:
+      - 0.0
+      - 0.3
+      - 0.6
+      - 0.9
+  
+  weight_decay:
+    type: log
+    minval: -5.0
+    maxval: -2.0
+    base: 10.0
+  
   nesterov: true
 
   global_batch_size: 256
@@ -32,25 +56,28 @@ hyperparameters:
   start_epoch: 0
   epochs: 200
 
+
 resources:
   slots_per_trial: 1
+  max_slots: 4
 
 records_per_epoch: 261740
 
 searcher:
-  name: single
+  name: adaptive_asha
   metric: score
-  smaller_is_better: false 
+  smaller_is_better: false
   max_length:
     epochs: 200
+  max_trials: 56
+  mode: aggressive
+  divisor: 4
+  max_rungs: 5
+  max_concurrent_trials: 4
 
 min_validation_period:
   epochs: 20
 
-min_checkpoint_period:
-  epochs: 5
-
 max_restarts: 100
 
 entrypoint: model_def:BackboneTrial
-

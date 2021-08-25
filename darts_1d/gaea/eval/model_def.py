@@ -142,7 +142,7 @@ class GAEAEvalTrial(PyTorchTrial):
     def build_training_data_loader(self) -> DataLoader:
 
         train_data = self.train_data
-
+        del self.train_data
         train_queue = DataLoader(
             train_data,
             batch_size=self.context.get_per_slot_batch_size(),
@@ -155,7 +155,6 @@ class GAEAEvalTrial(PyTorchTrial):
     def build_validation_data_loader(self) -> DataLoader:
 
         valid_data = self.val_data
-
         valid_queue = DataLoader(
             valid_data,
             batch_size=self.context.get_per_slot_batch_size(),
@@ -169,6 +168,7 @@ class GAEAEvalTrial(PyTorchTrial):
         self, batch: Any, epoch_idx: int, batch_idx: int
     ) -> Dict[str, torch.Tensor]:
 
+        torch.cuda.empty_cache()
         if batch_idx == 0 or self.last_epoch_idx < epoch_idx:
             current_lr = self.lr_scheduler.get_last_lr()[0]
             #print("Epoch: {} lr {}".format(epoch_idx, current_lr))
@@ -179,12 +179,15 @@ class GAEAEvalTrial(PyTorchTrial):
         self.last_epoch_idx = epoch_idx
 
         input, target = batch
+        self.model.train()
+        del batch
         if self.context.get_hparam('task') == 'deepsea':
             target = target.float()
 
         logits = self.model(input)
         loss = self.criterion(logits, target)
 
+        torch.cuda.empty_cache()
         self.context.backward(loss)
         self.context.step_optimizer(
             self.optimizer,
@@ -192,6 +195,7 @@ class GAEAEvalTrial(PyTorchTrial):
                 params, self.context.get_hparam("clip_gradients_l2_norm"),
             ),
         )
+        torch.cuda.empty_cache()
 
         return {"loss": loss, }
 

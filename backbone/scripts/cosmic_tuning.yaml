@@ -1,5 +1,4 @@
-description: ninapro_backbone_tuning_2
-
+description: cosmic_backbone_tuning_2
 environment:
   image: "renbotu/xd-nas:determined1.8"
 
@@ -11,19 +10,17 @@ data:
   type: s3
   bucket: pde-xd
 
+
 bind_mounts:
   - host_path: /tmp
     container_path: /data
     read_only: false
 
 hyperparameters:
-  task: ninapro
-  train: true
-  permute: false
-
-  #NN architecture backbone
+  task: cosmic
   backbone: 16,4
-
+  train: true
+  
   droprate: 
     type: categorical
     vals:
@@ -50,37 +47,40 @@ hyperparameters:
     minval: -5.0
     maxval: -2.0
     base: 10.0
-  
   nesterov: true
 
-  global_batch_size: 128
+  global_batch_size: 8
+  eval_batch_size: 2
 
   start_epoch: 0
   epochs: 200
 
+  sub: 5
 
 resources:
   slots_per_trial: 1
-  max_slots: 2
+  max_slots: 3
 
-records_per_epoch: 2638
-
+records_per_epoch: 4347
 
 searcher:
   name: adaptive_asha
-  metric: top1_accuracy
+  metric: TPR
   smaller_is_better: false
   max_length:
     epochs: 200
-  max_trials: 28
+  max_trials: 16
   mode: aggressive
   divisor: 4
   max_rungs: 5
   max_concurrent_trials: 4
 
 min_validation_period:
+  epochs: 20
+
+min_checkpoint_period:
   epochs: 5
 
 max_restarts: 100
 
-entrypoint: model_point:BackboneTrial
+entrypoint: model_grid_original:BackboneTrial

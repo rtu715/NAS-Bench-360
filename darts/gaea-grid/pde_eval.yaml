@@ -1,10 +1,10 @@
-description: pde_gaea_eval
+description: pde_gaea_eval_2
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
 
 reproducibility:
-  experiment_seed: 0
+  experiment_seed: 2
 
 data:
   download_dir: /data

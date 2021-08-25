@@ -1,10 +1,10 @@
-description: protein_densenas_rs
+description: protein_densenas_rs_2
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
 
 reproducibility:
-  experiment_seed: 0
+  experiment_seed: 2
 
 data:
   download_dir: /data
@@ -24,15 +24,21 @@ hyperparameters:
   num_examples: 3356
   net_config: random
   net_type: res
-  target_arch: "[[32, 64], 'basic_block', [], 0, 1]|
-  [[64, 72], 'basic_block', ['basic_block', 'basic_block', 'basic_block'], 3, 1]|
-  [[72, 112], 'basic_block', ['basic_block', 'basic_block', 'basic_block'], 3, 1]"
+  #target_arch: "[[32, 64], 'basic_block', [], 0, 1]|
+  #[[64, 72], 'basic_block', ['basic_block', 'basic_block', 'basic_block'], 3, 1]|
+  #[[72, 112], 'basic_block', ['basic_block', 'basic_block', 'basic_block'], 3, 1]"
+  #target_arch:   "[[32, 48], 'basic_block', [], 0, 1]| [[48, 112], 'basic_block', ['basic_block'], 1, 1]"
+  
+  target_arch: "[[32, 48], 'basic_block', [], 0, 1]| [[48, 96], 'basic_block', ['basic_block'], 1, 1]| [[96, 112], 'basic_block', ['basic_block', 'basic_block'], 2, 1]"
+  
+  
+  
   
   global_batch_size: 8
 
 resources:
   slots_per_trial: 1
-  max_slots: 3
+  max_slots: 2
 
 min_validation_period:
   epochs: 5
