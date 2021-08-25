@@ -196,8 +196,6 @@ class Trainer(object):
             if self.pad is None:
                 #cosmic
                 image, target, ignore = set_input(*sample, self.data_shape)
-                print(image.shape)
-                print(target.shape)
                 if self.args.cuda: 
                     ignore = ignore.cuda()
             elif sum(self.pad):
@@ -321,7 +319,7 @@ class Trainer(object):
         print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
         if self.pad is None: 
             new_loss = test_loss / (i * self.args.batch_size + image.data.shape[0])
-            new_best = new_loss > self.best_loss
+            new_best = new_loss < self.best_loss
         elif sum(self.pad):
             new_loss = test_loss / (i * self.args.batch_size + image.data.shape[0])
             new_best = new_loss < self.best_loss

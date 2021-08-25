@@ -117,25 +117,21 @@ def calc_perprof(df, problem_def, perf_meas, solver_char, inv_perf_meas=False, t
             # the solvers that did not return a feasible point
             true_min = gr.loc[gr['feas'] == True][perf_meas].min()[0]
             if inv_perf_meas == False:
-                data.set_value(gr.loc[gr['feas'] == True].index, perf_meas,
-                               gr[perf_meas] / true_min)
-                data.set_value(gr.loc[gr['feas'] == False].index, perf_meas,
-                               gr[perf_meas].max()[0] / true_min + .05)
+                data.at[gr.loc[gr['feas'] == True].index, perf_meas] = gr[perf_meas] / true_min
+                data.at[gr.loc[gr['feas'] == False].index, perf_meas] = gr[perf_meas].max()[0] / true_min + .05
             else:
                 if i == 0:
                     warnings.warn('Performance ratio calculated using inverse.')
-                data.set_value(gr.loc[gr['feas'] == True].index, perf_meas,
-                               true_min / gr[perf_meas])
-                data.set_value(gr.loc[gr['feas'] == False].index, perf_meas,
-                               true_min / gr[perf_meas].max()[0] + .05)
+                data.at[gr.loc[gr['feas'] == True].index, perf_meas] = true_min / gr[perf_meas]
+                data.at[gr.loc[gr['feas'] == False].index, perf_meas] = true_min / gr[perf_meas].max()[0] + .05
 
         except KeyError:
             if not inv_perf_meas:
-                data.set_value(gr.index, perf_meas, gr[perf_meas] / gr[perf_meas].min()[0])
+                data.at[gr.index, perf_meas]= gr[perf_meas] / gr[perf_meas].min()[0]
             else:
                 if i == 0:
                     warnings.warn('Performance ratio calculated using inverse.')
-                data.set_value(gr.index, perf_meas, gr[perf_meas].min()[0] / gr[perf_meas])
+                data.at[gr.index, perf_meas] = gr[perf_meas].min()[0] / gr[perf_meas]
 
     # Generate array for plot
     if (df[perf_meas[0]] < 0).any():

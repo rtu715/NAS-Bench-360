@@ -41,7 +41,7 @@ type_dict = {
 
 
 # Next, define the specifics
-wd = "./outputs/AmberECG/"
+wd = "./outputs/AmberSatellite/"
 X_train, Y_train, X_val, Y_val = load_satellite_data('.', True)
 train_data = (X_train, Y_train)
 val_data = (X_val, Y_val)

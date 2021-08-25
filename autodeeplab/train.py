@@ -38,6 +38,7 @@ def main():
     elif args.dataset == 'cosmic':
         dataset_loader, test_loader, data_shape = dataloaders.make_data_loader(args, **kwargs)
         channels = 1
+        args.num_classes=1
 
     else:
         raise ValueError('Unknown dataset: {}'.format(args.dataset))
@@ -72,7 +73,7 @@ def main():
                 m.eval()
                 m.weight.requires_grad = False
                 m.bias.requires_grad = False
-    optimizer = optim.SGD(model.module.parameters(), lr=args.base_lr, momentum=0.9, weight_decay=0.0001)
+    optimizer = optim.SGD(model.parameters(), lr=args.base_lr, momentum=0.9, weight_decay=0.0001)
 
     max_iteration = len(dataset_loader) * args.epochs
     scheduler = Iter_LR_Scheduler(args, max_iteration, len(dataset_loader))
@@ -106,7 +107,7 @@ def main():
             outputs = model(inputs)
             if pad is None:
                 loss = criterion(outputs*(1-ignore), target*(1-ignore))
-            if not sum(pad):
+            elif not sum(pad):
                 loss = criterion(outputs, target)
             else:
                 outputs = y_normalizer.decode(outputs[slices])
@@ -116,7 +117,6 @@ def main():
                 print('Rewinding')
                 for pm, pr in zip(model.parameters(), rewind.parameters()):
                     pm.data = pr.data.cuda()
-                break
             losses.update(loss.item(), args.batch_size)
 
             loss.backward()
@@ -172,7 +172,7 @@ def main():
                 metric = np.zeros(4)
                 with torch.no_grad():
                     for batch in test_loader:
-                        img, mask, ignore = set_input(*batch, self.data_shape)
+                        img, mask, ignore = set_input(*batch, data_shape)
                         logits = model(img)
                         loss = criterion(logits*(1-ignore), mask*(1-ignore))
                         metric += maskMetric(logits.reshape

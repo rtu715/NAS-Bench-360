@@ -4,7 +4,8 @@ import numpy as np
 from tensorflow import keras
 from keras.utils.np_utils import to_categorical   
 from sklearn.metrics import precision_score, recall_score
-
+from sklearn.metrics import roc_auc_score
+import json
 import amber
 import os
 import shutil
@@ -15,6 +16,38 @@ from amber.utils.io import read_history
 from load_ecg import read_data_physionet_4, custom_f1, f1_score
 from load_satellite import load_satellite_data 
 from load_deepsea import load_deepsea_data, calculate_stats
+
+class RocCallback(keras.callbacks.Callback):
+    def __init__(self,training_data,validation_data):
+        self.x = training_data[0]
+        self.y = training_data[1]
+        self.x_val = validation_data[0]
+        self.y_val = validation_data[1]
+
+
+    def on_train_begin(self, logs={}):
+        return
+
+    def on_train_end(self, logs={}):
+        return
+
+    def on_epoch_begin(self, epoch, logs={}):
+        return
+
+    def on_epoch_end(self, epoch, logs={}):
+        y_pred_train = self.model.predict(self.x)
+        roc_train = roc_auc_score(self.y, y_pred_train)
+        y_pred_val = self.model.predict(self.x_val)
+        roc_val = roc_auc_score(self.y_val, y_pred_val)
+        print('\rroc-auc_train: %s - roc-auc_val: %s' % (str(round(roc_train,4)),str(round(roc_val,4))),end=100*' '+'\n')
+        return
+
+    def on_batch_begin(self, batch, logs={}):
+        return
+
+    def on_batch_end(self, batch, logs={}):
+        return
+
 
 
 class Metrics(keras.callbacks.Callback):
@@ -62,27 +95,24 @@ def get_model_space(out_filters=64, num_layers=9):
 
 def main():
     args = sys.argv[1:]
-    metrics = Metrics() if not args[0] == 'deepsea' else None
 
     wd = '.'
     if args[0] == 'ECG':
         input_node = Operation('input', shape=(1000, 1), name="input")
-        output_node = Operation('dense', units=4, activation='sigmoid')
+        output_node = Operation('dense', units=4, activation='softmax')
         
         X_train, Y_train, X_test, Y_test, pid_test = read_data_physionet_4(wd)
         Y_train = to_categorical(Y_train, num_classes=4)
         Y_test = to_categorical(Y_test, num_classes=4)
-        bs = 128
+        bs = 512
         loss = 'categorical_crossentropy'
 
 
     elif args[0] == 'satellite':
         input_node = Operation('input', shape=(46, 1), name="input")
-        output_node = Operation('dense', units=24, activation='sigmoid')
+        output_node = Operation('dense', units=24, activation='softmax')
 
         X_train, Y_train, X_test, Y_test = load_satellite_data(wd, False)
-        Y_train = to_categorical(Y_train, num_classes=24)
-        Y_test = to_categorical(Y_test, num_classes=24)
         bs = 1024
         loss = 'categorical_crossentropy'
 
@@ -102,7 +132,10 @@ def main():
     else:
         raise NotImplementedError
 
-    
+    metrics = Metrics() if not args[0] == 'deepsea' else RocCallback(training_data=(X_train, Y_train),
+        validation_data=(X_test,Y_test))
+
+    history_dir = os.path.join(wd, 'outputs/AmberDeepSea')
     hist = read_history([os.path.join(wd, "train_history.csv")], 
                         metric_name_dict={'zero':0, 'auc': 1})
     hist = hist.sort_values(by='auc', ascending=False)
@@ -140,6 +173,7 @@ def main():
     if args[0] == 'ECG':
         all_pred_prob = []
         for item in X_test:
+            item = np.expand_dims(item, 0)
             logits = searched_mod.predict(item)
             all_pred_prob.append(logits)
 
@@ -168,6 +202,11 @@ def main():
         print(mAUC)
         np.savetxt('stats.txt', np.array([mAP, mAUC]))
 
-    
-    np.savetxt('metrics.txt',history.history)
+    with open('metrics.txt', 'w') as file:
+        file.write(json.dumps(history.history))
+
+
+if __name__ == '__main__':
+    main()
+
 
