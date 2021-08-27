@@ -23,11 +23,16 @@ schemadotorg:
 
 | Tasks               | Number of Samples | Data Split(train/val/test) | Task Type | Applications           | License  |
 |---------------------|-------------------|----------------------------|-----------|------------------------|----------|
-| CIFAR-100           | 60,000            | 40,000/10,000/10,000       | Point     | Computer Vision        | CC BY 4.0|
-| Spherical CIFAR-100 | 60,000            | 40,000/10,000/10,000       | Point     | Omnidirectional Vision | CC BY-SA |
-| Ninapro DB5         | 3,916             | 2,638/659/659              | Point     | Medical Imaging        | CC BY-ND |
-| Darcy Flow          | 1,100             | 900/100/100                | Grid      | PDE Solver             | MIT      |
-| PSICOV + DeepCov    | 3,456 + 150       | 3356/100/150               | Grid      | Protein Folding        | GPL      |
+| CIFAR-100           | 60K               | 40,000/10,000/10,000       | Point     | Computer Vision        | CC BY 4.0|
+| Spherical CIFAR-100 | 60K               | 40,000/10,000/10,000       | Point     | Omnidirectional Vision | CC BY-SA |
+| Ninapro DB5         | 3,916             | 2,638/659/659              | Point     | Prosthetics Control    | CC BY-ND |
+| FSD50k              | 51K               | 37K/4K/10K                 | Point     | Audio Classification   | CC BY 4.0 |
+| Darcy Flow          | 1,100             | 900/100/100                | Dense     | PDE Solver             | MIT      |
+| PSICOV + DeepCov    | 3,456 + 150       | 3,356/100/150              | Dense     | Protein Folding        | GPL      |
+| Cosmic              | 5,250             | 4,347/483/420              | Dense     | Astronomy Imaging      | Open Data|
+| ECG                 | 330K              | 260K/33K/33K               | 1D Point  | Medical Diagnostics    | ODC-BY 1.0|
+| Satellite           | 1M                | 800K/100K/100K             | 1D Point  | Earth Minitoring       | GPL      |
+| DeepSEA             | 250K              | 71K/2.5K/150K              | 1D Point  | Genetic Prediction     | CC BY 4.0|
 
 *validation data can be split through index slicing 
 
@@ -57,6 +62,9 @@ Download Links (~30 MB total): <br />
 [Test Data](https://pde-xd.s3.amazonaws.com/ninapro/ninapro_test.npy),
 [Test Labels](https://pde-xd.s3.amazonaws.com/ninapro/label_test.npy)
 
+### FSD50K <br />
+[Download](https://pde-xd.s3.amazonaws.com/audio/audio.zip) (24 GB)
+
 ### Darcy Flow (PDE) <br />
 [Download Train + Validation Data](https://pde-xd.s3.amazonaws.com/piececonst_r421_N1024_smooth1.mat) (1.6 GB) <br/>
 [Download Test Data](https://pde-xd.s3.amazonaws.com/piececonst_r421_N1024_smooth2.mat) (1.6 GB)
@@ -64,17 +72,33 @@ Download Links (~30 MB total): <br />
 ### DeepCov + PSICOV (Protein Folding) <br />
 [Download](https://pde-xd.s3.amazonaws.com/protein.zip) (1.1 GB)
 
+### Cosmic <br />
+[Download Train](https://pde-xd.s3.amazonaws.com/cosmic/deepCR.ACS-WFC.train.tar) (6.5 GB)
+[Download Test](https://pde-xd.s3.amazonaws.com/cosmic/deepCR.ACS-WFC.test.tar) (2.0 GB)
+
+### ECG <br />
+[Download](https://pde-xd.s3.amazonaws.com/ECG/challenge2017.pkl)(150 MB)
+
+### Satellite <br />
+[Download Train](https://pde-xd.s3.amazonaws.com/satellite/satellite_train.npy) (322 MB)
+[Download Test](https://pde-xd.s3.amazonaws.com/satellite/satellite_test.npy) (35 MB)
+
+### DeepSEA <br />
+[Download](https://pde-xd.s3.amazonaws.com/deepsea/deepsea_filtered.npz)(860 MB)
+
+
 ## Reading data 
 
 Despite data is stored using various formats, we provide sample python scripts for loading
 all datasets into pytorch tensors. From there, you can use them for training or maybe visualize
-the images. 
+the images. Loading 1D tasks is similar to loading point tasks. 
 
 Point task script: [point.py](point.py)
 
-Grid task scripts: [grid.py](grid.py), [utils](utils_grid.py), [protein_generator](protein_gen.py),
+Dense task scripts: [dense.py](dense.py), [utils](utils_grid.py), [protein_generator](protein_gen.py),
 [protein_io](protein_io.py)
 
+<!--
 ## Benchmark Results 
 
 | Tasks               | GAEA PC-DARTS  | DenseNAS     | Backbone + HPO | Human-designed architecture |
@@ -84,7 +108,7 @@ Grid task scripts: [grid.py](grid.py), [utils](utils_grid.py), [protein_generato
 | Ninapro             | 88.57 ± 0.61   | 89.83 ± 1.31 | 93.12 ± 0.40   | 68.98                       |
 | Darcy Flow          | 0.056 ± 0.012  | 0.10 ± 0.010 | 0.041 ± 0.0012 | 0.0065                      |
 | PSICOV              | 2.80 ± 0.057   | 3.84 ± 0.15  | 5.71 ± 0.15    | 3.50                        |
-
+-->
 
 ## License
 
