@@ -11,6 +11,9 @@ Datasets in the benchmark:
 - PSICOV (Protein sequence distance prediction)
 - FSD50k (Sound event classification)
 - Cosmic (Cosmic ray identification and replacement)
+- ECG (Cardiac anomaly detection)
+- Satellite (Earth monitoring through satellite imagery)
+- DeepSEA (identifying chromatin features from RNA-binding proteins)
 
 ## Prerequisites 
 We use the open-source [Determined](https://docs.determined.ai/latest/how-to/installation/aws.html?highlight=det%20deploy) 
@@ -42,7 +45,14 @@ and DenseNAS ([paper link](https://arxiv.org/abs/1906.09607)),
 which can be found inside each folder with the associated name, i.e. "darts/" for GAEA PC-DARTS 
 and "densenas/" for DenseNAS.
 
-We also implement procedure for running and tuning hyperparameters of the backbone architecture Wide ResNet ([paper link]( http://arxiv.org/abs/1605.07146)), in "backbone/".
+To run these algorithms on 1D tasks, we've adapted their search spaces whose experiments are provided in "darts_1d/" for GAEA PC-DARTS (1D) and "densenas_1d/" for DenseNAS(1D). 
+
+Two task-specific NAS methods are implemented: Auto-DeepLab for dense prediction tasks in "autodeeplab/" and AMBER for 1D prediction tasks in "AMBER/".
+
+We also implement procedure for running and tuning hyperparameters of the backbone architecture Wide ResNet ([paper link]( http://arxiv.org/abs/1605.07146)), in "backbone/". The 1D-customized Wide ResNet is in "backbone_1d/".
+
+
+
 
 To modify the random seed for each experiment, modify the number under 
 

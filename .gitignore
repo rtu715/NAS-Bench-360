@@ -14,3 +14,6 @@ save_temp
 */*.pkl
 */*.mat
 autodeeplab/run/*
+*.ipynb
+*.png
+.ipynb_checkpoints/

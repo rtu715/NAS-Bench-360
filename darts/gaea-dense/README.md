@@ -5,13 +5,11 @@ This example implements the NAS method introduced by [Li et al.](https://arxiv.o
 The training routine is based on that used by [PC-DARTS](https://github.com/yuhuixu1993/PC-DARTS/blob/master/train_imagenet.py). 
 
 ### To Run
-First, make sure that you have a determined cluster running either locally or on AWS. 
+To run the example, simply run the following command:
+` det experiment create [dataset]_search.yaml .`
 
-To run the example, simply run the following command from within the `search` directory:
-` det experiment create [dataset].yaml .`
-
-After the architecture search stage is complete, you can evaluate the architecture by copying the resulting genotype from the log to `eval/searched_genotypes.py`.  
+After the architecture search stage is complete, you can evaluate the architecture by copying the resulting genotype from the log to `model_def.py`.  
 
 ## Architecture Evaluation
-Run the following command from within the `eval` directory:
-` det experiment create [dataset].yaml .`
+Run the following command:
+` det experiment create [dataset]_eval.yaml .`

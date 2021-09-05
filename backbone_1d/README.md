@@ -1,4 +1,4 @@
-# Experiments on Wide ResNet
+# Experiments on Wide ResNet - 1D
 
 With a Determined cluster set up, you can edit experimental scripts in scripts/ and run
 experiments using the following commands:
@@ -12,12 +12,8 @@ For running a local test simply run with:
 
 `[dataset].yaml` - Without tuning (fixed hyperparameters)
 
-`*tuning.yaml` - Hyperparameter tuning 
+`*tuning.yaml` -  Hyperparameter tuning 
 
 `*retrain.yaml` - Retrain with searched hyperparameters
-
-
-
-
 
 

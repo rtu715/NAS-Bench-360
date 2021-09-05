@@ -1,9 +1,9 @@
 # GAEA PC-DARTS
 
-## Point Tasks
+## Point Prediction Tasks
 See subdirectories `gaea/`
 
-## Grid Tasks
+## Dense Prediction Tasks
 
-See subdirectories `gaea-grid/`
+See subdirectories `gaea-dense/`
 
