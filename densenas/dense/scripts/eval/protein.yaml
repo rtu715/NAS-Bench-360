@@ -38,9 +38,9 @@ hyperparameters:
   #[[64, 112], 'basic_block', ['basic_block', 'basic_block', 'basic_block', 'basic_block'], 4, 1]"
 
   #seed 2
-  #net_config: "[[32, 48], 'basic_block', [], 0, 1]| [[48, 96], 'basic_block', ['basic_block'], 1, 1]| [[96, 112], 'basic_block', ['basic_block', 'basic_block'], 2, 1]"
-  net_config:  "[[32, 64], 'basic_block', [], 0, 1]|
-[[64, 112], 'basic_block', ['basic_block', 'basic_block', 'basic_block', 'basic_block', 'basic_block'], 5, 1]"
+  net_config: "[[32, 48], 'basic_block', [], 0, 1]| [[48, 96], 'basic_block', ['basic_block'], 1, 1]| [[96, 112], 'basic_block', ['basic_block', 'basic_block'], 2, 1]"
+  #net_config:  "[[32, 64], 'basic_block', [], 0, 1]|
+  #[[64, 112], 'basic_block', ['basic_block', 'basic_block', 'basic_block', 'basic_block', 'basic_block'], 5, 1]"
 
 
 

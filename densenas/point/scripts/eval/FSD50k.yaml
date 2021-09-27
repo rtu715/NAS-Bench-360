@@ -25,11 +25,14 @@ hyperparameters:
 
   net_type: res
   global_batch_size: 512
-
-  #net_config: "[[32, 64], 'basic_block', [], 0, 2]|
-  #[[64, 72], 'basic_block', [], 0, 2]|
-  #[[72, 176], 'basic_block', [], 0, 2]|
-  #[[176, 224], 'basic_block', [], 0, 1]"
+  
+  #0
+  net_config: "[[32, 64], 'basic_block', [], 0, 2]|
+  [[64, 72], 'basic_block', [], 0, 2]|
+  [[72, 176], 'basic_block', [], 0, 2]|
+  [[176, 224], 'basic_block', [], 0, 1]"
+  
+  #random
   #net_config: "[[32, 64], 'basic_block', [], 0, 2]|
   #[[64, 112], 'basic_block', ['basic_block'], 1, 2]|
   #[[112, 176], 'basic_block', ['basic_block'], 1, 2]|
@@ -41,6 +44,7 @@ hyperparameters:
   #[[96, 176], 'basic_block', [], 0, 2]|
   #[[176, 224], 'basic_block', [], 0, 1]"
 
+  #random
   #net_config: "[[32, 64], 'basic_block', [], 0, 2]|
   #[[64, 112], 'basic_block', ['basic_block'], 1, 2]|
   #[[112, 176], 'basic_block', ['basic_block'], 1, 2]|
@@ -52,10 +56,11 @@ hyperparameters:
   #[[72, 176], 'basic_block', [], 0, 2]|
   #[[176, 224], 'basic_block', [], 0, 1]"
   
-  net_config: "[[32, 64], 'basic_block', [], 0, 2]|
-[[64, 112], 'basic_block', ['basic_block'], 1, 2]|
- [[112, 176], 'basic_block', ['basic_block'], 1, 2]|
-[[176, 224], 'basic_block', [], 0, 1]"
+  #random
+  #net_config: "[[32, 64], 'basic_block', [], 0, 2]|
+  #[[64, 112], 'basic_block', ['basic_block'], 1, 2]|
+  #[[112, 176], 'basic_block', ['basic_block'], 1, 2]|
+  #[[176, 224], 'basic_block', [], 0, 1]"
 
 resources:
   slots_per_trial: 1

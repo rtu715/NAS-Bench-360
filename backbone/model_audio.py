@@ -85,7 +85,8 @@ class BackboneTrial(PyTorchTrial):
 
         total_params = sum(p.numel() for p in self.backbone.parameters() if p.requires_grad)/ 1e6
         print('Parameter size in MB(backbone): ', total_params)
-
+        
+        
         self.model = self.context.wrap_model(self.backbone)
         self.last_eval = 0
         '''

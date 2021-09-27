@@ -1,0 +1,6 @@
+events*
+*.pth
+data
+deepCR/.git/*
+__pycache__
+*.npy

@@ -1,0 +1,5 @@
+layer98*
+*.ckpt
+resnet1d/layer98*
+resnet1d/challenge2017.pkl
+resnet1d/__pycache__

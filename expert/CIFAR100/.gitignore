@@ -1,0 +1,4 @@
+data
+*.ckpt
+*/runs
+*/__pycache__

@@ -1,0 +1,6 @@
+*/*.lst
+*/deepcov
+*/cameo
+*/psicov
+*/tmp
+*/*.hdf5
