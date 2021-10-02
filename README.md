@@ -1,19 +1,19 @@
 # NAS-Bench-360
 
 ## Resources 
-Homepage / dataset downloads: [here](https://rtu715.github.io/NAS-Bench-360/)
+<!--Homepage / dataset downloads: [here](https://rtu715.github.io/NAS-Bench-360/)-->
 
-Datasets in the benchmark:
+Datasets in the benchmark with download links:
 - CIFAR-100 (Image classification)
-- Spherical CIFAR-100 (Transformed image classification)
-- Ninapro DB5 (Hand-gesture classification)
-- Darcy Flow (Partial differential equation solver)
-- PSICOV (Protein sequence distance prediction)
-- FSD50k (Sound event classification)
-- Cosmic (Cosmic ray identification and replacement)
-- ECG (Cardiac anomaly detection)
-- Satellite (Earth monitoring through satellite imagery)
-- DeepSEA (identifying chromatin features from RNA-binding proteins)
+- [Spherical CIFAR-100 (Transformed image classification)](https://pde-xd.s3.amazonaws.com/spherical/s2_cifar100.gz) (272 MB)
+- [Ninapro DB5 (Hand-gesture classification)](https://pde-xd.s3.amazonaws.com/ninapro/ninapro_train.npy)(15 MB)
+- [Darcy Flow (Partial differential equation solver)](https://pde-xd.s3.amazonaws.com/piececonst_r421_N1024_smooth1.mat) (1.6 GB) 
+- [PSICOV (Protein sequence distance prediction)](https://pde-xd.s3.amazonaws.com/protein.zip) (1.1 GB)
+- [FSD50k (Sound event classification)](https://pde-xd.s3.amazonaws.com/audio/audio.zip) (24 GB)
+- [Cosmic (Cosmic ray identification and replacement)](https://pde-xd.s3.amazonaws.com/cosmic/deepCR.ACS-WFC.train.tar) (6.5 GB)
+- [ECG (Cardiac anomaly detection)](https://pde-xd.s3.amazonaws.com/ECG/challenge2017.pkl)(150 MB)
+- [Satellite (Earth monitoring through satellite imagery)](https://pde-xd.s3.amazonaws.com/satellite/satellite_train.npy) (322 MB)
+- [DeepSEA (identifying chromatin features from RNA-binding proteins)](https://pde-xd.s3.amazonaws.com/deepsea/deepsea_filtered.npz)(860 MB)
 
 ## Prerequisites 
 We use the open-source [Determined](https://docs.determined.ai/latest/how-to/installation/aws.html?highlight=det%20deploy) 
@@ -49,7 +49,7 @@ To run these algorithms on 1D tasks, we've adapted their search spaces whose exp
 
 Two task-specific NAS methods are implemented: Auto-DeepLab for dense prediction tasks in "autodeeplab/" and AMBER for 1D prediction tasks in "AMBER/".
 
-We also implement procedure for running and tuning hyperparameters of the backbone architecture Wide ResNet ([paper link]( http://arxiv.org/abs/1605.07146)), in "backbone/". The 1D-customized Wide ResNet is in "backbone_1d/".
+We also implement procedure for running and tuning hyperparameters of the backbone architecture Wide ResNet ([paper link](http://arxiv.org/abs/1605.07146)), in "backbone/". The 1D-customized Wide ResNet is in "backbone_1d/".
 
 
 
