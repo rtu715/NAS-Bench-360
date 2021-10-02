@@ -5,7 +5,7 @@ Markdown==3.3.3
 opencv-python==4.5.1.48
 
 pytorch-lightning==1.1.3
-PyYAML==5.3.1
+PyYAML==5.4
 scaper==1.6.4
 scikit-learn
 SoundFile==0.10.3.post1
