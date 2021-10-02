@@ -1,0 +1,16 @@
+librosa==0.8.0
+llvmlite==0.35.0
+lockfile==0.12.2
+Markdown==3.3.3
+opencv-python==4.5.1.48
+
+pytorch-lightning==1.1.3
+PyYAML==5.3.1
+scaper==1.6.4
+scikit-learn
+SoundFile==0.10.3.post1
+sox==1.4.0
+soxbindings==1.2.2
+tensorboard==2.4.0
+tensorboard-plugin-wit==1.7.0
+tqdm==4.55.1

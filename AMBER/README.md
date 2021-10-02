@@ -34,7 +34,7 @@ To run ECG, satellite, or DeepSEA:
 
 ## For evaluation 
 Modify examples/eval.py to locate the directory for storing search outputs
-`python examples/eval.py`
+`python examples/eval.py {dataset}`
 
 ## Contact
 

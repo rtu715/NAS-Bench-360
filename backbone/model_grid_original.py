@@ -47,7 +47,6 @@ class BackboneTrial(PyTorchTrial):
 
         # Create a unique download directory for each rank so they don't overwrite each other.
         self.download_directory = self.download_data_from_s3()
-
         
         # Define loss function, pde is lploss
         if self.hparams.task == 'pde':
@@ -82,7 +81,7 @@ class BackboneTrial(PyTorchTrial):
         
         total_params = sum(p.numel() for p in self.backbone.parameters() if p.requires_grad)/ 1e6
         print('Parameter size in MB: ', total_params)
-        
+
         '''
         Definition of optimizers, no Adam implementation
         '''

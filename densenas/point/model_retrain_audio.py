@@ -73,6 +73,7 @@ class DenseNASTrainTrial(PyTorchTrial):
         pprint.pformat("Num params = %.2fMB", utils.count_parameters_in_MB(model))
         self.model = self.context.wrap_model(model)
 
+        
         total_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)/ 1e6
         print('Parameter size in MB: ', total_params)
         optimizer = torch.optim.SGD(

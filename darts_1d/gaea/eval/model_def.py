@@ -59,6 +59,7 @@ class GAEAEvalTrial(PyTorchTrial):
 
         self.model = self.context.wrap_model(self.build_model_from_config())
 
+
         #total_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)/ 1e6
         #print('Parameter size in MB: ', total_params)
         print("param size = %f MB" % count_parameters_in_MB(self.model))

@@ -51,7 +51,7 @@ CUDA_VISIBLE_DEVICES=0 python decode_autodeeplab.py --dataset darcyflow --resume
 
 **Train without distributed**
 ```
-python train.py
+python train.py --dataset darcyflow --exp {/path/to/decoded_arch}
 ```
 
 **Train with distributed**

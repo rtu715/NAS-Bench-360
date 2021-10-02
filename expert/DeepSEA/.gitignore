@@ -1,0 +1,5 @@
+*.npz
+selene
+Bioinfor-DeepSEA/result*
+Bioinfor-DeepSEA/venv
+Bioinfor-DeepSEA/data

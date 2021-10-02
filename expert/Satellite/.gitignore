@@ -1,0 +1,4 @@
+tsai
+*.ckpt
+*.npy
+rocket/results

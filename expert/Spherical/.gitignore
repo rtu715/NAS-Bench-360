@@ -1,0 +1,3 @@
+s2cnn/cifar/*.gz
+s2cnn/cifar/*.ckpt
+s2cnn/cifar/cache
