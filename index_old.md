@@ -18,7 +18,11 @@ schemadotorg:
  license: MIT
 ---
 
-# NAS-Bench-360
+<p align='center'>
+
+NAS-Bench-360 is a benchmark suite for evaluating state-of-the-art NAS methods on a diverse set of tasks. The selection spans different application domains, dataset sizes, problem dimensionalities, and learning objectives. Please contact [Renbo Tu](renbo@cmu.edu) if you have questions or wish to contribute to the benchmark.
+
+</p>
 
 
 | Tasks               | Number of Samples | Data Split(train/val/test) | Task Type | Applications           | License  |

@@ -1,4 +1,4 @@
-theme: jekyll-theme-cayman
-name: NAS-Bench-360
-description: Introducing Diverse Tasks for Evaluating Different NAS Approaches
-markdown: GFM
+theme: jekyll-theme-slate
+#name: NAS-Bench-360
+#description: Introducing Diverse Tasks for Evaluating Different NAS Approaches
+#markdown: GFM
