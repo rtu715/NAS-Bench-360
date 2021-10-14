@@ -21,13 +21,12 @@ body {
     font-family: 'Roboto', sans-serif;
 }
 .toptitle h1 {
-	font: normal 48px/1.5 sans-serif;
+	font: normal sans-serif;
+	fonf-size: 5vw;
 	line-height: 0px;
 	font-family: 'Roboto', sans-serif;
 }
-@media screen and (max-width: 767px) {
-h1 { font-size: 18px !important; }
-}
+
 
 .toptitle h2 {
 	margin-top: -20px;
