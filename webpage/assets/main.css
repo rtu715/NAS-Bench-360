@@ -111,7 +111,7 @@ span.citation {
 	text-align: center;
 }
 
-.showHide { display:none; }
+.showHide { display:none; padding-left:4px }
 @media screen and (min-width: 500px) {
 	.showHide  { display: inline; }
 }
