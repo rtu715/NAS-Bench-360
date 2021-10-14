@@ -25,6 +25,10 @@ body {
 	line-height: 0px;
 	font-family: 'Roboto', sans-serif;
 }
+@media screen and (max-width: 767px) {
+h1 { font-size: 18px !important; }
+}
+
 .toptitle h2 {
 	margin-top: -20px;
 	margin-bottom: 0px;
@@ -113,7 +117,7 @@ span.citation {
 
 .showHide { display:none; padding-left:4px }
 @media screen and (min-width: 500px) {
-	.showHide  { display: inline; }
+	.showHide  { padding-left:4px; display: inline; }
 }
 
 .menu{
