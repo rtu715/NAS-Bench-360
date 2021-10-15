@@ -31,7 +31,7 @@ body {
 .toptitle h2 {
 	margin-top: -20px;
 	margin-bottom: 0px;
-	font: normal 24px/1.5 sans-serif;
+	font: normal 32px/1.5 sans-serif;
 	font-family: 'Roboto', sans-serif;
 }
 .title {
@@ -48,7 +48,7 @@ body {
 	font-family: 'Roboto', sans-serif;
 }
 .title h2 {
-	font: normal 24px/1.5 sans-serif;
+	font: normal 32px/1.5 sans-serif;
 	font-family: 'Roboto', sans-serif;
 }
 .title img {
@@ -66,9 +66,9 @@ span.subtitle {
 span.description {
 	text-align: center;
 	font: normal 18px/1.5 Helvetica;
-	width: 85%;
+	width: 90%;
 	margin: 0 auto;
-    padding: 10px;
+    padding: 5px;
     font-family: 'Roboto', sans-serif;
 }
 
