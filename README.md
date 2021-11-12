@@ -13,7 +13,7 @@ Datasets in the benchmark with download links:
 - [Cosmic (Cosmic ray identification and replacement)](https://pde-xd.s3.amazonaws.com/cosmic/deepCR.ACS-WFC.train.tar) (6.5 GB)
 - [ECG (Cardiac anomaly detection)](https://pde-xd.s3.amazonaws.com/ECG/challenge2017.pkl)(150 MB)
 - [Satellite (Earth monitoring through satellite imagery)](https://pde-xd.s3.amazonaws.com/satellite/satellite_train.npy) (322 MB)
-- [DeepSEA (identifying chromatin features from RNA-binding proteins)](https://pde-xd.s3.amazonaws.com/deepsea/deepsea_filtered.npz)(860 MB)
+- [DeepSEA (identifying chromatin features from DNA sequences)](https://pde-xd.s3.amazonaws.com/deepsea/deepsea_filtered.npz)(860 MB)
 
 ## Prerequisites 
 We use the open-source [Determined](https://docs.determined.ai/latest/how-to/installation/aws.html?highlight=det%20deploy) 
