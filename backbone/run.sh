@@ -6,7 +6,7 @@ if [ $TYPE = 'default' ]; then
 	if [ $TEST = 'aws' ]; then
 		det experiment create scripts/$TASK.yaml .
 	else
-		det experiemnt create scripts/$TASK.yaml . --local --test
+		det experiment create scripts/$TASK.yaml . --local --test
 	fi
 else
 	if [ $TEST = 'aws' ];then
