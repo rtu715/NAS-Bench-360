@@ -10,6 +10,7 @@ rm cifar-100-python.tar.gz
 mkdir cifar-100 
 mv cifar-100-python cifar-100 
 
+# Spherical
 wget https://pde-xd.s3.amazonaws.com/spherical/s2_cifar100.gz 
 gzip -d s2_cifar100.gz 
 mkdir spherical 
