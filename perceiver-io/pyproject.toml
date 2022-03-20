@@ -1,0 +1,67 @@
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "perceiver-io"
+version = "0.1.0"
+description = "Perceiver IO"
+readme = "README.md"
+authors = [
+    "Martin Krasser <krasserm@googlemail.com>",
+    "Christoph Stumpf <stumpf.christoph@gmail.com>",
+]
+license = "Apache-2.0"
+keywords= ["perceiver-io", "deep-learning"]
+classifiers = [
+    "Environment :: Console",
+    "Natural Language :: English",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+]
+homepage = "https://github.com/krasserm/perceiver-io"
+packages = [
+    { include = "perceiver" },
+]
+include = ["docs", "scripts"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+torch = "1.10.*"
+torchvision = "0.11.*"
+torchtext = "0.11.*"
+fairscale = "0.4.*"
+pytorch-lightning = "1.5.*"
+lightning-bolts = "0.4.*"
+torchmetrics = "0.6.*"
+einops = "0.4.*"
+tokenizers = "0.11.*"
+jsonargparse = {extras = ["signatures"], version = "4.1.*"}
+
+[tool.poetry.dev-dependencies]
+invoke = "^1.6.0"
+pre-commit = "^2.17.0"
+pytest = "^7.0.1"
+pytest-cov = "^3.0.0"
+
+[tool.black]
+line-length = 120
+exclude = "(.eggs|.git|.hg|.mypy_cache|.venv|_build|buck-out|build|dist)"
+
+[tool.isort]
+known_first_party = [
+    "perceiver",
+]
+skip_glob = []
+profile = "black"
+line_length = 120
+
+[tool.pytest.ini_options]
+
+[tool.coverage.run]
+source = ["perceiver"]

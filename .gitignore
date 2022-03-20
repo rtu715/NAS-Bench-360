@@ -17,3 +17,6 @@ autodeeplab/run/*
 *.ipynb
 *.png
 .ipynb_checkpoints/
+perceiver-io/.cache/*
+perceiver-io/.github/*
+perceiver-io/logs/*
