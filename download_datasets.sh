@@ -1,7 +1,7 @@
 #!/bin/bash
 
-mkdir data 
-cd data
+mkdir datasets
+cd datasets
 
 # CIFAR-100
 wget https://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz
