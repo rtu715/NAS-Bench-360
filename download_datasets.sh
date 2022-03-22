@@ -29,11 +29,11 @@ cd ..
 
 # FSD50K
 #wget https://pde-xd.s3.amazonaws.com/audio/audio.zip
-#mkdir audio
-#mv audio.zip audio
-#cd audio
+#mkdir -p audio/data
+#mv audio.zip audio/data
+#cd audio/data
 #unzip audio.zip
-#cd ..
+#cd ../..
 
 # Darcy Flow
 mkdir darcyflow

@@ -98,7 +98,8 @@ class LitClassifier(LitModel):
                 num_classes=num_classes, pos_label=1, average='micro')
             # TODO verify that this should be macro auroc score
         elif scorer == 'map': 
-            self.acc = tm.RetrievalMAP()
+            #self.acc = tm.RetrievalMAP()
+            self.acc = tm.AveragePrecision(pos_label=1, average='macro')
             # TODO verify that this is computed correctly
         else:
             raise NotImplementedError
@@ -109,23 +110,22 @@ class LitClassifier(LitModel):
         if self.scorer in ['acc', 'f1_macro']:
             y_pred = logits.argmax(dim=-1)
             acc = self.acc(y_pred, y)
-        elif self.scorer == 'auroc':
+        elif self.scorer in ['auroc', 'map']:
             acc = self.acc(
                 torch.sigmoid(logits).cpu(), 
                 y.type(torch.IntTensor).cpu())
-        elif self.scorer == 'map':
+        #elif self.scorer == 'map':
             # TODO verify that this is computed correctly
             # This takes the mean of the (average precision per-class)
-            bs = y.shape[0]
-            indices = torch.arange(
-                self.num_classes).unsqueeze(0).repeat(bs, 1)
+            #bs = y.shape[0]
+            #indices = torch.arange(
+            #    self.num_classes).unsqueeze(0).repeat(bs, 1)
             #indices = torch.arange(
             #    bs).unsqueeze(1).repeat(1, self.num_classes)
-            acc = self.acc(
-                torch.sigmoid(logits).cpu(), 
-                y.type(torch.IntTensor).cpu(), 
-                indexes=indices)
-
+            #acc = self.acc(
+            #    torch.sigmoid(logits).cpu(), 
+            #    y.type(torch.IntTensor).cpu(), 
+            #    indexes=indices)
         else:
             raise NotImplementedError
         return loss, acc

@@ -40,10 +40,21 @@ python scripts/nb360/ninapro.py fit \
     --data=NinaProDataModule \
     --trainer.max_epochs=200
 
+# FSD50K
+python scripts/nb360/fsd50k.py fit \
+    --model.num_latent_channels=128 --model.encoder.num_layers=3 \
+    --model.encoder.dropout=0.0 --model.decoder.dropout=0.0 \
+    --data.batch_size=128 \
+    --optimizer.lr=1e-3 --optimizer.weight_decay=0.01 \
+    --trainer.accelerator=gpu --trainer.devices=-1 \
+    --data=FSD50KDataModule \
+    --trainer.max_epochs=200
 
+# Darcy Flow
 
+# PSICOV
 
-
+# Cosmic
 
 # ECG 
 python scripts/nb360/ecg.py fit \
