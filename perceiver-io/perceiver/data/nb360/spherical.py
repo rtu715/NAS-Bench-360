@@ -5,7 +5,7 @@ import pytorch_lightning as pl
 import numpy as np
 from pytorch_lightning.utilities.cli import DATAMODULE_REGISTRY
 from torchvision import transforms
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, Subset
 from torchvision import datasets
 
 @DATAMODULE_REGISTRY
@@ -27,6 +27,8 @@ class SphericalDataModule(pl.LightningDataModule):
         self.save_hyperparameters()
         self._image_shape = [3, 60, 60]
         self.num_classes = 100
+        self.val_split = val_split
+        self.batch_size = batch_size
 
         if channels_last:
             self._image_shape = self._image_shape[1], self._image_shape[2], self._image_shape[0]
@@ -38,23 +40,28 @@ class SphericalDataModule(pl.LightningDataModule):
                 transform=self.default_transforms())
 
     def setup(self, stage):
-        self.spherical_train = Spherical(
-                root='../datasets/spherical', 
-                train=True, transform=self.default_transforms())
+        self.spherical_train = Subset(Spherical(
+                    root='../datasets/spherical', 
+                    train=True, transform=self.default_transforms()), 
+                np.arange(50_000)[:-self.val_split])
+        self.spherical_val = Subset(Spherical(
+                    root='../datasets/spherical', 
+                    train=True, transform=self.default_transforms()), 
+                np.arange(50_000)[-self.val_split:])
         self.spherical_test = Spherical(
                 root='../datasets/spherical', 
                 train=False, transform=self.default_transforms())
 
     def train_dataloader(self):
-        spherical_train = DataLoader(self.spherical_train, batch_size=128, shuffle=True, num_workers=8)
+        spherical_train = DataLoader(self.spherical_train, batch_size=self.batch_size, shuffle=True, num_workers=8)
         return spherical_train
 
     def val_dataloader(self):
-        spherical_val = DataLoader(self.spherical_test, batch_size=128, shuffle=False, num_workers=8)
+        spherical_val = DataLoader(self.spherical_val, batch_size=self.batch_size, shuffle=False, num_workers=8)
         return spherical_val
 
     def test_dataloader(self):
-        return DataLoader(self.spherical_test, batch_size=128, shuffle=False, num_workers=8)
+        return DataLoader(self.spherical_test, batch_size=self.batch_size, shuffle=False, num_workers=8)
 
     @property
     def image_shape(self):

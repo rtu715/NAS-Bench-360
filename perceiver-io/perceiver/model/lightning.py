@@ -1,7 +1,10 @@
 from dataclasses import asdict, dataclass
+from os import kill
 from typing import Any, List, Optional, Tuple
+from numpy import average
 
 import pytorch_lightning as pl
+import torch
 import torch.nn as nn
 import torchmetrics as tm
 from einops import rearrange
@@ -66,33 +69,81 @@ class LitModel(pl.LightningModule):
 
 
 class LitClassifier(LitModel):
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(self, 
+            num_classes=None, 
+            loss_fn='CrossEntropyLoss',
+            scorer='acc',
+             *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
-        self.loss = nn.CrossEntropyLoss()
-        self.acc = tm.classification.accuracy.Accuracy()
+        self.loss_fn = loss_fn
+
+        # Custom loss functions
+        if loss_fn == 'CrossEntropyLoss':
+            self.loss = nn.CrossEntropyLoss()
+        elif loss_fn == 'BCEWithLogitsLoss':
+            self.loss = nn.BCEWithLogitsLoss()
+        else:
+            raise NotImplementedError
+
+        # Custom scoring functions
+        self.num_classes = num_classes
+        self.scorer = scorer
+        if scorer == 'acc':
+            self.acc = tm.classification.accuracy.Accuracy()
+        elif scorer == 'f1_macro': 
+            self.acc = tm.classification.f_beta.F1(
+                average='macro', num_classes=num_classes)
+        elif scorer == 'auroc': 
+            self.acc = tm.AUROC(
+                num_classes=num_classes, pos_label=1, average='micro')
+            # TODO verify that this should be macro auroc score
+        elif scorer == 'map': 
+            self.acc = tm.RetrievalMAP()
+            # TODO verify that this is computed correctly
+        else:
+            raise NotImplementedError
 
     def step(self, batch):
         logits, y = self(batch)
         loss = self.loss(logits, y)
-        y_pred = logits.argmax(dim=-1)
-        acc = self.acc(y_pred, y)
+        if self.scorer in ['acc', 'f1_macro']:
+            y_pred = logits.argmax(dim=-1)
+            acc = self.acc(y_pred, y)
+        elif self.scorer == 'auroc':
+            acc = self.acc(
+                torch.sigmoid(logits).cpu(), 
+                y.type(torch.IntTensor).cpu())
+        elif self.scorer == 'map':
+            # TODO verify that this is computed correctly
+            bs = y.shape[0]
+            #indices = torch.arange(
+            #    self.num_classes).unsqueeze(0).repeat(bs, 1)
+            indices = torch.arange(
+                bs).unsqueeze(1).repeat(1, self.num_classes)
+            acc = self.acc(
+                torch.sigmoid(logits).cpu(), 
+                y.type(torch.IntTensor).cpu(), 
+                indexes=indices)
+
+        else:
+            raise NotImplementedError
         return loss, acc
 
     def training_step(self, batch, batch_idx):
         loss, acc = self.step(batch)
         self.log("train_loss", loss)
-        self.log("train_acc", acc, prog_bar=True)
+        self.log(f"train_{self.scorer}", acc, prog_bar=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
         loss, acc = self.step(batch)
         self.log("val_loss", loss, prog_bar=True, sync_dist=True)
-        self.log("val_acc", acc, prog_bar=True)
+        self.log(f"val_{self.scorer}", acc, prog_bar=True)
 
     def test_step(self, batch, batch_idx):
         loss, acc = self.step(batch)
         self.log("test_loss", loss, sync_dist=True)
-        self.log("test_acc", acc)
+        self.log(f"test_{self.scorer}", acc)
 
 
 class LitImageClassifier(LitClassifier):
@@ -108,7 +159,7 @@ class LitImageClassifier(LitClassifier):
         num_frequency_bands: int = 32,
         **kwargs: Any
     ):
-        super().__init__(*args, **kwargs)
+        super().__init__(num_classes=num_classes, *args, **kwargs)
         self.model = self.create_model()
 
     def create_model(self):

@@ -2,9 +2,10 @@ from typing import Callable, Optional, Union
 
 import torch
 import pytorch_lightning as pl
+import numpy as np
 from pytorch_lightning.utilities.cli import DATAMODULE_REGISTRY
 from torchvision import transforms
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 from torchvision import datasets
 
 @DATAMODULE_REGISTRY
@@ -26,6 +27,8 @@ class CIFAR100DataModule(pl.LightningDataModule):
         self.save_hyperparameters()
         self._image_shape = [3, 32, 32]
         self.num_classes = 100
+        self.val_split = val_split
+        self.batch_size = batch_size
 
         if channels_last:
             self._image_shape = self._image_shape[1], self._image_shape[2], self._image_shape[0]
@@ -35,23 +38,31 @@ class CIFAR100DataModule(pl.LightningDataModule):
         datasets.CIFAR100(root='../datasets/cifar-100',train=False,download=True, transform=self.default_transforms())
 
     def setup(self, stage):
-        self.cifar_train = datasets.CIFAR100(
-                root='../datasets/cifar-100', 
-                train=True, download=True, transform=self.default_transforms())
+        self.cifar_train = Subset(datasets.CIFAR100(
+                    root='../datasets/cifar-100', 
+                    train=True, download=True, 
+                    transform=self.default_transforms()), 
+                np.arange(50_000)[:-self.val_split])
+        self.cifar_val = Subset(datasets.CIFAR100(
+                    root='../datasets/cifar-100', 
+                    train=True, download=True, 
+                    transform=self.default_transforms()), 
+                np.arange(50_000)[-self.val_split:])
         self.cifar_test = datasets.CIFAR100(
                 root='../datasets/cifar-100', 
-                train=False, download=True, transform=self.default_transforms())
+                train=False, download=True, 
+                transform=self.default_transforms())
 
     def train_dataloader(self):
-        cifar_train = DataLoader(self.cifar_train, batch_size=128, shuffle=True, num_workers=8)
+        cifar_train = DataLoader(self.cifar_train, batch_size=self.batch_size, shuffle=True, num_workers=8)
         return cifar_train
 
     def val_dataloader(self):
-        cifar_val = DataLoader(self.cifar_test, batch_size=128, shuffle=False, num_workers=8)
+        cifar_val = DataLoader(self.cifar_val, batch_size=self.batch_size, shuffle=False, num_workers=8)
         return cifar_val # TODO
 
     def test_dataloader(self):
-        return DataLoader(self.cifar_test, batch_size=128, shuffle=False, num_workers=8)
+        return DataLoader(self.cifar_test, batch_size=self.batch_size, shuffle=False, num_workers=8)
 
     @property
     def image_shape(self):
