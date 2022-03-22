@@ -115,11 +115,12 @@ class LitClassifier(LitModel):
                 y.type(torch.IntTensor).cpu())
         elif self.scorer == 'map':
             # TODO verify that this is computed correctly
+            # This takes the mean of the (average precision per-class)
             bs = y.shape[0]
-            #indices = torch.arange(
-            #    self.num_classes).unsqueeze(0).repeat(bs, 1)
             indices = torch.arange(
-                bs).unsqueeze(1).repeat(1, self.num_classes)
+                self.num_classes).unsqueeze(0).repeat(bs, 1)
+            #indices = torch.arange(
+            #    bs).unsqueeze(1).repeat(1, self.num_classes)
             acc = self.acc(
                 torch.sigmoid(logits).cpu(), 
                 y.type(torch.IntTensor).cpu(), 
