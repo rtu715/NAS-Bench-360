@@ -67,6 +67,28 @@ class LitModel(pl.LightningModule):
                 "lr_scheduler": {"scheduler": scheduler, "interval": "step", "frequency": 1},
             }
 
+class LitDensePredictor(LitModel):
+    def __init__(self, 
+            num_classes=None, 
+            loss_fn='L2RelativeError',
+            scorer='l2relativeerror',
+             *args: Any, **kwargs: Any):
+        super().__init__(*args, **kwargs)
+        self.loss_fn = loss_fn
+        pass
+
+    def step(self, batch):
+        pass
+
+    def training_step(self, batch, batch_idx):
+        pass
+
+    def validation_step(self, batch, batch_idx):
+        pass
+
+    def test_step(self, batch, batch_idx):
+        pass
+
 
 class LitClassifier(LitModel):
     def __init__(self, 
@@ -95,10 +117,9 @@ class LitClassifier(LitModel):
                 average='macro', num_classes=num_classes)
         elif scorer == 'auroc': 
             self.acc = tm.AUROC(
-                num_classes=num_classes, pos_label=1, average='micro')
+                num_classes=num_classes, pos_label=1, average='macro')
             # TODO verify that this should be macro auroc score
         elif scorer == 'map': 
-            #self.acc = tm.RetrievalMAP()
             self.acc = tm.AveragePrecision(pos_label=1, average='macro')
             # TODO verify that this is computed correctly
         else:
@@ -114,18 +135,6 @@ class LitClassifier(LitModel):
             acc = self.acc(
                 torch.sigmoid(logits).cpu(), 
                 y.type(torch.IntTensor).cpu())
-        #elif self.scorer == 'map':
-            # TODO verify that this is computed correctly
-            # This takes the mean of the (average precision per-class)
-            #bs = y.shape[0]
-            #indices = torch.arange(
-            #    self.num_classes).unsqueeze(0).repeat(bs, 1)
-            #indices = torch.arange(
-            #    bs).unsqueeze(1).repeat(1, self.num_classes)
-            #acc = self.acc(
-            #    torch.sigmoid(logits).cpu(), 
-            #    y.type(torch.IntTensor).cpu(), 
-            #    indexes=indices)
         else:
             raise NotImplementedError
         return loss, acc
