@@ -61,18 +61,18 @@
 
 # ...
 
-#rm -rf ./logs/deepsea/*
-#for i in {1..3}
-#do
-#    python scripts/nb360/deepsea.py fit \
-#        --model.num_latent_channels=128 --model.encoder.num_layers=3 \
-#        --model.encoder.dropout=0.0 --model.decoder.dropout=0.0 \
-#        --data.batch_size=256 \
-#        --optimizer.lr=1e-3 --optimizer.weight_decay=0.01 \
-#        --trainer.accelerator=gpu --trainer.devices=-1 \
-#        --data=DeepSEADataModule \
-#        --trainer.max_epochs=200
-#done
+rm -rf ./logs/deepsea/*
+for i in {1..3}
+do
+    python scripts/nb360/deepsea.py fit \
+        --model.num_latent_channels=128 --model.encoder.num_layers=3 \
+        --model.encoder.dropout=0.0 --model.decoder.dropout=0.0 \
+        --data.batch_size=256 \
+        --optimizer.lr=1e-3 --optimizer.weight_decay=0.01 \
+        --trainer.accelerator=gpu --trainer.devices=-1 \
+        --data=DeepSEADataModule \
+        --trainer.max_epochs=200
+done
 
 #rm -rf ./logs/satellite/*
 #for i in {1..3}
@@ -87,15 +87,15 @@
 #        --trainer.max_epochs=200
 #done
 
-rm -rf ./logs/ecg/*
-for i in {1..3}
-do
-    python scripts/nb360/ecg.py fit \
-        --model.num_latent_channels=128 --model.encoder.num_layers=3 \
-        --model.encoder.dropout=0.0 --model.decoder.dropout=0.0 \
-        --data.batch_size=256 \
-        --optimizer.lr=1e-3 --optimizer.weight_decay=0.01 \
-        --trainer.accelerator=gpu --trainer.devices=-1 \
-        --data=ECGDataModule \
-        --trainer.max_epochs=200 &
-done
+#rm -rf ./logs/ecg/*
+#for i in {1..3}
+#do
+#    python scripts/nb360/ecg.py fit \
+#        --model.num_latent_channels=128 --model.encoder.num_layers=3 \
+#        --model.encoder.dropout=0.0 --model.decoder.dropout=0.0 \
+#        --data.batch_size=256 \
+#        --optimizer.lr=1e-3 --optimizer.weight_decay=0.01 \
+#        --trainer.accelerator=gpu --trainer.devices=-1 \
+#        --data=ECGDataModule \
+#        --trainer.max_epochs=200 &
+#done
