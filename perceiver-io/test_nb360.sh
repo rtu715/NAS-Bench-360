@@ -21,7 +21,14 @@ do
     # ... Darcy Flow
     # ... PSICOV
     # ... Cosmic
-    # ... FSD50K
+
+    basename=logs/fsd50k/version_${i}
+    files=(${basename}/checkpoints/*)
+    checkpoint=${files[0]}
+    python scripts/nb360/fsd50k.py test \
+        --ckpt=${checkpoint} \
+        --trainer.accelerator=gpu --trainer.devices=-1 \
+        --data=FSD50KDataModule |& tee ${basename}/test.log
 
     #basename=logs/ninapro/version_${i}
     #files=(${basename}/checkpoints/*)
@@ -31,13 +38,13 @@ do
     #    --trainer.accelerator=gpu --trainer.devices=-1 \
     #    --data=NinaProDataModule |& tee ${basename}/test.log
 
-    basename=logs/deepsea/version_${i}
-    files=(${basename}/checkpoints/*)
-    checkpoint=${files[0]}
-    python scripts/nb360/deepsea.py test \
-        --ckpt=${checkpoint} \
-        --trainer.accelerator=gpu --trainer.devices=-1 \
-        --data=DeepSEADataModule |& tee ${basename}/test.log
+    #basename=logs/deepsea/version_${i}
+    #files=(${basename}/checkpoints/*)
+    #checkpoint=${files[0]}
+    #python scripts/nb360/deepsea.py test \
+    #    --ckpt=${checkpoint} \
+    #    --trainer.accelerator=gpu --trainer.devices=-1 \
+    #    --data=DeepSEADataModule |& tee ${basename}/test.log
 
     #basename=logs/satellite/version_${i}
     #files=(${basename}/checkpoints/*)
