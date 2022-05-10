@@ -281,7 +281,7 @@ class LitDensePredictor(LitModel):
         )
         return PerceiverIO(encoder, decoder)
 
-    def _maskMetric(self, PD, GT): # TODO double check this 
+    def _maskMetric(self, PD, GT):
         PD = PD.reshape(1, -1)
         GT = GT.reshape(1, -1)
         TP, TN, FP, FN = 0, 0, 0, 0
@@ -313,23 +313,18 @@ class LitDensePredictor(LitModel):
             return self.model(x), y
 
     def step(self, batch):
-        if self.cosmic:
-            out, y, ignore = self(batch)
-            loss = self.loss(out * (1-ignore) , y * (1-ignore))
-            # TODO _maskMetric?
-        elif self.y_normalizer is not None:
+        if self.darcy and self.scorer == 'LpLoss':
             out, y = self(batch)
             out = self.y_normalizer.decode(out)
             loss = self.loss(
-                out.view(out.shape[0], -1), y.view(y.shape[0], -1))
-
-        if self.scorer == 'LpLoss':
+                out.view(out.shape[0], -1), y.view(y.shape[0], -1))  
             with torch.no_grad():
                 if self.y_normalizer is not None:
                     out = self.y_normalizer.decode(out)
-                acc = self.acc(
-                    out.view(out.shape[0], -1), y.view(y.shape[0], -1))
-        elif self.scorer == 'fnr' and self.cosmic:
+            acc = self.acc(out.view(out.shape[0], -1), y.view(y.shape[0], -1))
+        elif self.cosmic and self.scorer == 'fnr':
+            out, y, ignore = self(batch)
+            loss = self.loss(out * (1-ignore) , y * (1-ignore))
             metric = self._maskMetric(
                 out.reshape(-1, 1, 128, 128).detach().cpu().numpy() > 0.5, 
                 y.cpu().numpy())
