@@ -19,9 +19,17 @@ do
     #    --data=SphericalDataModule |& tee ${basename}/test.log
 
     # ... Darcy Flow
+    basename=logs/darcyflow/version_${i}
+    files=(${basename}/checkpoints/*)
+    checkpoint=${files[0]}
+    python scripts/nb360/darcyflow.py test \
+        --ckpt=${checkpoint} \
+        --trainer.accelerator=gpu --trainer.devices=1 \
+        --data=DarcyFlowDataModule |& tee ${basename}/test.log
+
     # ... PSICOV
     # ... Cosmic
-    # ... FSD50K
+    # ... FSD50K DONE
 
     #basename=logs/ninapro/version_${i}
     #files=(${basename}/checkpoints/*)

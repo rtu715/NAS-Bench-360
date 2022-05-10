@@ -24,6 +24,28 @@ from perceiver.model.model import PerceiverDecoder, PerceiverEncoder, PerceiverI
 from perceiver.model.utils import freeze, predict_masked_samples
 
 
+class FalseNegativeRate(tm.Metric):
+    def __init__(self, dist_sync_on_step=False):
+        super().__init__(dist_sync_on_step=dist_sync_on_step)
+        self.add_state("tp", default=torch.tensor(0), dist_reduce_fx="sum")
+        self.add_state("tn", default=torch.tensor(0), dist_reduce_fx="sum")
+        self.add_state("fp", default=torch.tensor(0), dist_reduce_fx="sum")
+        self.add_state("fn", default=torch.tensor(0), dist_reduce_fx="sum")
+
+    def update(self,
+            tp: torch.Tensor, 
+            tn: torch.Tensor,
+            fp: torch.Tensor, 
+            fn: torch.Tensor):
+        self.tp += tp
+        self.tn += tn
+        self.fp += fp
+        self.fn += fn
+
+    def compute(self):
+        return self.fn / (self.fn + self.tp)
+
+
 @dataclass
 class Config:
     dropout: float = 0.0
@@ -202,13 +224,16 @@ class LitDensePredictor(LitModel):
         *args: Any,
         num_frequency_bands: int = 32,
         darcy = False,
+        cosmic = False,
         **kwargs: Any
     ):
         super().__init__(*args, **kwargs)
         self.model = self.create_model()
         self.dense_pred_shape = dense_pred_shape
         self.y_normalizer = None # Hack to get darcy to work 
-        if darcy:
+        self.darcy = darcy
+        self.cosmic = cosmic
+        if self.darcy:
             _, _, _, y_normalizer = load_darcyflow_data(
                 '../datasets/darcyflow')
             self.y_normalizer = y_normalizer.cuda() 
@@ -217,13 +242,17 @@ class LitDensePredictor(LitModel):
         # Custom loss functions
         if loss_fn == 'LpLoss':
             self.loss = darcy_utils.LpLoss(size_average=False)
+        elif loss_fn == 'BCEWithLogitsLoss':
+            self.loss = nn.BCEWithLogitsLoss()
         else:
             raise NotImplementedError
 
         # Custom scoring functions
         self.scorer = scorer
-        if scorer == 'LpLoss': # TODO implement metrics for dense
+        if scorer == 'LpLoss':
             self.acc = self.loss
+        elif scorer == 'fnr':
+            self.acc = FalseNegativeRate() 
         else:
             raise NotImplementedError
 
@@ -252,22 +281,59 @@ class LitDensePredictor(LitModel):
         )
         return PerceiverIO(encoder, decoder)
 
+    def _maskMetric(self, PD, GT): # TODO double check this 
+        PD = PD.reshape(1, -1)
+        GT = GT.reshape(1, -1)
+        TP, TN, FP, FN = 0, 0, 0, 0
+        for i in range(GT.shape[0]):
+            P = GT[i].sum()
+            TP += (PD[i][GT[i] == 1] == 1).sum()
+            TN += (PD[i][GT[i] == 0] == 0).sum()
+            FP += (PD[i][GT[i] == 0] == 1).sum()
+            FN += (PD[i][GT[i] == 1] == 0).sum()
+        return np.array([TP, TN, FP, FN])
+
+    def _set_input(self, img, mask, ignore, shape):
+        dtype = torch.cuda.FloatTensor
+        img = img.type(dtype).view(-1,1, shape, shape)
+        mask = mask.type(dtype).view(-1,1, shape, shape)
+        ignore = ignore.type(dtype).view(-1,1, shape, shape)
+        return img, mask, ignore
+
     def forward(self, batch):
-        x, y = batch
-        return self.model(x), y
+        if self.cosmic:
+            img, mask, ignore = self._set_input(*batch, 128)
+            img = img.permute(0, 2, 3, 1)
+            logits = self.model(img).contiguous()
+            logits = logits.permute(0, 2, 3, 1)
+            mask = mask.permute(0, 2, 3, 1)
+            return logits, mask, ignore
+        else:
+            x, y = batch
+            return self.model(x), y
 
     def step(self, batch):
-        out, y = self(batch)
-        if self.y_normalizer is not None:
+        if self.cosmic:
+            out, y, ignore = self(batch)
+            loss = self.loss(out * (1-ignore) , y * (1-ignore))
+            # TODO _maskMetric?
+        elif self.y_normalizer is not None:
+            out, y = self(batch)
             out = self.y_normalizer.decode(out)
-        loss = self.loss(
-            out.view(out.shape[0], -1), y.view(y.shape[0], -1))
+            loss = self.loss(
+                out.view(out.shape[0], -1), y.view(y.shape[0], -1))
+
         if self.scorer == 'LpLoss':
             with torch.no_grad():
                 if self.y_normalizer is not None:
                     out = self.y_normalizer.decode(out)
                 acc = self.acc(
                     out.view(out.shape[0], -1), y.view(y.shape[0], -1))
+        elif self.scorer == 'fnr' and self.cosmic:
+            metric = self._maskMetric(
+                out.reshape(-1, 1, 128, 128).detach().cpu().numpy() > 0.5, 
+                y.cpu().numpy())
+            acc = self.acc(*metric)
         else:
             raise NotImplementedError
         return loss, acc

@@ -45,6 +45,13 @@ cd ..
 # PSICOV
 
 # Cosmic
+mkdir cosmic
+cd cosmic
+wget https://pde-xd.s3.amazonaws.com/cosmic/deepCR.ACS-WFC.train.tar
+tar -xvf deepCR.ACS-WFC.train.tar 
+wget https://pde-xd.s3.amazonaws.com/cosmic/deepCR.ACS-WFC.test.tar
+tar -xvf deepCR.ACS-WFC.test.tar 
+cd ..
 
 # ECG
 wget https://pde-xd.s3.amazonaws.com/ECG/challenge2017.pkl
