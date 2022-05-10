@@ -8,3 +8,4 @@ from perceiver.data.nb360.ecg import ECGDataModule
 from perceiver.data.nb360.satellite import SatelliteDataModule
 from perceiver.data.nb360.deepsea import DeepSEADataModule
 from perceiver.data.nb360.fsd50k import FSD50KDataModule
+from perceiver.data.nb360.darcyflow import DarcyFlowDataModule

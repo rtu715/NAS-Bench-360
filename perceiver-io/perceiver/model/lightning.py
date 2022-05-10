@@ -1,16 +1,25 @@
 from dataclasses import asdict, dataclass
 from os import kill
 from typing import Any, List, Optional, Tuple
-from numpy import average
 
+import numpy as np
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 import torchmetrics as tm
 from einops import rearrange
+from numpy import average
 from pytorch_lightning.utilities.cli import instantiate_class
 
-from perceiver.model.adapter import ClassificationOutputAdapter, ImageInputAdapter, TextInputAdapter, TextOutputAdapter
+from perceiver.data.nb360 import darcy_utils
+from perceiver.data.nb360.darcyflow import load_darcyflow_data
+from perceiver.model.adapter import (
+    ClassificationOutputAdapter,
+    DenseOutputAdapter,
+    ImageInputAdapter,
+    TextInputAdapter,
+    TextOutputAdapter,
+)
 from perceiver.model.model import PerceiverDecoder, PerceiverEncoder, PerceiverIO, PerceiverMLM, TextMasking
 from perceiver.model.utils import freeze, predict_masked_samples
 
@@ -66,28 +75,6 @@ class LitModel(pl.LightningModule):
                 "optimizer": optimizer,
                 "lr_scheduler": {"scheduler": scheduler, "interval": "step", "frequency": 1},
             }
-
-class LitDensePredictor(LitModel):
-    def __init__(self, 
-            num_classes=None, 
-            loss_fn='L2RelativeError',
-            scorer='l2relativeerror',
-             *args: Any, **kwargs: Any):
-        super().__init__(*args, **kwargs)
-        self.loss_fn = loss_fn
-        pass
-
-    def step(self, batch):
-        pass
-
-    def training_step(self, batch, batch_idx):
-        pass
-
-    def validation_step(self, batch, batch_idx):
-        pass
-
-    def test_step(self, batch, batch_idx):
-        pass
 
 
 class LitClassifier(LitModel):
@@ -199,6 +186,107 @@ class LitImageClassifier(LitClassifier):
     def forward(self, batch):
         x, y = batch
         return self.model(x), y
+
+
+class LitDensePredictor(LitModel):
+    """
+    >>> lit = LitDensePredictor((64, 64, 3), 2, 16, 16, EncoderConfig(), DecoderConfig(), optimizer_init={})
+    """
+
+    def __init__(
+        self,
+        image_shape: Tuple[int, int, int],
+        dense_pred_shape: Tuple[int, ...],
+        loss_fn='CrossEntropyLoss',
+        scorer='acc',
+        *args: Any,
+        num_frequency_bands: int = 32,
+        darcy = False,
+        **kwargs: Any
+    ):
+        super().__init__(*args, **kwargs)
+        self.model = self.create_model()
+        self.dense_pred_shape = dense_pred_shape
+        self.y_normalizer = None # Hack to get darcy to work 
+        if darcy:
+            _, _, _, y_normalizer = load_darcyflow_data(
+                '../datasets/darcyflow')
+            self.y_normalizer = y_normalizer.cuda() 
+            # NOTE I don't think this will work for multi-gpu
+
+        # Custom loss functions
+        if loss_fn == 'LpLoss':
+            self.loss = darcy_utils.LpLoss(size_average=False)
+        else:
+            raise NotImplementedError
+
+        # Custom scoring functions
+        self.scorer = scorer
+        if scorer == 'LpLoss': # TODO implement metrics for dense
+            self.acc = self.loss
+        else:
+            raise NotImplementedError
+
+    def create_model(self):
+
+        input_adapter = ImageInputAdapter(
+            image_shape=self.hparams.image_shape, num_frequency_bands=self.hparams.num_frequency_bands
+        )
+        output_adapter = DenseOutputAdapter(
+            dense_pred_shape=self.hparams.dense_pred_shape, 
+            num_output_channels=self.hparams.num_latent_channels
+        )
+
+        encoder = PerceiverEncoder(
+            input_adapter=input_adapter,
+            num_latents=self.hparams.num_latents,
+            num_latent_channels=self.hparams.num_latent_channels,
+            activation_checkpoint=self.hparams.activation_checkpoint,
+            **self.hparams.encoder.dict
+        )
+        decoder = PerceiverDecoder(
+            output_adapter=output_adapter,
+            num_latent_channels=self.hparams.num_latent_channels,
+            activation_checkpoint=self.hparams.activation_checkpoint,
+            **self.hparams.decoder.dict
+        )
+        return PerceiverIO(encoder, decoder)
+
+    def forward(self, batch):
+        x, y = batch
+        return self.model(x), y
+
+    def step(self, batch):
+        out, y = self(batch)
+        if self.y_normalizer is not None:
+            out = self.y_normalizer.decode(out)
+        loss = self.loss(
+            out.view(out.shape[0], -1), y.view(y.shape[0], -1))
+        if self.scorer == 'LpLoss':
+            with torch.no_grad():
+                if self.y_normalizer is not None:
+                    out = self.y_normalizer.decode(out)
+                acc = self.acc(
+                    out.view(out.shape[0], -1), y.view(y.shape[0], -1))
+        else:
+            raise NotImplementedError
+        return loss, acc
+
+    def training_step(self, batch, batch_idx):
+        loss, acc = self.step(batch)
+        self.log("train_loss", loss)
+        self.log(f"train_{self.scorer}", acc, prog_bar=True)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        loss, acc = self.step(batch)
+        self.log("val_loss", loss, prog_bar=True, sync_dist=True)
+        self.log(f"val_{self.scorer}", acc, prog_bar=True)
+
+    def test_step(self, batch, batch_idx):
+        loss, acc = self.step(batch)
+        self.log("test_loss", loss, sync_dist=True)
+        self.log(f"test_{self.scorer}", acc)
 
 
 class LitTextClassifier(LitClassifier):

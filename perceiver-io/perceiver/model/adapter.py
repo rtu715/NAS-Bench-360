@@ -1,6 +1,7 @@
 import math
 from typing import Optional, Tuple
 
+import numpy as np
 import torch
 import torch.nn as nn
 from einops import rearrange, repeat
@@ -131,6 +132,23 @@ class TextInputAdapter(InputAdapter):
         p_enc = repeat(self.pos_encoding[:l], "... -> b ...", b=b)
 
         return self.text_embedding(x) * self.scale + p_enc
+
+
+class DenseOutputAdapter(OutputAdapter):
+    def __init__(self, num_outputs: int = 1, 
+            dense_pred_shape: Tuple[int, ...] = (4, 9),
+            num_output_channels: Optional[int] = None):
+        self.dense_pred_shape = dense_pred_shape
+
+        super().__init__(output_shape=(num_outputs, num_output_channels))
+        self.linear = nn.Linear(num_output_channels, 
+            np.prod(self.dense_pred_shape))
+
+    def forward(self, x):
+        x1 = self.linear(x)
+        x2 = x1.squeeze(dim=1)
+        x2 = torch.reshape(x2, (-1, *self.dense_pred_shape))
+        return x2
 
 
 class ClassificationOutputAdapter(OutputAdapter):
