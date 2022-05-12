@@ -258,7 +258,7 @@ class LitDensePredictor(LitModel):
         elif scorer == 'fnr':
             self.acc = FalseNegativeRate() 
         elif scorer == 'MAE':
-            raise NotImplementedError # TODO
+            self.acc = tm.MeanAbsoluteError()
         elif scorer == 'MAE8':
             raise NotImplementedError # TODO
         else:
@@ -318,6 +318,8 @@ class LitDensePredictor(LitModel):
             return logits, mask, ignore
         else:
             x, y = batch
+            if self.psicov:
+                x = x.permute(0, 2, 3, 1)
             return self.model(x), y
 
     def step(self, batch):
@@ -338,11 +340,10 @@ class LitDensePredictor(LitModel):
                 y.cpu().numpy())
             acc = self.acc(*metric)
         elif self.psicov:
-            x_train, y_train = batch
-            logits = self(x_train)
+            logits, y_train = self(batch)
             loss = self.loss(logits.squeeze(), y_train.squeeze())
-            # TODO not quite right
-            acc = F.l1_loss(logits.squeeze(), y_train.squeeze(), reduction='mean').item()
+            # TODO
+            acc = self.acc(logits.squeeze(), y_train.squeeze())
         else:
             raise NotImplementedError
         return loss, acc

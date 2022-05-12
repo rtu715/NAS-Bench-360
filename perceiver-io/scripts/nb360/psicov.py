@@ -23,8 +23,8 @@ class DensePredictorCLI(CLI):
                 "model.encoder.num_layers": 3,
                 "model.encoder.num_self_attention_layers_per_block": 3,
                 "model.decoder.num_cross_attention_heads": 1,
-                "model.scorer": "LpLoss", # TODO
-                "model.loss_fn": "LpLoss", # TODO
+                "model.scorer": "MAE", # TODO
+                "model.loss_fn": "MSELoss", # TODO
                 "model.psicov": True, # TODO
             }
         )

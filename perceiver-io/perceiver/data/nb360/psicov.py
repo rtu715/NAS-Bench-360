@@ -92,13 +92,13 @@ def load_psicov_data(path, batch_size):
     # Training set
     print(len(deepcov_list))
     train_pdbs = deepcov_list[100:] 
-    train_data = PDNetDataset(train_pdbs, all_feat_paths, all_dist_paths,
+    trainset = PDNetDataset(train_pdbs, all_feat_paths, all_dist_paths,
                                 128, 10, batch_size, 57,
                                 label_engineering = '16.0')
 
     # Validation set
     valid_pdbs = deepcov_list[:100]
-    valid_data = PDNetDataset(valid_pdbs, all_feat_paths, all_dist_paths,
+    validset = PDNetDataset(valid_pdbs, all_feat_paths, all_dist_paths,
                                 128, 10, batch_size, 57,
                                 label_engineering = '16.0')
 
@@ -118,4 +118,4 @@ def load_psicov_data(path, batch_size):
                                 label_engineering = None)
 
 
-    return train_data, valid_data, testset
+    return trainset, validset, testset
