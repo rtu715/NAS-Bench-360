@@ -225,6 +225,7 @@ class LitDensePredictor(LitModel):
         num_frequency_bands: int = 32,
         darcy = False,
         cosmic = False,
+        psicov = False,
         **kwargs: Any
     ):
         super().__init__(*args, **kwargs)
@@ -233,6 +234,7 @@ class LitDensePredictor(LitModel):
         self.y_normalizer = None # Hack to get darcy to work 
         self.darcy = darcy
         self.cosmic = cosmic
+        self.psicov = psicov
         if self.darcy:
             _, _, _, y_normalizer = load_darcyflow_data(
                 '../datasets/darcyflow')
@@ -244,6 +246,8 @@ class LitDensePredictor(LitModel):
             self.loss = darcy_utils.LpLoss(size_average=False)
         elif loss_fn == 'BCEWithLogitsLoss':
             self.loss = nn.BCEWithLogitsLoss()
+        elif loss_fn == 'MSELoss':
+            self.loss = nn.MSELoss(reduction='mean')
         else:
             raise NotImplementedError
 
@@ -253,6 +257,10 @@ class LitDensePredictor(LitModel):
             self.acc = self.loss
         elif scorer == 'fnr':
             self.acc = FalseNegativeRate() 
+        elif scorer == 'MAE':
+            raise NotImplementedError # TODO
+        elif scorer == 'MAE8':
+            raise NotImplementedError # TODO
         else:
             raise NotImplementedError
 
@@ -329,6 +337,12 @@ class LitDensePredictor(LitModel):
                 out.reshape(-1, 1, 128, 128).detach().cpu().numpy() > 0.5, 
                 y.cpu().numpy())
             acc = self.acc(*metric)
+        elif self.psicov:
+            x_train, y_train = batch
+            logits = self(x_train)
+            loss = self.loss(logits.squeeze(), y_train.squeeze())
+            # TODO not quite right
+            acc = F.l1_loss(logits.squeeze(), y_train.squeeze(), reduction='mean').item()
         else:
             raise NotImplementedError
         return loss, acc
@@ -345,6 +359,7 @@ class LitDensePredictor(LitModel):
         self.log(f"val_{self.scorer}", acc, prog_bar=True)
 
     def test_step(self, batch, batch_idx):
+        # TODO weird for psicov
         loss, acc = self.step(batch)
         self.log("test_loss", loss, sync_dist=True)
         self.log(f"test_{self.scorer}", acc)

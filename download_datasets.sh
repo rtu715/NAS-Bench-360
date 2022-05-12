@@ -43,6 +43,10 @@ wget https://pde-xd.s3.amazonaws.com/piececonst_r421_N1024_smooth2.mat
 cd ..
 
 # PSICOV
+cd psicov
+wget https://pde-xd.s3.amazonaws.com/protein.zip
+unzip protein.zip
+cd ..
 
 # Cosmic
 mkdir cosmic
