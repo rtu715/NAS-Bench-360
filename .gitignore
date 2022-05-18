@@ -13,7 +13,7 @@ save_temp
 */*.pkl
 */*.mat
 autodeeplab/run/*
-*.png
+perceiver-io/docs/*.png
 .ipynb_checkpoints/
 perceiver-io/.cache/*
 perceiver-io/.github/*

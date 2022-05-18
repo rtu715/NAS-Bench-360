@@ -59,22 +59,44 @@
 #        --trainer.max_epochs=200
 #done
 
-rm -rf ./logs/darcyflow/*
+# rm -rf ./logs/darcyflow/*
+# for i in {1..3}
+# do
+#     python scripts/nb360/darcyflow.py fit \
+#         --model.num_latent_channels=128 --model.encoder.num_layers=3 \
+#         --model.encoder.dropout=0.0 --model.decoder.dropout=0.0 \
+#         --data.batch_size=4 \
+#         --optimizer.lr=1e-3 --optimizer.weight_decay=0.01 \
+#         --trainer.accelerator=gpu --trainer.devices=1 \
+#         --data=DarcyFlowDataModule \
+#         --trainer.max_epochs=200 &
+# done
+
+rm -rf ./logs/psicov/*
 for i in {1..3}
 do
-    python scripts/nb360/darcyflow.py fit \
+    CUDA_VISIBLE_DEVICES=0,1 python scripts/nb360/psicov.py fit \
         --model.num_latent_channels=128 --model.encoder.num_layers=3 \
         --model.encoder.dropout=0.0 --model.decoder.dropout=0.0 \
-        --data.batch_size=4 \
+        --data.batch_size=8 \
         --optimizer.lr=1e-3 --optimizer.weight_decay=0.01 \
-        --trainer.accelerator=gpu --trainer.devices=1 \
-        --data=DarcyFlowDataModule \
+        --trainer.accelerator=gpu --trainer.devices=-1 \
+        --data=PSICOVDataModule \
         --trainer.max_epochs=200 &
 done
 
-# ...
-
-
+# rm -rf ./logs/cosmic/*
+# for i in {1..3}
+# do
+#     CUDA_VISIBLE_DEVICES=1 python scripts/nb360/cosmic.py fit \
+#         --model.num_latent_channels=128 --model.encoder.num_layers=3 \
+#         --model.encoder.dropout=0.0 --model.decoder.dropout=0.0 \
+#         --data.batch_size=8 \
+#         --optimizer.lr=1e-3 --optimizer.weight_decay=0.01 \
+#         --trainer.accelerator=gpu --trainer.devices=1 \
+#         --data=CosmicDataModule \
+#         --trainer.max_epochs=200 &
+# done
 
 # rm -rf ./logs/deepsea/*
 # for i in {1..3}
