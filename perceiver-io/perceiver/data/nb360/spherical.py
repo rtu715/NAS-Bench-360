@@ -8,6 +8,7 @@ from torchvision import transforms
 from torch.utils.data import Dataset, DataLoader, Subset
 from torchvision import datasets
 
+
 @DATAMODULE_REGISTRY
 class SphericalDataModule(pl.LightningDataModule):
     def __init__(
@@ -15,13 +16,14 @@ class SphericalDataModule(pl.LightningDataModule):
         channels_last: bool = True,
         random_crop: Optional[int] = None,
         data_dir: Optional[str] = ".cache",
-        val_split: Union[int, float] = 10_000, # Which split is used elsewhere?
+        val_split: Union[int, float] = 10_000,  # Which split is used elsewhere?
         num_workers: int = 3,
         batch_size: int = 64,
         normalize: bool = True,
         pin_memory: bool = False,
+        root="../datasets",
         *args,
-        **kwargs
+        **kwargs,
     ):
         super().__init__()
         self.save_hyperparameters()
@@ -29,28 +31,25 @@ class SphericalDataModule(pl.LightningDataModule):
         self.num_classes = 100
         self.val_split = val_split
         self.batch_size = batch_size
+        self.root = root
 
         if channels_last:
             self._image_shape = self._image_shape[1], self._image_shape[2], self._image_shape[0]
 
     def prepare_data(self):
-        Spherical(root='../datasets/spherical', train=True, 
-                transform=self.default_transforms())
-        Spherical(root='../datasets/spherical', train=False, 
-                transform=self.default_transforms())
+        Spherical(root=f"{self.root}/spherical", train=True, transform=self.default_transforms())
+        Spherical(root=f"{self.root}/spherical", train=False, transform=self.default_transforms())
 
     def setup(self, stage):
-        self.spherical_train = Subset(Spherical(
-                    root='../datasets/spherical', 
-                    train=True, transform=self.default_transforms()), 
-                np.arange(50_000)[:-self.val_split])
-        self.spherical_val = Subset(Spherical(
-                    root='../datasets/spherical', 
-                    train=True, transform=self.default_transforms()), 
-                np.arange(50_000)[-self.val_split:])
-        self.spherical_test = Spherical(
-                root='../datasets/spherical', 
-                train=False, transform=self.default_transforms())
+        self.spherical_train = Subset(
+            Spherical(root=f"{self.root}/spherical", train=True, transform=self.default_transforms()),
+            np.arange(50_000)[: -self.val_split],
+        )
+        self.spherical_val = Subset(
+            Spherical(root=f"{self.root}/spherical", train=True, transform=self.default_transforms()),
+            np.arange(50_000)[-self.val_split :],
+        )
+        self.spherical_test = Spherical(root=f"{self.root}/spherical", train=False, transform=self.default_transforms())
 
     def train_dataloader(self):
         spherical_train = DataLoader(self.spherical_train, batch_size=self.batch_size, shuffle=True, num_workers=8)
@@ -71,7 +70,7 @@ class SphericalDataModule(pl.LightningDataModule):
         return spherical_transform(
             normalize=self.hparams.normalize,
             channels_last=self.hparams.channels_last,
-            #random_crop=self.hparams.random_crop,
+            # random_crop=self.hparams.random_crop,
         )
 
 
@@ -81,13 +80,13 @@ class Spherical(Dataset):
         self.train = train
         self.transform = transform
         # TODO add automatic downloader...
-        data = np.load(f'{root}/s2_cifar100', allow_pickle=True)
+        data = np.load(f"{root}/s2_cifar100", allow_pickle=True)
         if self.train:
-            split = 'train'
+            split = "train"
         else:
-            split = 'test'
-        self.x = data[split]['images'].transpose(0, 2, 3, 1)
-        self.y = data[split]['labels']
+            split = "test"
+        self.x = data[split]["images"].transpose(0, 2, 3, 1)
+        self.y = data[split]["labels"]
 
     def __len__(self):
         return len(self.y)
