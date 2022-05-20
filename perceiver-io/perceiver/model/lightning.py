@@ -3,6 +3,7 @@ from os import kill
 from typing import Any, List, Optional, Tuple
 
 import numpy as np
+from perceiver.data.nb360.psicov import load_psicov_data
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
@@ -13,6 +14,7 @@ from pytorch_lightning.utilities.cli import instantiate_class
 
 from perceiver.data.nb360 import darcy_utils
 from perceiver.data.nb360.darcyflow import load_darcyflow_data
+from perceiver.data.nb360.psicov import load_psicov_data
 from perceiver.model.adapter import (
     ClassificationOutputAdapter,
     DenseOutputAdapter,
@@ -22,21 +24,18 @@ from perceiver.model.adapter import (
 )
 from perceiver.model.model import PerceiverDecoder, PerceiverEncoder, PerceiverIO, PerceiverMLM, TextMasking
 from perceiver.model.utils import freeze, predict_masked_samples
+from .utils_grid import calculate_mae
 
 
 class FalseNegativeRate(tm.Metric):
     def __init__(self, dist_sync_on_step=False):
         super().__init__(dist_sync_on_step=dist_sync_on_step)
-        self.add_state("tp", default=torch.tensor(0), dist_reduce_fx="sum")
-        self.add_state("tn", default=torch.tensor(0), dist_reduce_fx="sum")
-        self.add_state("fp", default=torch.tensor(0), dist_reduce_fx="sum")
-        self.add_state("fn", default=torch.tensor(0), dist_reduce_fx="sum")
+        self.add_state("tp", default=torch.tensor(0.0), dist_reduce_fx="sum")
+        self.add_state("tn", default=torch.tensor(0.0), dist_reduce_fx="sum")
+        self.add_state("fp", default=torch.tensor(0.0), dist_reduce_fx="sum")
+        self.add_state("fn", default=torch.tensor(0.0), dist_reduce_fx="sum")
 
-    def update(self,
-            tp: torch.Tensor, 
-            tn: torch.Tensor,
-            fp: torch.Tensor, 
-            fn: torch.Tensor):
+    def update(self, tp: torch.Tensor, tn: torch.Tensor, fp: torch.Tensor, fn: torch.Tensor):
         self.tp += tp
         self.tn += tn
         self.fp += fp
@@ -44,6 +43,49 @@ class FalseNegativeRate(tm.Metric):
 
     def compute(self):
         return self.fn / (self.fn + self.tp)
+
+
+class MAE8(tm.Metric):
+    def __init__(self, dist_sync_on_step=False, my_list=[], length_dict={}):
+        super().__init__(dist_sync_on_step=dist_sync_on_step)
+        self.add_state("targets", default=[], dist_reduce_fx=None)
+        self.add_state("P", default=[], dist_reduce_fx=None)
+        self.my_list = my_list
+        self.length_dict = length_dict
+
+    def update(self, data, out, target):
+        for i in range(data.size(0)):
+            self.targets.append(tuple(np.expand_dims(target.cpu().numpy()[i].transpose(1, 2, 0), axis=0)))
+        self.P.append(tuple(out.cpu().numpy().transpose(0, 2, 3, 1)))
+
+    def compute(self):
+        LMAX = 512  # psicov constant
+        pad_size = 10
+
+        targets = np.array(self.targets)
+        P = np.array(self.P)
+
+        P = np.concatenate(P, axis=0)
+        Y = np.full((len(targets), LMAX, LMAX, 1), np.nan)
+        for i, xy in enumerate(targets):
+            Y[i, :, :, 0] = xy[0, :, :, 0]
+        # Average the predictions from both triangles
+        for j in range(0, len(P[0, :, 0, 0])):
+            for k in range(j, len(P[0, :, 0, 0])):
+                P[:, j, k, :] = (P[:, k, j, :] + P[:, j, k, :]) / 2.0
+        P[P < 0.01] = 0.01
+
+        # Remove padding, i.e. shift up and left by int(pad_size/2)
+        P[:, : LMAX - pad_size, : LMAX - pad_size, :] = P[
+            :, int(pad_size / 2) : LMAX - int(pad_size / 2), int(pad_size / 2) : LMAX - int(pad_size / 2), :
+        ]
+        Y[:, : LMAX - pad_size, : LMAX - pad_size, :] = Y[
+            :, int(pad_size / 2) : LMAX - int(pad_size / 2), int(pad_size / 2) : LMAX - int(pad_size / 2), :
+        ]
+        print("")
+        print("Evaluating distances..")
+        lr8, mlr8, lr12, mlr12 = calculate_mae(P, Y, self.my_list, self.length_dict)
+        return lr8
 
 
 @dataclass
@@ -100,18 +142,14 @@ class LitModel(pl.LightningModule):
 
 
 class LitClassifier(LitModel):
-    def __init__(self, 
-            num_classes=None, 
-            loss_fn='CrossEntropyLoss',
-            scorer='acc',
-             *args: Any, **kwargs: Any):
+    def __init__(self, num_classes=None, loss_fn="CrossEntropyLoss", scorer="acc", *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self.loss_fn = loss_fn
 
         # Custom loss functions
-        if loss_fn == 'CrossEntropyLoss':
+        if loss_fn == "CrossEntropyLoss":
             self.loss = nn.CrossEntropyLoss()
-        elif loss_fn == 'BCEWithLogitsLoss':
+        elif loss_fn == "BCEWithLogitsLoss":
             self.loss = nn.BCEWithLogitsLoss()
         else:
             raise NotImplementedError
@@ -119,17 +157,15 @@ class LitClassifier(LitModel):
         # Custom scoring functions
         self.num_classes = num_classes
         self.scorer = scorer
-        if scorer == 'acc':
+        if scorer == "acc":
             self.acc = tm.classification.accuracy.Accuracy()
-        elif scorer == 'f1_macro': 
-            self.acc = tm.classification.f_beta.F1(
-                average='macro', num_classes=num_classes)
-        elif scorer == 'auroc': 
-            self.acc = tm.AUROC(
-                num_classes=num_classes, pos_label=1, average='macro')
+        elif scorer == "f1_macro":
+            self.acc = tm.classification.f_beta.F1(average="macro", num_classes=num_classes)
+        elif scorer == "auroc":
+            self.acc = tm.AUROC(num_classes=num_classes, pos_label=1, average="macro")
             # TODO verify that this should be macro auroc score
-        elif scorer == 'map': 
-            self.acc = tm.AveragePrecision(pos_label=1, average='macro')
+        elif scorer == "map":
+            self.acc = tm.AveragePrecision(pos_label=1, average="macro")
             # TODO verify that this is computed correctly
         else:
             raise NotImplementedError
@@ -137,13 +173,11 @@ class LitClassifier(LitModel):
     def step(self, batch):
         logits, y = self(batch)
         loss = self.loss(logits, y)
-        if self.scorer in ['acc', 'f1_macro']:
+        if self.scorer in ["acc", "f1_macro"]:
             y_pred = logits.argmax(dim=-1)
             acc = self.acc(y_pred, y)
-        elif self.scorer in ['auroc', 'map']:
-            acc = self.acc(
-                torch.sigmoid(logits).cpu(), 
-                y.type(torch.IntTensor).cpu())
+        elif self.scorer in ["auroc", "map"]:
+            acc = self.acc(torch.sigmoid(logits).cpu(), y.type(torch.IntTensor).cpu())
         else:
             raise NotImplementedError
         return loss, acc
@@ -176,7 +210,7 @@ class LitImageClassifier(LitClassifier):
         num_classes: int,
         *args: Any,
         num_frequency_bands: int = 32,
-        **kwargs: Any
+        **kwargs: Any,
     ):
         super().__init__(num_classes=num_classes, *args, **kwargs)
         self.model = self.create_model()
@@ -195,13 +229,13 @@ class LitImageClassifier(LitClassifier):
             num_latents=self.hparams.num_latents,
             num_latent_channels=self.hparams.num_latent_channels,
             activation_checkpoint=self.hparams.activation_checkpoint,
-            **self.hparams.encoder.dict
+            **self.hparams.encoder.dict,
         )
         decoder = PerceiverDecoder(
             output_adapter=output_adapter,
             num_latent_channels=self.hparams.num_latent_channels,
             activation_checkpoint=self.hparams.activation_checkpoint,
-            **self.hparams.decoder.dict
+            **self.hparams.decoder.dict,
         )
         return PerceiverIO(encoder, decoder)
 
@@ -219,48 +253,51 @@ class LitDensePredictor(LitModel):
         self,
         image_shape: Tuple[int, int, int],
         dense_pred_shape: Tuple[int, ...],
-        loss_fn='CrossEntropyLoss',
-        scorer='acc',
+        loss_fn="CrossEntropyLoss",
+        scorer="acc",
         *args: Any,
         num_frequency_bands: int = 32,
-        darcy = False,
-        cosmic = False,
-        psicov = False,
-        **kwargs: Any
+        darcy=False,
+        cosmic=False,
+        psicov=False,
+        **kwargs: Any,
     ):
         super().__init__(*args, **kwargs)
         self.model = self.create_model()
         self.dense_pred_shape = dense_pred_shape
-        self.y_normalizer = None # Hack to get darcy to work 
+        self.y_normalizer = None  # Hack to get darcy to work
         self.darcy = darcy
         self.cosmic = cosmic
         self.psicov = psicov
         if self.darcy:
-            _, _, _, y_normalizer = load_darcyflow_data(
-                '../datasets/darcyflow')
-            self.y_normalizer = y_normalizer.cuda() 
+            _, _, _, y_normalizer = load_darcyflow_data("../datasets/darcyflow")
+            self.y_normalizer = y_normalizer.cuda()
             # NOTE I don't think this will work for multi-gpu
+        elif self.psicov:
+            # TODO
+            _, _, _, my_list, length_dict = load_psicov_data("../datasets/psicov", 1)
+            self.test_MAE8 = MAE8(my_list=my_list, length_dict=length_dict)
 
         # Custom loss functions
-        if loss_fn == 'LpLoss':
+        if loss_fn == "LpLoss":
             self.loss = darcy_utils.LpLoss(size_average=False)
-        elif loss_fn == 'BCEWithLogitsLoss':
+        elif loss_fn == "BCEWithLogitsLoss":
             self.loss = nn.BCEWithLogitsLoss()
-        elif loss_fn == 'MSELoss':
-            self.loss = nn.MSELoss(reduction='mean')
+        elif loss_fn == "MSELoss":
+            self.loss = nn.MSELoss(reduction="mean")
         else:
             raise NotImplementedError
 
         # Custom scoring functions
         self.scorer = scorer
-        if scorer == 'LpLoss':
+        if scorer == "LpLoss":
             self.acc = self.loss
-        elif scorer == 'fnr':
-            self.acc = FalseNegativeRate() 
-        elif scorer == 'MAE':
+        elif scorer == "fnr":
+            self.acc = FalseNegativeRate()
+        elif scorer == "MAE":
             self.acc = tm.MeanAbsoluteError()
-        elif scorer == 'MAE8':
-            raise NotImplementedError # TODO
+        elif scorer == "MAE8":
+            raise NotImplementedError  # TODO
         else:
             raise NotImplementedError
 
@@ -270,8 +307,7 @@ class LitDensePredictor(LitModel):
             image_shape=self.hparams.image_shape, num_frequency_bands=self.hparams.num_frequency_bands
         )
         output_adapter = DenseOutputAdapter(
-            dense_pred_shape=self.hparams.dense_pred_shape, 
-            num_output_channels=self.hparams.num_latent_channels
+            dense_pred_shape=self.hparams.dense_pred_shape, num_output_channels=self.hparams.num_latent_channels
         )
 
         encoder = PerceiverEncoder(
@@ -279,13 +315,13 @@ class LitDensePredictor(LitModel):
             num_latents=self.hparams.num_latents,
             num_latent_channels=self.hparams.num_latent_channels,
             activation_checkpoint=self.hparams.activation_checkpoint,
-            **self.hparams.encoder.dict
+            **self.hparams.encoder.dict,
         )
         decoder = PerceiverDecoder(
             output_adapter=output_adapter,
             num_latent_channels=self.hparams.num_latent_channels,
             activation_checkpoint=self.hparams.activation_checkpoint,
-            **self.hparams.decoder.dict
+            **self.hparams.decoder.dict,
         )
         return PerceiverIO(encoder, decoder)
 
@@ -299,13 +335,13 @@ class LitDensePredictor(LitModel):
             TN += (PD[i][GT[i] == 0] == 0).sum()
             FP += (PD[i][GT[i] == 0] == 1).sum()
             FN += (PD[i][GT[i] == 1] == 0).sum()
-        return np.array([TP, TN, FP, FN])
+        return np.array([float(TP), float(TN), float(FP), float(FN)])
 
     def _set_input(self, img, mask, ignore, shape):
         dtype = torch.cuda.FloatTensor
-        img = img.type(dtype).view(-1,1, shape, shape)
-        mask = mask.type(dtype).view(-1,1, shape, shape)
-        ignore = ignore.type(dtype).view(-1,1, shape, shape)
+        img = img.type(dtype).view(-1, 1, shape, shape)
+        mask = mask.type(dtype).view(-1, 1, shape, shape)
+        ignore = ignore.type(dtype).view(-1, 1, shape, shape)
         return img, mask, ignore
 
     def forward(self, batch):
@@ -323,21 +359,18 @@ class LitDensePredictor(LitModel):
             return self.model(x), y
 
     def step(self, batch):
-        if self.darcy and self.scorer == 'LpLoss':
+        if self.darcy and self.scorer == "LpLoss":
             out, y = self(batch)
             out = self.y_normalizer.decode(out)
-            loss = self.loss(
-                out.view(out.shape[0], -1), y.view(y.shape[0], -1))  
+            loss = self.loss(out.view(out.shape[0], -1), y.view(y.shape[0], -1))
             with torch.no_grad():
                 if self.y_normalizer is not None:
                     out = self.y_normalizer.decode(out)
             acc = self.acc(out.view(out.shape[0], -1), y.view(y.shape[0], -1))
-        elif self.cosmic and self.scorer == 'fnr':
+        elif self.cosmic and self.scorer == "fnr":
             out, y, ignore = self(batch)
-            loss = self.loss(out * (1-ignore) , y * (1-ignore))
-            metric = self._maskMetric(
-                out.reshape(-1, 1, 128, 128).detach().cpu().numpy() > 0.5, 
-                y.cpu().numpy())
+            loss = self.loss(out * (1 - ignore), y * (1 - ignore))
+            metric = self._maskMetric(out.reshape(-1, 1, 128, 128).detach().cpu().numpy() > 0.5, y.cpu().numpy())
             acc = self.acc(*metric)
         elif self.psicov:
             logits, y_train = self(batch)
@@ -360,10 +393,38 @@ class LitDensePredictor(LitModel):
         self.log(f"val_{self.scorer}", acc, prog_bar=True)
 
     def test_step(self, batch, batch_idx):
-        # TODO weird for psicov
-        loss, acc = self.step(batch)
-        self.log("test_loss", loss, sync_dist=True)
-        self.log(f"test_{self.scorer}", acc)
+        if self.psicov:
+            LMAX = 512  # psicov constant
+            pad_size = 10
+            data, target = batch[0], batch[1]
+            out = self.forward_window(batch, 128)
+            mae8_score = self.test_MAE8(data, out, target)
+            loss = -1
+            self.log("test_loss", loss, sync_dist=True)
+            self.log(f"test_mae8", mae8_score)
+        else:
+            # TODO weird for psicov
+            loss, acc = self.step(batch)
+            self.log("test_loss", loss, sync_dist=True)
+            self.log(f"test_{self.scorer}", acc)
+
+    def forward_window(self, batch, L, stride=-1):
+        x, y = batch
+        _, _, _, s_length = x.shape
+        if stride == -1:  # Default to window size
+            stride = L
+            assert s_length % L == 0
+        y = torch.zeros_like(x)[:, :1, :, :]
+        counts = torch.zeros_like(x)[:, :1, :, :]
+        for i in range((((s_length - L) // stride)) + 1):
+            ip = i * stride
+            for j in range((((s_length - L) // stride)) + 1):
+                jp = j * stride
+                out, _ = self.forward([x[:, :, ip : ip + L, jp : jp + L], y])
+                out = out.contiguous()
+                y[:, :, ip : ip + L, jp : jp + L] += out
+                counts[:, :, ip : ip + L, jp : jp + L] += torch.ones_like(out)
+        return y / counts
 
 
 class LitTextClassifier(LitClassifier):
@@ -375,7 +436,7 @@ class LitTextClassifier(LitClassifier):
         *args: Any,
         mlm_ckpt: Optional[str] = None,
         clf_ckpt: Optional[str] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ):
         super().__init__(*args, **kwargs)
 
@@ -399,7 +460,7 @@ class LitTextClassifier(LitClassifier):
         decoder = PerceiverDecoder(
             output_adapter=output_adapter,
             num_latent_channels=self.hparams.num_latent_channels,
-            **self.hparams.decoder.dict
+            **self.hparams.decoder.dict,
         )
         return PerceiverIO(encoder, decoder)
 
@@ -416,7 +477,7 @@ class LitMaskedLanguageModel(LitModel):
         *args: Any,
         masked_samples: Optional[List[str]] = None,
         num_predictions: int = 3,
-        **kwargs: Any
+        **kwargs: Any,
     ):
         super().__init__(*args, **kwargs)
         self.model = self.create_model()
@@ -434,7 +495,7 @@ class LitMaskedLanguageModel(LitModel):
             num_latents=hparams.num_latents,
             num_latent_channels=hparams.num_latent_channels,
             activation_checkpoint=hparams.activation_checkpoint,
-            **hparams.encoder.dict
+            **hparams.encoder.dict,
         )
         return encoder
 
@@ -448,7 +509,7 @@ class LitMaskedLanguageModel(LitModel):
         decoder = PerceiverDecoder(
             output_adapter=output_adapter,
             num_latent_channels=self.hparams.num_latent_channels,
-            **self.hparams.decoder.dict
+            **self.hparams.decoder.dict,
         )
         return PerceiverMLM(encoder, decoder, TextMasking(self.hparams.vocab_size))
 

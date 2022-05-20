@@ -19,16 +19,32 @@ do
     #    --data=SphericalDataModule |& tee ${basename}/test.log
 
     # ... Darcy Flow
-    basename=logs/darcyflow/version_${i}
-    files=(${basename}/checkpoints/*)
-    checkpoint=${files[0]}
-    python scripts/nb360/darcyflow.py test \
-        --ckpt=${checkpoint} \
-        --trainer.accelerator=gpu --trainer.devices=1 \
-        --data=DarcyFlowDataModule |& tee ${basename}/test.log
+    # basename=logs/darcyflow/version_${i}
+    # files=(${basename}/checkpoints/*)
+    # checkpoint=${files[0]}
+    # python scripts/nb360/darcyflow.py test \
+    #     --ckpt=${checkpoint} \
+    #     --trainer.accelerator=gpu --trainer.devices=1 \
+    #     --data=DarcyFlowDataModule |& tee ${basename}/test.log
 
     # ... PSICOV
+    basename=logs/psicov/version_${i}
+    files=(${basename}/checkpoints/*)
+    checkpoint=${files[0]}
+    python scripts/nb360/psicov.py test \
+        --ckpt=${checkpoint} \
+        --trainer.accelerator=gpu --trainer.devices=1 \
+        --data=PSICOVDataModule |& tee ${basename}/test.log
+
     # ... Cosmic
+    # basename=logs/cosmic/version_${i}
+    # files=(${basename}/checkpoints/*)
+    # checkpoint=${files[0]}
+    # python scripts/nb360/cosmic.py test \
+    #     --ckpt=${checkpoint} \
+    #     --trainer.accelerator=gpu --trainer.devices=1 \
+    #     --data=CosmicDataModule |& tee ${basename}/test.log
+
     # ... FSD50K DONE
 
     #basename=logs/ninapro/version_${i}
@@ -39,13 +55,13 @@ do
     #    --trainer.accelerator=gpu --trainer.devices=-1 \
     #    --data=NinaProDataModule |& tee ${basename}/test.log
 
-    basename=logs/deepsea/version_${i}
-    files=(${basename}/checkpoints/*)
-    checkpoint=${files[0]}
-    python scripts/nb360/deepsea.py test \
-        --ckpt=${checkpoint} \
-        --trainer.accelerator=gpu --trainer.devices=-1 \
-        --data=DeepSEADataModule |& tee ${basename}/test.log
+    # basename=logs/deepsea/version_${i}
+    # files=(${basename}/checkpoints/*)
+    # checkpoint=${files[0]}
+    # python scripts/nb360/deepsea.py test \
+    #     --ckpt=${checkpoint} \
+    #     --trainer.accelerator=gpu --trainer.devices=-1 \
+    #     --data=DeepSEADataModule |& tee ${basename}/test.log
 
     #basename=logs/satellite/version_${i}
     #files=(${basename}/checkpoints/*)

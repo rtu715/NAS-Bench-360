@@ -40,7 +40,7 @@ class PSICOVDataModule(pl.LightningDataModule):
         load_psicov_data('../datasets/psicov', self.batch_size)
 
     def setup(self, stage):
-        self.psicov_train, self.psicov_val, self.psicov_test = \
+        self.psicov_train, self.psicov_val, self.psicov_test, _, _ = \
             load_psicov_data('../datasets/psicov', self.batch_size)
 
     def train_dataloader(self):
@@ -118,4 +118,4 @@ def load_psicov_data(path, batch_size):
                                 label_engineering = None)
 
 
-    return trainset, validset, testset
+    return trainset, validset, testset, my_list, length_dict
