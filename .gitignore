@@ -19,3 +19,4 @@ perceiver-io/.cache/*
 perceiver-io/.github/*
 perceiver-io/logs/*
 .vscode/launch.json
+*.log

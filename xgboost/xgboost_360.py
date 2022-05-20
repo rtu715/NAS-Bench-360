@@ -1,7 +1,13 @@
 import fire
 import numpy as np
 from perceiver.data import *
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import (
+    accuracy_score,
+    roc_auc_score,
+    f1_score,
+    average_precision_score,
+)
+from functools import partial
 
 import utils
 import xgboost as xgb
@@ -60,6 +66,50 @@ def main(task="cifar100", seed=7734):  # 😈
         }
         model = xgb.XGBClassifier(**model_params)
         eval_metric = accuracy_score
+    elif task == "satellite":
+        dm = SatelliteDataModule(batch_size=10_000, root="datasets")
+        model_params = {
+            "objective": "multi:softmax",
+            "eval_metric": "merror",
+            "num_class": 24,
+            **model_params,
+        }
+        fit_params = {
+            "verbose": True,
+        }
+        model = xgb.XGBClassifier(**model_params)
+        eval_metric = accuracy_score
+    elif task == "deepsea":
+        dm = DeepSEADataModule(batch_size=10_000, root="datasets")
+        model_params = {
+            **model_params,
+        }
+        fit_params = {
+            "verbose": True,
+        }
+        model = xgb.XGBClassifier(**model_params)
+        eval_metric = roc_auc_score
+    elif task == "ecg":
+        dm = ECGDataModule(batch_size=10_000, root="datasets")
+        model_params = {
+            "objective": "binary:logistic",
+            **model_params,
+        }
+        fit_params = {
+            "verbose": True,
+        }
+        model = xgb.XGBClassifier(**model_params)
+        eval_metric = partial(f1_score, average="macro")
+    elif task == "fsd50k":
+        dm = FSD50KDataModule(batch_size=10_000, root="datasets")
+        model_params = {
+            **model_params,
+        }
+        fit_params = {
+            "verbose": True,
+        }
+        model = xgb.XGBClassifier(**model_params)
+        eval_metric = partial(average_precision_score, average="macro")
     else:
         raise NotImplementedError
 
@@ -67,6 +117,7 @@ def main(task="cifar100", seed=7734):  # 😈
     x_train, y_train = utils.dm_to_numpy(dm.train_dataloader())
     x_valid, y_valid = utils.dm_to_numpy(dm.val_dataloader())
     x_test, y_test = utils.dm_to_numpy(dm.test_dataloader())
+
     model.fit(
         x_train,
         y_train,
