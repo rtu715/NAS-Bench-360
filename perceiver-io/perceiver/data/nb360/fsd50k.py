@@ -41,7 +41,7 @@ class FSD50KDataModule(pl.LightningDataModule):
         # load_audio('../datasets/audio', feature='mel', train=True)
 
     def setup(self, stage):
-        self.audio_train, self.audio_val, self.audio_test = load_audio(f"{self.root}/audio", feature="mel", train=True)
+        self.audio_train, self.audio_val, self.audio_test = load_audio(f"{self.root}/audio", feature="mel", train=True, root=self.root)
 
     def train_dataloader(self):
         return DataLoader(

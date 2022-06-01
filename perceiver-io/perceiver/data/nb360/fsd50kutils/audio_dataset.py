@@ -391,13 +391,13 @@ Audio Parsing
 """
 
 
-def load_audio(f, sr, min_duration: float = 5.0):
+def load_audio(f, sr, min_duration: float = 5.0, root="../datasets"):
     if min_duration is not None:
         min_samples = int(sr * min_duration)
     else:
         min_samples = None
-    if "../datasets/audio" not in f:
-        f = "../datasets/audio/" + f  # TODO FIXME not ideal
+    if f"{root}/audio" not in f:
+        f = f"{root}/audio/" + f  # TODO FIXME not ideal
     x, clip_sr = sf.read(f)
     x = x.astype("float32")
     assert clip_sr == sr
@@ -472,6 +472,7 @@ class SpectrogramDataset(Dataset):
         labels_delimiter: Optional[str] = ",",
         mixer: Optional = None,
         transform: Optional = None,
+        root="../datasets",
     ) -> None:
         super(SpectrogramDataset, self).__init__()
         assert os.path.isfile(labels_map)
@@ -480,6 +481,7 @@ class SpectrogramDataset(Dataset):
         with open(labels_map, "r") as fd:
             self.labels_map = json.load(fd)
 
+        self.root = root
         self.len = None
         self.labels_delim = labels_delimiter
         df = pd.read_csv(manifest_path)
@@ -543,7 +545,7 @@ class SpectrogramDataset(Dataset):
         print(self.prefetched_labels.shape)
 
     def __get_audio__(self, f):
-        audio = load_audio(f, self.sr, self.min_duration)
+        audio = load_audio(f, self.sr, self.min_duration, root=self.root)
         return audio
 
     def __get_feature__(self, audio: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -615,6 +617,7 @@ class FSD50kEvalDataset(Dataset):
         audio_config: dict,
         labels_delimiter: Optional[str] = ",",
         transform: Optional = None,
+        root="../datasets",
     ) -> None:
         super(FSD50kEvalDataset, self).__init__()
         assert os.path.isfile(labels_map)
@@ -623,6 +626,7 @@ class FSD50kEvalDataset(Dataset):
         with open(labels_map, "r") as fd:
             self.labels_map = json.load(fd)
 
+        self.root = root
         self.len = None
         self.labels_delim = labels_delimiter
         df = pd.read_csv(manifest_path)
@@ -657,7 +661,7 @@ class FSD50kEvalDataset(Dataset):
         self.transform = transform
 
     def __get_audio__(self, f):
-        audio = load_audio(f, self.sr, self.min_duration)
+        audio = load_audio(f, self.sr, self.min_duration, root=self.root)
         return audio
 
     def __get_feature__(self, audio: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:

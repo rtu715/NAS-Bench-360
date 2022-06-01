@@ -453,7 +453,7 @@ def load_ninapro(path, whichset):
 '''
 Audio related
 '''
-def load_audio(path, feature='mel', train=True):
+def load_audio(path, feature='mel', train=True, root="../datasets"):
     meta_root = os.path.join(path, "data/chunks")
     train_manifest = "tr.csv"
     val_manifest = "val.csv"
@@ -498,16 +498,19 @@ def load_audio(path, feature='mel', train=True):
                                         audio_config,
                                         mode="multilabel", augment=True,
                                         mixer=train_mixer,
-                                        transform=train_transforms)
+                                        transform=train_transforms,
+                                        root=root)
 
     val_set = FSD50kEvalDataset(val_manifest, label_map,
                                      audio_config,
-                                     transform=val_transforms
+                                     transform=val_transforms,
+                                     root=root
                                      )
 
     test_set = FSD50kEvalDataset(test_manifest, label_map,
                                  audio_config,
-                                 transform=val_transforms)
+                                 transform=val_transforms,
+                                 root=root)
 
     def ch_last(s):
         print(len(s))
