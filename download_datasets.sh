@@ -28,12 +28,12 @@ cd datasets
 #cd ..
 
 # FSD50K
-wget https://pde-xd.s3.amazonaws.com/audio/audio.zip
-mkdir -p audio/data
-mv audio.zip audio/data
-cd audio/data
-unzip audio.zip
-cd ../..
+#wget https://pde-xd.s3.amazonaws.com/audio/audio.zip
+#mkdir -p audio/data
+#mv audio.zip audio/data
+#cd audio/data
+#unzip audio.zip
+#cd ../..
 
 # Darcy Flow
 #mkdir darcyflow
@@ -43,19 +43,20 @@ cd ../..
 #cd ..
 
 # PSICOV
+mkdir psicov
 cd psicov
 wget https://pde-xd.s3.amazonaws.com/protein.zip
 unzip protein.zip
 cd ..
 
 # Cosmic
-mkdir cosmic
-cd cosmic
-wget https://pde-xd.s3.amazonaws.com/cosmic/deepCR.ACS-WFC.train.tar
-tar -xvf deepCR.ACS-WFC.train.tar 
-wget https://pde-xd.s3.amazonaws.com/cosmic/deepCR.ACS-WFC.test.tar
-tar -xvf deepCR.ACS-WFC.test.tar 
-cd ..
+#mkdir cosmic
+#cd cosmic
+#wget https://pde-xd.s3.amazonaws.com/cosmic/deepCR.ACS-WFC.train.tar
+#tar -xvf deepCR.ACS-WFC.train.tar 
+#wget https://pde-xd.s3.amazonaws.com/cosmic/deepCR.ACS-WFC.test.tar
+#tar -xvf deepCR.ACS-WFC.test.tar 
+#cd ..
 
 # ECG
 #wget https://pde-xd.s3.amazonaws.com/ECG/challenge2017.pkl

@@ -143,6 +143,8 @@ def main(task="cifar100", seed=7734, load_np=False, save_np=False, no_test=False
         model_params = {
             **model_params,
         }
+        model_params['tree_method'] = 'hist'
+        model_params['sampling_method'] = 'uniform'
         fit_params = {
             "verbose": True,
         }
