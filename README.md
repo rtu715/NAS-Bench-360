@@ -17,7 +17,7 @@ Datasets in the benchmark with download links:
 
 Precomputed evaluations on the NB201 search space (following NATS-Bench):
 - [NinaPro DB5](https://pde-xd.s3.amazonaws.com/ninapro_precompute.zip)(46 GB)
-- [Darcy Flow] (https://pde-xd.s3.amazonaws.com/darcyflow_precompute.zip) (35.4 GB)
+- [Darcy Flow](https://pde-xd.s3.amazonaws.com/darcyflow_precompute.zip) (35.4 GB)
 
 ## Prerequisites 
 We use the open-source [Determined](https://docs.determined.ai/latest/how-to/installation/aws.html?highlight=det%20deploy) 
