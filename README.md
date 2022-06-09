@@ -15,7 +15,11 @@ Datasets in the benchmark with download links:
 - [Satellite (Earth monitoring through satellite imagery)](https://pde-xd.s3.amazonaws.com/satellite/satellite_train.npy) (322 MB)
 - [DeepSEA (identifying chromatin features from DNA sequences)](https://pde-xd.s3.amazonaws.com/deepsea/deepsea_filtered.npz)(860 MB)
 
-Precomputed evaluations on the NB201 search space (following NATS-Bench):
+Precomputed evaluation benchmark files on the NB201 search space (following NATS-Bench):
+- [NinaPro DB5](https://pde-xd.s3.amazonaws.com/NATS-tss-v1_0-daa55.pickle.pbz2)(84 MB)
+- [Darcy Flow](hhttps://pde-xd.s3.amazonaws.com/NATS-tss-v1_0-48858.pickle.pbz2) (85 MB)
+
+Full outputs (include training logs):
 - [NinaPro DB5](https://pde-xd.s3.amazonaws.com/ninapro_precompute.zip)(46 GB)
 - [Darcy Flow](https://pde-xd.s3.amazonaws.com/darcyflow_precompute.zip) (35.4 GB)
 
