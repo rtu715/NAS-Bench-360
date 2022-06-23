@@ -67,8 +67,8 @@ To modify the random seed for each experiment, modify the number under
 `reproducibility: experiment_seed: ` for each script
 
 
-## Leaderboard
-![alt text](https://github.com/rtu715/NAS-Bench-360/blob/main/images/leaderboard.png)
+## Baselines
+![alt text](https://github.com/rtu715/NAS-Bench-360/blob/main/images/baselines.png)
 
 
 
