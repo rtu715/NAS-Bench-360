@@ -15,7 +15,7 @@ import torchvision
 from torch import nn
 from torchvision import transforms
 import torch.nn.functional as F
-
+import torch.utils.data as data_utils
 
 from determined.pytorch import DataLoader, PyTorchTrial, PyTorchTrialContext, LRScheduler
 
@@ -23,8 +23,9 @@ from backbone_grid_wrn import Backbone
 #from backbone_grid_down import Backbone
 from utils_grid import LpLoss, MatReader, UnitGaussianNormalizer, LogCoshLoss, AverageMeter
 from utils_grid import create_grid, calculate_mae, maskMetric, set_input
-from data_utils.protein_io import load_list
-from data_utils.protein_gen import PDNetDataset
+from data_utils.download_data import download_protein_folder 
+#from data_utils.protein_io import load_list
+#from data_utils.protein_gen import PDNetDataset
 from data_utils.cosmic_dataset import PairedDatasetImagePath, get_dirs
 
 TorchData = Union[Dict[str, torch.Tensor], Sequence[torch.Tensor], torch.Tensor]
@@ -46,8 +47,10 @@ class BackboneTrial(PyTorchTrial):
 
 
         # Create a unique download directory for each rank so they don't overwrite each other.
-        self.download_directory = self.download_data_from_s3()
-        
+        #self.download_directory = self.download_data_from_s3()
+        self.download_directory = '.'
+        #download_protein_folder('pde-xd', self.download_directory)
+
         # Define loss function, pde is lploss
         if self.hparams.task == 'pde':
             self.grid, self.s = create_grid(self.hparams.sub)
@@ -85,12 +88,6 @@ class BackboneTrial(PyTorchTrial):
         '''
         Definition of optimizers, no Adam implementation
         '''
-        #momentum = partial(torch.optim.SGD, momentum=self.hparams.momentum)
-        #for unet
-        #opts = [torch.optim.Adam(self.model.model_weights(), lr=self.hparams.learning_rate)]
-        #opts = [torch.optim.Adam([{'params': list(self.model.xd_weights())},
-        #                  {'params': list(self.model.nonxd_weights())}],
-        #                  lr=self.hparams.learning_rate)]
         
         nesterov = self.hparams.nesterov if self.hparams.momentum else False 
         self.opt = self.context.wrap_optimizer(
@@ -102,15 +99,7 @@ class BackboneTrial(PyTorchTrial):
                 nesterov=nesterov
             )
         )
-        '''
         
-        self.opt = self.context.wrap_optimizer(
-                torch.optim.Adam(
-                    self.model.parameters(),
-                    lr=self.context.get_hparam("learning_rate"),
-                )
-        )
-        '''
         self.lr_scheduler = self.context.wrap_lr_scheduler(
             lr_scheduler=torch.optim.lr_scheduler.LambdaLR(
                 self.opt,
@@ -206,33 +195,12 @@ class BackboneTrial(PyTorchTrial):
                 train_data = torch.utils.data.TensorDataset(x_train, y_train)
 
         elif self.hparams.task == 'protein':
-            os.chdir(self.download_directory)
-            import zipfile
-            with zipfile.ZipFile('protein.zip', 'r') as zip_ref:
-                zip_ref.extractall()
+            train_tensors = torch.Tensor(torch.load('./protein/train_tensors.pt'))
+            train_labels = torch.Tensor(torch.load('./protein/train_labels.pt'))
+            
+            train_data = data_utils.TensorDataset(train_tensors, train_labels)
 
-            self.deepcov_list = load_list('deepcov.lst', -1)
-
-            self.length_dict = {}
-            for pdb in self.deepcov_list:
-                (ly, seqy, cb_map) = np.load(
-                    'deepcov/distance/' + pdb + '-cb.npy',
-                    allow_pickle=True)
-                self.length_dict[pdb] = ly
-
-            if self.hparams.train:
-                train_pdbs = self.deepcov_list[100:]
-
-                train_data = PDNetDataset(train_pdbs, self.all_feat_paths, self.all_dist_paths,
-                                          128, 10, self.context.get_per_slot_batch_size(), 57,
-                                          label_engineering = '16.0')
-
-            else:
-                train_pdbs = self.deepcov_list[:]
-                train_data = PDNetDataset(train_pdbs, self.all_feat_paths, self.all_dist_paths,
-                                          128, 10, self.context.get_per_slot_batch_size(), 57,
-                                          label_engineering = '16.0')
-        
+                 
         elif self.hparams.task == 'cosmic':
             #extract tar file and get directories
             #base_dir = '/workspace/tasks/cosmic/deepCR.ACS-WFC'
@@ -302,30 +270,10 @@ class BackboneTrial(PyTorchTrial):
                     batch_size=self.context.get_per_slot_batch_size(), shuffle=False, num_workers=2,)
 
         elif self.hparams.task == 'protein':
-            if self.hparams.train:
-                valid_pdbs = self.deepcov_list[:100]
-                valid_data = PDNetDataset(valid_pdbs, self.all_feat_paths, self.all_dist_paths,
-                                          128, 10, self.context.get_per_slot_batch_size(), 57,
-                                          label_engineering = '16.0')
-                valid_queue = DataLoader(valid_data, batch_size=self.hparams.eval_batch_size,
-                                         shuffle=True, num_workers=2)
-
-
-            else:
-                psicov_list = load_list('psicov.lst')
-                psicov_length_dict = {}
-                for pdb in psicov_list:
-                    (ly, seqy, cb_map) = np.load('psicov/distance/' + pdb + '-cb.npy',
-                                                 allow_pickle=True)
-                    psicov_length_dict[pdb] = ly
-
-                self.my_list = psicov_list
-                self.length_dict = psicov_length_dict
-
-                #note, when testing batch size should be different
-                test_data = PDNetDataset(self.my_list, self.all_feat_paths, self.all_dist_paths,
-                                         512, 10, 1, 57, label_engineering = None)
-                valid_queue = DataLoader(test_data, batch_size=2, shuffle=True, num_workers=0)
+            test_tensors = torch.Tensor(torch.load('./protein/test_tensors.pt'))
+            test_labels = torch.Tensor(torch.load('./protein/test_labels.pt'))
+            test_data = data_utils.TensorDataset(test_tensors, test_labels)
+            valid_queue = DataLoader(test_data, batch_size=2, shuffle=True, num_workers=0)
                 
 
         elif self.hparams.task == 'cosmic':

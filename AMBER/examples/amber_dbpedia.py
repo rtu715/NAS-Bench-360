@@ -1,14 +1,8 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
-"""
-Example wrapper `Amber` use for searching PhysioNet challenge data
-"""
-from keras.utils.np_utils import to_categorical   
-
 from amber import Amber
 from amber.architect import ModelSpace, Operation
-from load_ecg import read_data_physionet_4_with_val
+from load_dbpedia import *
+from sklearn.model_selection import train_test_split
+from keras.utils.np_utils import to_categorical   
 
 def get_model_space(out_filters=64, num_layers=9):
     model_space = ModelSpace()
@@ -42,14 +36,25 @@ type_dict = {
 
 
 # Next, define the specifics
-wd = "./outputs/AmberECG/"
-X_train, Y_train, X_val, Y_val = read_data_physionet_4_with_val('.')
-Y_train = to_categorical(Y_train, num_classes=4)
-Y_val = to_categorical(Y_val, num_classes=4)
-train_data = (X_train, Y_train)
-val_data = (X_val, Y_val)
-input_node = Operation('input', shape=(1000, 1), name="input")
-output_node = Operation('dense', units=4, activation='softmax')
+if not os.path.exists("dbpedia_csv"):
+    print("Downloading DBPedia dataset.")
+    download_dbpedia()
+
+CHAR_MAX_LEN = 1014
+NUM_CLASS = 14
+
+x, y, alphabet_size = build_char_dataset("train", CHAR_MAX_LEN)
+x, y = np.expand_dims(np.array(x), axis=2), to_categorical(np.array(y), num_classes=NUM_CLASS)
+all_x, _, all_y, _ = train_test_split(x, y, test_size=0.15)
+train_x, valid_x, train_y, valid_y = train_test_split(all_x, all_y, test_size=0.15)
+
+
+print(train_x.shape)
+print(train_y.shape)
+
+wd = "./outputs/AmberDBPedia/"
+input_node = Operation('input', shape=(CHAR_MAX_LEN, 1), name="input")
+output_node = Operation('dense', units=NUM_CLASS, activation='softmax')
 model_compile_dict = {
     'loss': 'categorical_crossentropy',
     'optimizer': 'adam',
@@ -98,12 +103,12 @@ specs = {
 
     'manager': {
         'data': {
-            'train_data': train_data,
-            'validation_data': val_data
+            'train_data': (train_x, train_y),
+            'validation_data': (valid_x, valid_y),
         },
         'params': {
             'epochs': 1,
-            'child_batchsize': 500,
+            'child_batchsize': 64,
             'store_fn': 'minimal',
             'working_dir': wd,
             'verbose': 1

@@ -55,4 +55,4 @@ min_checkpoint_period:
 
 max_restarts: 100
 
-entrypoint: model_grid_original:BackboneTrial
+entrypoint: model_grid_new:BackboneTrial
