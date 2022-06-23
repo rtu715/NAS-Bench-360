@@ -68,6 +68,7 @@ To modify the random seed for each experiment, modify the number under
 
 
 ## Baselines
+Performance of NAS and baselines across NAS-Bench-360. Methods are divided into efficient methods (e.g. DenseNAS and fixed WRN) that take 1-10 GPU-hours, more expensive methods (e.g. DARTS and tuned WRN) that take 10-100+ GPU-hours, and specialized methods (Auto-DL and AMBER). All results are averages of three random seeds, and lower is better for all metrics.
 ![alt text](https://github.com/rtu715/NAS-Bench-360/blob/main/images/baselines.png)
 
 
