@@ -5,8 +5,7 @@
 # required to install hpbandster ##################################
 # pip install hpbandster         ##################################
 ###################################################################
-# OMP_NUM_THREADS=4 python exps/NATS-algos/bohb.py --search_space tss --dataset cifar10 --num_samples 4 --random_fraction 0.0 --bandwidth_factor 3 --rand_seed 1
-# OMP_NUM_THREADS=4 python exps/NATS-algos/bohb.py --search_space sss --dataset cifar10 --num_samples 4 --random_fraction 0.0 --bandwidth_factor 3 --rand_seed 1
+# OMP_NUM_THREADS=4 python bohb.py --search_space tss --dataset ninapro --num_samples 4 --random_fraction 0.0 --bandwidth_factor 3 --arch_nas_dataset {path to benchmark} --time_budget 40 --rand_seed 0
 ###################################################################
 import os, sys, time, random, argparse, collections
 from copy import deepcopy

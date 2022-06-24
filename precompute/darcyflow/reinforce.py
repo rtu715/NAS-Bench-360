@@ -3,12 +3,7 @@
 #####################################################################################################
 # modified from https://github.com/pytorch/examples/blob/master/reinforcement_learning/reinforce.py #
 #####################################################################################################
-# python ./exps/NATS-algos/reinforce.py --dataset cifar10 --search_space tss --learning_rate 0.01
-# python ./exps/NATS-algos/reinforce.py --dataset cifar100 --search_space tss --learning_rate 0.01
-# python ./exps/NATS-algos/reinforce.py --dataset ImageNet16-120 --search_space tss --learning_rate 0.01
-# python ./exps/NATS-algos/reinforce.py --dataset cifar10 --search_space sss --learning_rate 0.01
-# python ./exps/NATS-algos/reinforce.py --dataset cifar100 --search_space sss --learning_rate 0.01
-# python ./exps/NATS-algos/reinforce.py --dataset ImageNet16-120 --search_space sss --learning_rate 0.01
+# python ./exps/NATS-algos/reinforce.py --dataset darcyflow --search_space tss --learning_rate 0.01 --arch_nas_dataset {path to benchmark} --time_budget 230 --rand_seed 0
 #####################################################################################################
 import os, sys, time, glob, random, argparse
 import numpy as np, collections

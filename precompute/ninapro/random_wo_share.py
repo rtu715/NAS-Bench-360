@@ -3,9 +3,7 @@
 ##############################################################################
 # Random Search for Hyper-Parameter Optimization, JMLR 2012 ##################
 ##############################################################################
-# python ./exps/NATS-algos/random_wo_share.py --dataset cifar10 --search_space tss
-# python ./exps/NATS-algos/random_wo_share.py --dataset cifar100 --search_space tss
-# python ./exps/NATS-algos/random_wo_share.py --dataset ImageNet16-120 --search_space tss
+# python random_wo_share.py --dataset ninapro --arch_nas_dataset {path to benchmark} --time_budget 40 --rand_seed 0 --search_space tss
 ##############################################################################
 import os, sys, time, glob, random, argparse
 import numpy as np, collections

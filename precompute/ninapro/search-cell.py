@@ -1,29 +1,17 @@
 ##################################################
 # Copyright (c) Xuanyi Dong [GitHub D-X-Y], 2020 #
 ######################################################################################
-# python ./exps/NATS-algos/search-cell.py --dataset cifar10  --data_path $TORCH_HOME/cifar.python --algo darts-v1 --rand_seed 777
-# python ./exps/NATS-algos/search-cell.py --dataset cifar100 --data_path $TORCH_HOME/cifar.python --algo darts-v1 --drop_path_rate 0.3
-# python ./exps/NATS-algos/search-cell.py --dataset ImageNet16-120 --data_path $TORCH_HOME/cifar.python/ImageNet16 --algo darts-v1
+# python search-cell.py --data_path $TORCH_HOME/{path to data} --algo darts-v1 --dataset ninapro --arch_nas_dataset {path to benchmark} --time_budget 40 --rand_seed 0
 ####
-# python ./exps/NATS-algos/search-cell.py --dataset cifar10  --data_path $TORCH_HOME/cifar.python --algo darts-v2 --rand_seed 777
-# python ./exps/NATS-algos/search-cell.py --dataset cifar100 --data_path $TORCH_HOME/cifar.python --algo darts-v2
-# python ./exps/NATS-algos/search-cell.py --dataset ImageNet16-120 --data_path $TORCH_HOME/cifar.python/ImageNet16 --algo darts-v2
+# python search-cell.py  --data_path $TORCH_HOME/{path to data} --algo darts-v2 --dataset ninapro --arch_nas_dataset {path to benchmark} --time_budget 40 --rand_seed 0
 ####
-# python ./exps/NATS-algos/search-cell.py --dataset cifar10  --data_path $TORCH_HOME/cifar.python --algo gdas --rand_seed 777
-# python ./exps/NATS-algos/search-cell.py --dataset cifar100 --data_path $TORCH_HOME/cifar.python --algo gdas
-# python ./exps/NATS-algos/search-cell.py --dataset ImageNet16-120 --data_path $TORCH_HOME/cifar.python/ImageNet16 --algo gdas
+# python search-cell.py --data_path $TORCH_HOME/{path to data} --algo gdas --dataset ninapro --arch_nas_dataset {path to benchmark} --time_budget 40 --rand_seed 0
 ####
-# python ./exps/NATS-algos/search-cell.py --dataset cifar10  --data_path $TORCH_HOME/cifar.python --algo setn --rand_seed 777
-# python ./exps/NATS-algos/search-cell.py --dataset cifar100 --data_path $TORCH_HOME/cifar.python --algo setn
-# python ./exps/NATS-algos/search-cell.py --dataset ImageNet16-120 --data_path $TORCH_HOME/cifar.python/ImageNet16 --algo setn
+# python search-cell.py  --data_path $TORCH_HOME/{path to data} --algo setn --dataset ninapro --arch_nas_dataset {path to benchmark} --time_budget 40 --rand_seed 0
 ####
-# python ./exps/NATS-algos/search-cell.py --dataset cifar10  --data_path $TORCH_HOME/cifar.python --algo random --rand_seed 777
-# python ./exps/NATS-algos/search-cell.py --dataset cifar100 --data_path $TORCH_HOME/cifar.python --algo random
-# python ./exps/NATS-algos/search-cell.py --dataset ImageNet16-120 --data_path $TORCH_HOME/cifar.python/ImageNet16 --algo random
+# python search-cell.py  --data_path $TORCH_HOME/{path to data} --algo random --dataset ninapro --arch_nas_dataset {path to benchmark} --time_budget 40 --rand_seed 0
 ####
-# python ./exps/NATS-algos/search-cell.py --dataset cifar10  --data_path $TORCH_HOME/cifar.python --algo enas --arch_weight_decay 0 --arch_learning_rate 0.001 --arch_eps 0.001 --rand_seed 777
-# python ./exps/NATS-algos/search-cell.py --dataset cifar100 --data_path $TORCH_HOME/cifar.python --algo enas --arch_weight_decay 0 --arch_learning_rate 0.001 --arch_eps 0.001 --rand_seed 777
-# python ./exps/NATS-algos/search-cell.py --dataset ImageNet16-120 --data_path $TORCH_HOME/cifar.python/ImageNet16 --algo enas --arch_weight_decay 0 --arch_learning_rate 0.001 --arch_eps 0.001 --rand_seed 777
+# python search-cell.py --data_path $TORCH_HOME/{path to data} --algo enas --arch_weight_decay 0 --arch_learning_rate 0.001 --arch_eps 0.001 --dataset ninapro --arch_nas_dataset {path to benchmark} --time_budget 40 --rand_seed 0
 ######################################################################################
 import os, sys, time, random, argparse
 import numpy as np
