@@ -22,6 +22,7 @@ autodeeplab/run/*
 autodeeplab/data
 AMBER/aclImdb
 AMBER/dbpedia_csv
+*.pbz2
 
 # logs
 .ipynb_checkpoints/
