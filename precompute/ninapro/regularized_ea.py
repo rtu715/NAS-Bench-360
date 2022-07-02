@@ -164,7 +164,7 @@ def regularized_evolution(
         child = Model()
         child.arch = mutate_arch(parent.arch)
         child.accuracy, _, _, total_cost = api.simulate_train_eval(
-            child.arch, dataset, hp="200" if use_proxy else api.full_train_epochs
+            child.arch, dataset, iepoch=12, hp="200" if use_proxy else api.full_train_epochs
         )
         # Append the info
         population.append(child)
