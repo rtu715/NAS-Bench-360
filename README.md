@@ -1,7 +1,8 @@
 # NAS-Bench-360
 
+This codebase reproduces various empirical evaluations on [NAS-Bench-360](https://nb360.ml.cmu.edu/), a benchmark for evaluating neural architecture search on diverse tasks, that can be found in the associated [paper](https://arxiv.org/abs/2110.05668).
+
 ## Resources 
-<!--Homepage / dataset downloads: [here](https://rtu715.github.io/NAS-Bench-360/)-->
 
 Datasets in the benchmark with download links:
 - CIFAR-100 (Image classification)
@@ -77,11 +78,15 @@ We also evaluate the performance of non-NAS baselines for comparison:
 Performance of NAS and baselines across NAS-Bench-360. Methods are divided into efficient methods (e.g. DenseNAS and fixed WRN) that take 1-10 GPU-hours, more expensive methods (e.g. DARTS and tuned WRN) that take 10-100+ GPU-hours, and specialized methods (Auto-DL and AMBER). All results are averages of three random seeds, and lower is better for all metrics.
 ![alt text](https://github.com/rtu715/NAS-Bench-360/blob/main/images/baselines.png)
 
+## Citation
+If you find this project helpful, please consider citing our paper:
+```bibtex
+@article{tu2022nb360,
+  title = {NAS-Bench-360: Benchmarking Neural Architecture Search on Diverse Tasks},  
+  author = {Tu, Renbo and Roberts, Nicholas and Khodak, Mikhail and Shen, Junhong and Sala, Frederic and Talwalkar, Ameet}, 
+  publisher = {arXiv},
+  year = {2022},
+}
 
-
-
-
-
-
-
-
+```
+Thanks!
