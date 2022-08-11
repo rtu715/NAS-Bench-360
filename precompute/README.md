@@ -23,7 +23,7 @@ from nats_bench import create
 api = create(None, 'tss', fast_mode=True, verbose=True)
 ```
 
-#### 2, query the performance:
+#### 2. query the performance:
 ```
 # Show the architecture topology string of the 12-th architecture
 # For the topology search space, the string is interpreted as
@@ -45,7 +45,7 @@ info = api.get_more_info(1234, 'cifar100',  hp='200')
 info = api.get_cost_info(12, 'ninapro',  hp='200')
 ```
 
-#### 3, create the instance of an architecture candidate in `NATS-Bench`:
+#### 3. create the instance of an architecture candidate in `NATS-Bench`:
 ```
 # Create the instance of th 12-th candidate for NinaPro.
 # To keep NATS-Bench repo concise, we did not include any model-related codes here because they rely on PyTorch.
@@ -60,7 +60,7 @@ params = api.get_net_param(12, 'ninapro', hp='200', seed=777)
 network.load_state_dict(next(iter(params.values())))
 ```
 
-#### 4, others:
+#### 4. others:
 ```
 # Clear the parameters of the 12-th candidate.
 api.clear_params(12)
