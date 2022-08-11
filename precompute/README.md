@@ -14,6 +14,10 @@ Precomputed evaluation benchmark files on the NB201 search space:
 ## Detailed information of architecture evaluations
 Final train loss, train accuracy, validation loss, validation accuracy, paramater count (M), and FLOPS count (M) are summarized in the following CSV files:
 
+- [NinaPro DB5](https://drive.google.com/file/d/1QPX9P9bBazlmhHS8Y7DBxijmaYtw-BKJ/view?usp=sharing)
+- [Darcy Flow](https://drive.google.com/file/d/1QvW4YgZTUrTUnhjK9XHjnu3-gEn58eLG/view?usp=sharing) 
+- [CIFAR 100](https://drive.google.com/file/d/1s9zP8r8hWZ22PlJ-Jyq6KmJvRvQNMzeb/view?usp=sharing)
+
 
 ## API Usage
 #### 1. create the benchmark instance:
