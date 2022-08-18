@@ -1,7 +1,8 @@
 # NAS-Bench-360
 
+This codebase reproduces various empirical evaluations on [NAS-Bench-360](https://nb360.ml.cmu.edu/), a benchmark for evaluating neural architecture search on diverse tasks, that can be found in the associated [paper](https://arxiv.org/abs/2110.05668).
+
 ## Resources 
-<!--Homepage / dataset downloads: [here](https://rtu715.github.io/NAS-Bench-360/)-->
 
 Datasets in the benchmark with download links:
 - CIFAR-100 (Image classification)
@@ -15,7 +16,15 @@ Datasets in the benchmark with download links:
 - [Satellite (Earth monitoring through satellite imagery)](https://pde-xd.s3.amazonaws.com/satellite/satellite_train.npy) (322 MB)
 - [DeepSEA (identifying chromatin features from DNA sequences)](https://pde-xd.s3.amazonaws.com/deepsea/deepsea_filtered.npz)(860 MB)
 
-## Prerequisites 
+Precomputed evaluation benchmark files on the NB201 search space (following NATS-Bench):
+- [NinaPro DB5](https://pde-xd.s3.amazonaws.com/NATS-tss-v1_0-daa55.pickle.pbz2)(84 MB)
+- [Darcy Flow](https://pde-xd.s3.amazonaws.com/NATS-tss-v1_0-48858.pickle.pbz2) (85 MB)
+
+Full outputs (include training logs and weights):
+- [NinaPro DB5](https://pde-xd.s3.amazonaws.com/ninapro_precompute.zip)(46 GB)
+- [Darcy Flow](https://pde-xd.s3.amazonaws.com/darcyflow_precompute.zip) (35.4 GB)
+
+## Prerequisites for main NAS experiments
 We use the open-source [Determined](https://docs.determined.ai/latest/how-to/installation/aws.html?highlight=det%20deploy) 
 software to implement experiment code. 
 
@@ -39,34 +48,45 @@ For an end-to-end example of running experiments with determined, you can refer 
 When running experiments, a docker image is automatically pulled from docker hub which contains all required python packages
 , i.e. you don't need to install them yourself, and it ensures reproducibility. 
 
-## Experiment Reproduction
+## Main NAS Experiments Reproduction
 We provide pytorch implementations for two state-of-the-art NAS algorithms: GAEA PC-DARTS ([paper link](https://arxiv.org/pdf/2004.07802.pdf))
 and DenseNAS ([paper link](https://arxiv.org/abs/1906.09607)), 
-which can be found inside each folder with the associated name, i.e. "darts/" for GAEA PC-DARTS 
-and "densenas/" for DenseNAS.
+which can be found inside each folder with the associated name, i.e. `darts/` for GAEA PC-DARTS 
+and `densenas/` for DenseNAS.
 
-To run these algorithms on 1D tasks, we've adapted their search spaces whose experiments are provided in "darts_1d/" for GAEA PC-DARTS (1D) and "densenas_1d/" for DenseNAS(1D). 
+To run these algorithms on 1D tasks, we've adapted their search spaces whose experiments are provided in `darts_1d/` for GAEA PC-DARTS (1D) and `densenas_1d/` for DenseNAS(1D). 
 
-Two task-specific NAS methods are implemented: Auto-DeepLab for dense prediction tasks in "autodeeplab/" and AMBER for 1D prediction tasks in "AMBER/".
+Two task-specific NAS methods are implemented: Auto-DeepLab for dense prediction tasks in `autodeeplab/` and AMBER for 1D prediction tasks in `AMBER/`.
 
-We also implement procedure for running and tuning hyperparameters of the backbone architecture Wide ResNet ([paper link](http://arxiv.org/abs/1605.07146)), in "backbone/". The 1D-customized Wide ResNet is in "backbone_1d/".
-
-
-
+We also implement procedure for running and tuning hyperparameters of the backbone architecture Wide ResNet ([paper link](http://arxiv.org/abs/1605.07146)), in `backbone/`. The 1D-customized Wide ResNet is in `backbone_1d/`.
 
 To modify the random seed for each experiment, modify the number under 
 
 `reproducibility: experiment_seed: ` for each script
 
+# Additional Baseline Experiments
+We also evaluate the performance of non-NAS baselines for comparison:
+- Expert architectures for each dataset: see `expert`.
+- [Perceiver-IO](https://arxiv.org/abs/2107.14795): see `perceiver-io`.
+- [XGBoost](https://arxiv.org/abs/1603.02754?context=cs#): see `xgboost`.
 
-## Leaderboard
-![alt text](https://github.com/rtu715/NAS-Bench-360/blob/main/images/leaderboard.png)
-
-
-
-
-
-
-
+# Precomputed results on NinaPro and DarcyFlow
+- See the `precompute` directory for NAS algorithms from NATS-Bench and reproduction of the precomputed benchmark. 
 
 
+## Baselines
+Performance of NAS and baselines across NAS-Bench-360. Methods are divided into efficient methods (e.g. DenseNAS and fixed WRN) that take 1-10 GPU-hours, more expensive methods (e.g. DARTS and tuned WRN) that take 10-100+ GPU-hours, and specialized methods (Auto-DL and AMBER). All results are averages of three random seeds, and lower is better for all metrics.
+![alt text](https://github.com/rtu715/NAS-Bench-360/blob/main/images/baselines.png)
+
+## Citation
+If you find this project helpful, please consider citing our paper:
+```bibtex
+@article{tu2022nb360,
+  title = {NAS-Bench-360: Benchmarking Neural Architecture Search on Diverse Tasks},  
+  author = {Tu, Renbo and Roberts, Nicholas and Khodak, Mikhail and Shen, Junhong and Sala, Frederic and Talwalkar, Ameet}, 
+  publisher = {arXiv},
+  year = {2022},
+}
+
+```
+Thanks!

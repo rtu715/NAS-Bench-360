@@ -46,7 +46,7 @@ X_train, Y_train, X_val, Y_val = load_satellite_data('.', True)
 train_data = (X_train, Y_train)
 val_data = (X_val, Y_val)
 input_node = Operation('input', shape=(46, 1), name="input")
-output_node = Operation('dense', units=24, activation='sigmoid')
+output_node = Operation('dense', units=24, activation='softmax')
 model_compile_dict = {
     'loss': 'categorical_crossentropy',
     'optimizer': 'adam',

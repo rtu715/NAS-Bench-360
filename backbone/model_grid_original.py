@@ -232,7 +232,7 @@ class BackboneTrial(PyTorchTrial):
                 train_data = PDNetDataset(train_pdbs, self.all_feat_paths, self.all_dist_paths,
                                           128, 10, self.context.get_per_slot_batch_size(), 57,
                                           label_engineering = '16.0')
-
+        
         elif self.hparams.task == 'cosmic':
             #extract tar file and get directories
             #base_dir = '/workspace/tasks/cosmic/deepCR.ACS-WFC'
@@ -326,6 +326,7 @@ class BackboneTrial(PyTorchTrial):
                 test_data = PDNetDataset(self.my_list, self.all_feat_paths, self.all_dist_paths,
                                          512, 10, 1, 57, label_engineering = None)
                 valid_queue = DataLoader(test_data, batch_size=2, shuffle=True, num_workers=0)
+                
 
         elif self.hparams.task == 'cosmic':
             aug_sky = (-0.9,3)
@@ -363,6 +364,8 @@ class BackboneTrial(PyTorchTrial):
             mae = 0.0
 
         elif self.hparams.task == 'protein':
+            starter, ender = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
+            starter.record()
             x_train, y_train = batch
             logits = self.model(x_train)
             loss = self.criterion(logits.squeeze(), y_train.squeeze())
@@ -383,6 +386,12 @@ class BackboneTrial(PyTorchTrial):
         self.context.backward(loss)
         self.context.step_optimizer(self.opt)
 
+        ender.record()
+        torch.cuda.synchronize()
+        curr_time = starter.elapsed_time(ender)
+        print('train one batch')
+        print(curr_time)
+        
         return {
             'loss': loss,
             'MAE': mae,
@@ -419,6 +428,7 @@ class BackboneTrial(PyTorchTrial):
                     error = 0
 
                 elif self.hparams.task == 'protein':
+                    
                     batch = self.context.to_device(batch)
                     input, target = batch
                     logits = self.model(input)
@@ -461,6 +471,8 @@ class BackboneTrial(PyTorchTrial):
     ) -> Dict[str, Any]:
         '''performs evaluation on protein'''
 
+        starter, ender = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
+        starter.record()
         LMAX = 512 #psicov constant
         pad_size = 10
         self.model.cuda()
@@ -500,6 +512,12 @@ class BackboneTrial(PyTorchTrial):
         print('')
         print('Evaluating distances..')
         lr8, mlr8, lr12, mlr12 = calculate_mae(P, Y, self.my_list, self.length_dict)
+
+        ender.record()
+        torch.cuda.synchronize()
+        curr_time = starter.elapsed_time(ender)
+        print('validate one iteration')
+        print(curr_time)
 
         return {
             'mae': lr8,

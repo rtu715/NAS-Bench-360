@@ -151,6 +151,8 @@ class BackboneTrial(PyTorchTrial):
                     ) -> Dict[str, torch.Tensor]:
 
         x_train, y_train = batch
+        print(x_train.shape)
+        print(y_train.shape)
         self.model.train()
         output = self.model(x_train)
         loss = self.criterion(output, y_train)
