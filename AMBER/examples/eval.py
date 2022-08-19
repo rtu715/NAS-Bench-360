@@ -5,6 +5,7 @@ from tensorflow import keras
 from keras.utils.np_utils import to_categorical
 from sklearn.metrics import precision_score, recall_score
 from sklearn.metrics import roc_auc_score
+from sklearn.model_selection import train_test_split
 import json
 import amber
 import os
@@ -16,7 +17,7 @@ from amber.utils.io import read_history
 from load_ecg import read_data_physionet_4, custom_f1, f1_score
 from load_satellite import load_satellite_data
 from load_deepsea import load_deepsea_data, calculate_stats
-
+from load_dbpedia import *
 
 class RocCallback(keras.callbacks.Callback):
     def __init__(self, training_data, validation_data):
@@ -146,13 +147,26 @@ def main():
         bs = 128
         loss = 'binary_crossentropy'
 
+    elif args[0] == 'dbpedia':
+        CHAR_MAX_LEN=1014
+        
+        input_node = Operation('input', shape=(CHAR_MAX_LEN, 1), name='input')
+        output_node = Operation('dense', units=14, activation='softmax')
+        
+        x, y, alphabet_size = build_char_dataset("train", CHAR_MAX_LEN)
+        x, y = np.expand_dims(np.array(x), axis=2), to_categorical(np.array(y), num_classes=14)
+        X_train, X_test, Y_train, Y_test = train_test_split(x, y, test_size=0.15)
+
+        bs=64
+        loss='categorical_crossentropy'
+
     else:
         raise NotImplementedError
 
     metrics = Metrics() if not args[0] == 'deepsea' else RocCallback(training_data=(X_train, Y_train),
                                                                      validation_data=(X_test, Y_test))
 
-    history_dir = os.path.join(wd, 'AMBER_results/outputs/AmberDeepSea_2')
+    history_dir = os.path.join(wd, './outputs/AmberDBPedia') #substitue with output dir name!
     hist = read_history([os.path.join(history_dir, "train_history.csv")],
                         metric_name_dict={'zero': 0, 'auc': 1})
     hist = hist.sort_values(by='auc', ascending=False)

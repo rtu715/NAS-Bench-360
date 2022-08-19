@@ -29,7 +29,7 @@ from tensorflow.keras.layers import GlobalAveragePooling1D, GlobalMaxPooling1D, 
 from tensorflow.keras.layers import Dense, Dropout, Flatten
 from tensorflow.keras.layers import Conv1D, MaxPooling1D, AveragePooling1D
 from tensorflow.keras.layers import Input, Lambda, Permute, BatchNormalization, Activation
-from tensorflow.keras.layers import LSTM
+from tensorflow.keras.layers import LSTM, Embedding
 from ._operators import Layer_deNovo, SeparableFC, sparsek_vec
 from ..architect.modelSpace import get_layer_shortname
 
@@ -105,6 +105,9 @@ def get_layer(x, state, with_bn=False):
 
     elif state.Layer_type == 'input':
         return Input(**state.Layer_attributes)
+
+    elif state.Layer_type == 'embedding':
+        return Embedding(**state.Layer_attributes)
 
     elif state.Layer_type == 'conv1d':
         if with_bn is True:

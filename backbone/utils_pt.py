@@ -73,7 +73,6 @@ def load_spherical_data(path, val_split=0.16):
         dataset["test"]["images"][:, None, :, :].astype(np.float32))
     test_labels = torch.from_numpy(
         dataset["test"]["labels"].astype(np.int64))
-
     test_dataset = data_utils.TensorDataset(test_data, test_labels)
     #test_loader = data_utils.DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
 

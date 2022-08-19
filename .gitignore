@@ -1,11 +1,17 @@
-datasets
+# cache
 __pycache__
 */__pycache__
 */__pycache__/*
 runs
 save_temp
+
+# data related
+datasets
+*.tar
+*.tar.gz
 */img/*
-*/*.zip
+*.zip
+*.pt
 */deepCR.ACS-WFC
 */*/*/*.pkl
 **/*.pkl
@@ -13,10 +19,22 @@ save_temp
 */*.pkl
 */*.mat
 autodeeplab/run/*
-perceiver-io/docs/*.png
+autodeeplab/data
+AMBER/aclImdb
+AMBER/dbpedia_csv
+*.pbz2
+
+# logs
 .ipynb_checkpoints/
 perceiver-io/.cache/*
 perceiver-io/.github/*
 perceiver-io/logs/*
 .vscode/launch.json
 *.log
+
+#misc
+*.png
+*.ipynb
+
+# old files
+old

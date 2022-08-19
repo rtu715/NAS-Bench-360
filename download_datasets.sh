@@ -4,28 +4,28 @@ mkdir datasets
 cd datasets
 
 # CIFAR-100
-wget https://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz
-tar -xf cifar-100-python.tar.gz 
-rm cifar-100-python.tar.gz 
-mkdir cifar-100 
-mv cifar-100-python cifar-100 
+#wget https://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz
+#tar -xf cifar-100-python.tar.gz 
+#rm cifar-100-python.tar.gz 
+#mkdir cifar-100 
+#mv cifar-100-python cifar-100 
 
 # Spherical
-wget https://pde-xd.s3.amazonaws.com/spherical/s2_cifar100.gz 
-gzip -d s2_cifar100.gz 
-mkdir spherical 
-mv s2_cifar100 spherical
+#wget https://pde-xd.s3.amazonaws.com/spherical/s2_cifar100.gz 
+#gzip -d s2_cifar100.gz 
+#mkdir spherical 
+#mv s2_cifar100 spherical
 
 # NinaPro
-mkdir ninapro
-cd ninapro
-wget https://pde-xd.s3.amazonaws.com/ninapro/ninapro_train.npy
-wget https://pde-xd.s3.amazonaws.com/ninapro/label_train.npy
-wget https://pde-xd.s3.amazonaws.com/ninapro/ninapro_val.npy
-wget https://pde-xd.s3.amazonaws.com/ninapro/label_val.npy
-wget https://pde-xd.s3.amazonaws.com/ninapro/ninapro_test.npy
-wget https://pde-xd.s3.amazonaws.com/ninapro/label_test.npy
-cd ..
+#mkdir ninapro
+#cd ninapro
+#wget https://pde-xd.s3.amazonaws.com/ninapro/ninapro_train.npy
+#wget https://pde-xd.s3.amazonaws.com/ninapro/label_train.npy
+#wget https://pde-xd.s3.amazonaws.com/ninapro/ninapro_val.npy
+#wget https://pde-xd.s3.amazonaws.com/ninapro/label_val.npy
+#wget https://pde-xd.s3.amazonaws.com/ninapro/ninapro_test.npy
+#wget https://pde-xd.s3.amazonaws.com/ninapro/label_test.npy
+#cd ..
 
 # FSD50K
 #wget https://pde-xd.s3.amazonaws.com/audio/audio.zip
@@ -36,42 +36,43 @@ cd ..
 #cd ../..
 
 # Darcy Flow
-mkdir darcyflow
-cd darcyflow
-wget https://pde-xd.s3.amazonaws.com/piececonst_r421_N1024_smooth1.mat
-wget https://pde-xd.s3.amazonaws.com/piececonst_r421_N1024_smooth2.mat
-cd ..
+#mkdir darcyflow
+#cd darcyflow
+#wget https://pde-xd.s3.amazonaws.com/piececonst_r421_N1024_smooth1.mat
+#wget https://pde-xd.s3.amazonaws.com/piececonst_r421_N1024_smooth2.mat
+#cd ..
 
 # PSICOV
+mkdir psicov
 cd psicov
 wget https://pde-xd.s3.amazonaws.com/protein.zip
 unzip protein.zip
 cd ..
 
 # Cosmic
-mkdir cosmic
-cd cosmic
-wget https://pde-xd.s3.amazonaws.com/cosmic/deepCR.ACS-WFC.train.tar
-tar -xvf deepCR.ACS-WFC.train.tar 
-wget https://pde-xd.s3.amazonaws.com/cosmic/deepCR.ACS-WFC.test.tar
-tar -xvf deepCR.ACS-WFC.test.tar 
-cd ..
+#mkdir cosmic
+#cd cosmic
+#wget https://pde-xd.s3.amazonaws.com/cosmic/deepCR.ACS-WFC.train.tar
+#tar -xvf deepCR.ACS-WFC.train.tar 
+#wget https://pde-xd.s3.amazonaws.com/cosmic/deepCR.ACS-WFC.test.tar
+#tar -xvf deepCR.ACS-WFC.test.tar 
+#cd ..
 
 # ECG
-wget https://pde-xd.s3.amazonaws.com/ECG/challenge2017.pkl
-mkdir ecg
-mv challenge2017.pkl ecg
+#wget https://pde-xd.s3.amazonaws.com/ECG/challenge2017.pkl
+#mkdir ecg
+#mv challenge2017.pkl ecg
 
 # Satellite
-mkdir satellite
-cd satellite
-wget https://pde-xd.s3.amazonaws.com/satellite/satellite_train.npy
-wget https://pde-xd.s3.amazonaws.com/satellite/satellite_test.npy
-cd ..
+#mkdir satellite
+#cd satellite
+#wget https://pde-xd.s3.amazonaws.com/satellite/satellite_train.npy
+#wget https://pde-xd.s3.amazonaws.com/satellite/satellite_test.npy
+#cd ..
 
 # DeepSEA
-mkdir deepsea
-cd deepsea
-wget https://pde-xd.s3.amazonaws.com/deepsea/deepsea_filtered.npz
-cd ..
+#mkdir deepsea
+#cd deepsea
+#wget https://pde-xd.s3.amazonaws.com/deepsea/deepsea_filtered.npz
+#cd ..
 

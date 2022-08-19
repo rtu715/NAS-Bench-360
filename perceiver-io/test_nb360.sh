@@ -36,7 +36,17 @@ do
         --trainer.accelerator=gpu --trainer.devices=1 \
         --data=PSICOVDataModule |& tee ${basename}/test.log
 
+
+    basename=logs/fsd50k/version_${i}
+    files=(${basename}/checkpoints/*)
+    checkpoint=${files[0]}
+    python scripts/nb360/fsd50k.py test \
+        --ckpt=${checkpoint} \
+        --trainer.accelerator=gpu --trainer.devices=-1 \
+        --data=FSD50KDataModule |& tee ${basename}/test.log
+    
     # ... Cosmic
+
     # basename=logs/cosmic/version_${i}
     # files=(${basename}/checkpoints/*)
     # checkpoint=${files[0]}
@@ -44,8 +54,6 @@ do
     #     --ckpt=${checkpoint} \
     #     --trainer.accelerator=gpu --trainer.devices=1 \
     #     --data=CosmicDataModule |& tee ${basename}/test.log
-
-    # ... FSD50K DONE
 
     #basename=logs/ninapro/version_${i}
     #files=(${basename}/checkpoints/*)
