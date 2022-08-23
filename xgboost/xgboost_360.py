@@ -110,7 +110,7 @@ def main(task="cifar100", seed=7734, load_np=False, save_np=False, no_test=False
         model = xgb.XGBClassifier(**model_params)
         eval_metric = partial(f1_score, average="macro")
     elif task == "fsd50k":
-        dm = FSD50KDataModule(batch_size=100, root="datasets")
+        dm = FSD50KDataModule(batch_size=64, root="datasets")
         model_params = {
             **model_params,
         }
