@@ -386,11 +386,12 @@ class BackboneTrial(PyTorchTrial):
         self.context.backward(loss)
         self.context.step_optimizer(self.opt)
 
-        ender.record()
-        torch.cuda.synchronize()
-        curr_time = starter.elapsed_time(ender)
-        print('train one batch')
-        print(curr_time)
+        if self.hparams.task == 'protein':
+            ender.record()
+            torch.cuda.synchronize()
+            curr_time = starter.elapsed_time(ender)
+            print('train one batch')
+            print(curr_time)
         
         return {
             'loss': loss,
