@@ -12,6 +12,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import numpy as np
+from sklearn import metrics
 from tools.lr_scheduler import get_lr_scheduler
 
 from determined.pytorch import (
@@ -307,6 +308,8 @@ class DenseNASTrainTrial(PyTorchTrial):
         num_batches = 0
         meter = AverageMeter()
         metric = np.zeros(4)
+        test_predictions = []
+        test_gts = [] 
 
         with torch.no_grad():
             for batch in data_loader:
@@ -326,18 +329,23 @@ class DenseNASTrainTrial(PyTorchTrial):
                     logits = self.model(img).permute(0, 3, 1, 2).contiguous()
                     loss = self.criterion(logits * (1 - ignore), mask * (1 - ignore))
                     meter.update(loss, img.shape[0])
-                    metric += maskMetric(logits.reshape
-                                         (-1, 1, self.data_shape, self.data_shape).detach().cpu().numpy() > 0.5,
-                                         mask.cpu().numpy())
+                    reshaped_logits = logits.reshape(-1, 1, self.data_shape, self.data_shape).detach().cpu().numpy() > 0.5
+                    metric += maskMetric(reshaped_logits, mask.cpu().numpy())
+                    test_predictions.append(reshaped_logits.flatten())
+                    test_gts.append(mask.cpu().numpy().flatten())
 
             if self.hparams.task == 'cosmic':
                 TP, TN, FP, FN = metric[0], metric[1], metric[2], metric[3]
                 TPR = TP / (TP + FN)
                 FPR = FP / (FP + TN)
+                test_predictions = np.concatenate(test_predictions).astype(np.int32)
+                test_gts = np.concatenate(test_gts).astype(np.int32)
+                auroc = metrics.roc_auc_score(test_gts, test_predictions)
 
                 results_cosmic = {'validation_error': meter.avg,
                         'FPR': FPR,
                         'TPR': TPR,
+                        '1-AUROC': 1-auroc,
                         }
 
                 return results_cosmic

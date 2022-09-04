@@ -3,9 +3,7 @@ Currently this repo contains the only working open-source implementation of [Aut
 
 ## Using our docker container
 `docker pull renbotu/xd-nas:determined1.8`
-
-
-## Training Proceedure
+## Training Procedure
 
 **All together there are 3 stages:**
 
@@ -19,7 +17,6 @@ Currently this repo contains the only working open-source implementation of [Aut
 
  
  ## Architecture Search
-
 
 ***Begin Architecture Search***
 
