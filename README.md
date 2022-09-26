@@ -17,12 +17,15 @@ Datasets in the benchmark with download links:
 - [DeepSEA (identifying chromatin features from DNA sequences)](https://pde-xd.s3.amazonaws.com/deepsea/deepsea_filtered.npz)(860 MB)
 
 Precomputed evaluation benchmark files on the NB201 search space (following NATS-Bench):
-- [NinaPro DB5](https://pde-xd.s3.amazonaws.com/NATS-tss-v1_0-daa55.pickle.pbz2)(84 MB)
-- [Darcy Flow](https://pde-xd.s3.amazonaws.com/NATS-tss-v1_0-48858.pickle.pbz2) (85 MB)
+- [NinaPro DB5](https://drive.google.com/file/d/1y_Y3TbIE5rVhJ42hwIq6alUeMqlFr-bv/view?usp=sharing)(84 MB)
+- [Darcy Flow](https://drive.google.com/file/d/1PXYdAjtuBz9aR4MMzbjYbVzojTQrfliU/view?usp=sharing) (85 MB)
 
-Full outputs (include training logs and weights):
+
+For full outputs (include training logs and all weights and checkpoints), please contact the administrators. They are of size ~40 GB.
+<!---
 - [NinaPro DB5](https://pde-xd.s3.amazonaws.com/ninapro_precompute.zip)(46 GB)
 - [Darcy Flow](https://pde-xd.s3.amazonaws.com/darcyflow_precompute.zip) (35.4 GB)
+-->
 
 ## Prerequisites for main NAS experiments
 We use the open-source [Determined](https://docs.determined.ai/latest/how-to/installation/aws.html?highlight=det%20deploy) 
