@@ -24,10 +24,10 @@ hyperparameters:
   num_examples: 4830
 
   net_type: res
-  net_config: "[[32, 56], 'basic_block', [], 0, 1]|
-  [[56, 80], 'basic_block', ['basic_block', 'basic_block'], 2, 1]"
-  #net_config: "[[16, 32], 'basic_block', [], 0, 1]|
-  #[[32, 56], 'basic_block', ['basic_block', 'basic_block', 'basic_block'], 3, 1] "
+  #net_config: "[[32, 56], 'basic_block', [], 0, 1]|
+  #[[56, 80], 'basic_block', ['basic_block', 'basic_block'], 2, 1]"
+  net_config: "[[16, 32], 'basic_block', [], 0, 1]|
+  [[32, 56], 'basic_block', ['basic_block', 'basic_block', 'basic_block'], 3, 1] "
 
   #1
   #net_config: "[[16, 32], 'basic_block', [], 0, 1]| 
