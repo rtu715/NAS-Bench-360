@@ -30,12 +30,12 @@ do
     #     --seed=${seed} |& tee ${basename}/darcyflow_${seed}.log
 
     # TODO Cosmic eval
-    # python -u xgboost/xgboost_360.py --task cosmic \
-    #     --seed=${seed} --no_test |& tee ${basename}/cosmic_${seed}.log
+    python -u xgboost/xgboost_360.py --task cosmic \
+         --seed=${seed} --no_test |& tee ${basename}/cosmic_${seed}.log
 
     # TODO PSICOV
-    python -u xgboost/xgboost_360.py --task psicov \
-         --seed=${seed} --no_test |& tee ${basename}/psicov_${seed}.log
+    #python -u xgboost/xgboost_360.py --task psicov \
+    #     --seed=${seed} --no_test |& tee ${basename}/psicov_${seed}.log
 
     # Not sure if xgboost scales nicely enough for cosmic and psicov 
 

@@ -23,7 +23,7 @@ class DensePredictorCLI(CLI):
                 "model.encoder.num_layers": 3,
                 "model.encoder.num_self_attention_layers_per_block": 3,
                 "model.decoder.num_cross_attention_heads": 1,
-                "model.scorer": "fnr",
+                "model.scorer": "auroc",
                 "model.loss_fn": "BCEWithLogitsLoss",
                 "model.cosmic": True,
             }

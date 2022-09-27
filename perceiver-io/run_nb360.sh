@@ -46,18 +46,18 @@
 #done
 
 # TODO TODO run this on a larger GPU with bs=256
-rm -rf ./logs/fsd50k/*
-for i in {1..3}
-do
-    python scripts/nb360/fsd50k.py fit \
-        --model.num_latent_channels=128 --model.encoder.num_layers=3 \
-        --model.encoder.dropout=0.0 --model.decoder.dropout=0.0 \
-        --data.batch_size=256 \
-        --optimizer.lr=1e-3 --optimizer.weight_decay=0.01 \
-        --trainer.accelerator=gpu --trainer.devices=-1 \
-        --data=FSD50KDataModule \
-        --trainer.max_epochs=200
-done
+#rm -rf ./logs/fsd50k/*
+#for i in {1..3}
+#do
+#    python scripts/nb360/fsd50k.py fit \
+#        --model.num_latent_channels=128 --model.encoder.num_layers=3 \
+#        --model.encoder.dropout=0.0 --model.decoder.dropout=0.0 \
+#        --data.batch_size=256 \
+#        --optimizer.lr=1e-3 --optimizer.weight_decay=0.01 \
+#        --trainer.accelerator=gpu --trainer.devices=-1 \
+#        --data=FSD50KDataModule \
+#        --trainer.max_epochs=200
+#done
 
 # rm -rf ./logs/darcyflow/*
 # for i in {1..3}
@@ -88,14 +88,14 @@ done
 rm -rf ./logs/cosmic/*
 for i in {1..3}
 do
-    CUDA_VISIBLE_DEVICES=1 python scripts/nb360/cosmic.py fit \
+    CUDA_VISIBLE_DEVICES=0,1 python scripts/nb360/cosmic.py fit \
         --model.num_latent_channels=128 --model.encoder.num_layers=3 \
         --model.encoder.dropout=0.0 --model.decoder.dropout=0.0 \
         --data.batch_size=8 \
         --optimizer.lr=1e-3 --optimizer.weight_decay=0.01 \
-        --trainer.accelerator=gpu --trainer.devices=1 \
+        --trainer.accelerator=gpu --trainer.devices=0,1 \
         --data=CosmicDataModule \
-        --trainer.max_epochs=200 &
+        --trainer.max_epochs=200 
 done
 
 # rm -rf ./logs/deepsea/*

@@ -294,6 +294,8 @@ class LitDensePredictor(LitModel):
             self.acc = self.loss
         elif scorer == "fnr":
             self.acc = FalseNegativeRate()
+        elif scorer == "auroc":
+            self.acc = tm.AUROC(num_classes=2, pos_label=1, average="macro")
         elif scorer == "MAE":
             self.acc = tm.MeanAbsoluteError()
         elif scorer == "MAE8":
@@ -367,11 +369,13 @@ class LitDensePredictor(LitModel):
                 if self.y_normalizer is not None:
                     out = self.y_normalizer.decode(out)
             acc = self.acc(out.view(out.shape[0], -1), y.view(y.shape[0], -1))
-        elif self.cosmic and self.scorer == "fnr":
+        elif self.cosmic and (self.scorer == "fnr") or (self.scorer == "auroc"):
             out, y, ignore = self(batch)
             loss = self.loss(out * (1 - ignore), y * (1 - ignore))
-            metric = self._maskMetric(out.reshape(-1, 1, 128, 128).detach().cpu().numpy() > 0.5, y.cpu().numpy())
-            acc = self.acc(*metric)
+            #metric = self._maskMetric(out.reshape(-1, 1, 128, 128).detach().cpu().numpy() > 0.5, y.cpu().numpy())
+            # TODO TODO auoc
+            acc = self.acc(torch.sigmoid(out).cpu(), y.type(torch.IntTensor).cpu())
+            #acc = self.acc(*metric)
         elif self.psicov:
             logits, y_train = self(batch)
             loss = self.loss(logits.squeeze(), y_train.squeeze())
@@ -380,6 +384,9 @@ class LitDensePredictor(LitModel):
         else:
             raise NotImplementedError
         return loss, acc
+
+    def training_epoch_end(self, outputs):
+        self.acc.reset()
 
     def training_step(self, batch, batch_idx):
         loss, acc = self.step(batch)
