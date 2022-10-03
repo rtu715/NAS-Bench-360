@@ -13,40 +13,51 @@
 	<link rel="stylesheet" href="webpage/assets/main.css">
 	<link rel="stylesheet" href="webpage/assets/header-basic.css">
 	<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
-	
+
 </head>
 
 <body>
 	<div class="background">
-	<div class="toptitle" style="position:relative;top:-20px">
-        <h1 style="color:#196619; font-size:6vw;">
-            NAS-Bench-360
-        </h1>
-		<h2 style="margin-top:25px">A NAS Benchmark for Diverse Tasks</h2>
-        <br/>
-    </div>
-    </div>
-    <div class="title" style="margin-top:50px">
+		<div class="toptitle" style="position:relative;top:-20px">
+			<h1 style="color:#196619; font-size:6vw;">
+				NAS-Bench-360
+			</h1>
+			<h2 style="margin-top:25px">
+				A NAS Benchmark for Diverse Tasks <br />
+				> NeurIPS 2022 Datasets and Benchmarks track < </h2>
+					<br />
+		</div>
+	</div>
+	<div class="title" style="margin-top:50px">
 
-        <span class="description">
-        	Neural architecture search (NAS) benchmarks and methods prioritize performance on well-studied tasks, e.g., image classification on CIFAR and ImageNet. To mitigate this bias, NAS-Bench-360 is a benchmark suite for evaluating state-of-the-art NAS methods on a diverse set of tasks. The selection spans different application domains, dataset sizes, problem dimensionalities, and learning objectives. Please contact Renbo Tu (renbo.tu@mail.utoronto.ca) or Nicholas Roberts (nick11roberts@cs.wisc.edu) if you have questions or wish to contribute to the benchmark.
- 
-        </span>		
-        <br/>
-        <br/>
+		<span class="description">
+			Neural architecture search (NAS) benchmarks and methods prioritize performance on well-studied tasks, e.g.,
+			image classification on CIFAR and ImageNet. To mitigate this bias, NAS-Bench-360 is a benchmark suite for
+			evaluating state-of-the-art NAS methods on a diverse set of tasks. The selection spans different application
+			domains, dataset sizes, problem dimensionalities, and learning objectives. Please contact Renbo Tu
+			(renbo.tu@mail.utoronto.ca) or Nicholas Roberts (nick11roberts@cs.wisc.edu) if you have questions or wish to
+			contribute to the benchmark.
+
+		</span>
+		<br />
+		<br />
 		<h3><a href="https://github.com/rtu715/NAS-Bench-360">GitHub</a></h3>
 
 
-    </div>
+	</div>
 
 	<div class="title" style="position:relative;top:40px">
-		<h2>Datasets</h2><br><br/><br>
-    </div>
+		<h2>Datasets</h2><br><br /><br>
+	</div>
 
-	<div class="menu"  style="position:relative;top:40px">
+	<div class="menu" style="position:relative;top:40px">
 		<button class="collapsible">
-			<span><font size="6">CIFAR-100</font></span>
-			<span class="showHide"><font size="3">Computer Vision</font></span>
+			<span>
+				<font size="6">CIFAR-100</font>
+			</span>
+			<span class="showHide">
+				<font size="3">Computer Vision</font>
+			</span>
 			<img src="webpage/images/cifar100.jpeg" alt="Logo" style="float:right" height="50"></a>
 		</button>
 		<div class="content">
@@ -59,7 +70,8 @@
 							Data split: 40,000/10,000/10,000 <br>
 							Task type: Point<br>
 							License: CC BY 4.0<br>
-							Download link: <a href="https://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz">all data</a>
+							Download link: <a href="https://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz">all
+								data</a>
 						</p>
 					</div>
 					<div class="infobox-2">
@@ -69,33 +81,42 @@
 			</div>
 		</div>
 		<button class="collapsible">
-			<span><font size="6">Spherical</font></span>
-			<span class="showHide"><font size="3">Omnidirectional Vision</font></span>
+			<span>
+				<font size="6">Spherical</font>
+			</span>
+			<span class="showHide">
+				<font size="3">Omnidirectional Vision</font>
+			</span>
 			<img src="webpage/images/spherical.jpeg" alt="Logo" style="float:right" height="50"></a>
 		</button>
 		<div class="content">
-				<div class="vertspace">
-					<div class="infobox">
-						<div class="infobox-1">
-							<p>
+			<div class="vertspace">
+				<div class="infobox">
+					<div class="infobox-1">
+						<p>
 							<b>Information</b><br>
 							Number of samples: 60K<br>
 							Data split: 40,000/10,000/10,000 <br>
 							Task type: Point<br>
 							License: CC BY-SA<br>
 							Metadata: <a href="spherical.pdf">pdf</a> <br>
-							Download link: <a href="https://pde-xd.s3.amazonaws.com/spherical/s2_cifar100.gz">all data</a>
-							</p>
-						</div>
-						<div class="infobox-2">
-							<img src="webpage/images/spherical.jpeg"  height="250px">
-						</div>
+							Download link: <a href="https://pde-xd.s3.amazonaws.com/spherical/s2_cifar100.gz">all
+								data</a>
+						</p>
+					</div>
+					<div class="infobox-2">
+						<img src="webpage/images/spherical.jpeg" height="250px">
 					</div>
 				</div>
 			</div>
+		</div>
 		<button class="collapsible">
-			<span><font size="6">NinaPro DB5</font></span>
-			<span class="showHide"><font size="3">Prosthetics Control</font></span>
+			<span>
+				<font size="6">NinaPro DB5</font>
+			</span>
+			<span class="showHide">
+				<font size="3">Prosthetics Control</font>
+			</span>
 			<img src="webpage/images/ninapro.jpeg" alt="Logo" style="float:right" height="50"></a>
 		</button>
 		<div class="content">
@@ -124,8 +145,12 @@
 			</div>
 		</div>
 		<button class="collapsible">
-			<span><font size="6">FSD50K</font></span>
-			<span class="showHide"><font size="3">Audio Classification</font></span>
+			<span>
+				<font size="6">FSD50K</font>
+			</span>
+			<span class="showHide">
+				<font size="3">Audio Classification</font>
+			</span>
 			<img src="webpage/images/fsd50k.jpeg" alt="Logo" style="float:right" height="50"></a>
 		</button>
 		<div class="content">
@@ -149,8 +174,12 @@
 			</div>
 		</div>
 		<button class="collapsible">
-			<span><font size="6">Darcy Flow</font></span>
-			<span class="showHide"><font size="3">PDE Solver</font></span>
+			<span>
+				<font size="6">Darcy Flow</font>
+			</span>
+			<span class="showHide">
+				<font size="3">PDE Solver</font>
+			</span>
 			<img src="webpage/images/darcy.png" alt="Logo" style="float:right" height="50"></a>
 		</button>
 		<div class="content">
@@ -164,7 +193,8 @@
 							Task type: Dense<br>
 							License: MIT<br>
 							Download links: <br>
-							<a href="https://pde-xd.s3.amazonaws.com/piececonst_r421_N1024_smooth1.mat">Train + Validation data</a> <br>
+							<a href="https://pde-xd.s3.amazonaws.com/piececonst_r421_N1024_smooth1.mat">Train +
+								Validation data</a> <br>
 							<a href="https://pde-xd.s3.amazonaws.com/piececonst_r421_N1024_smooth2.mat">Test data</a>
 						</p>
 					</div>
@@ -175,8 +205,12 @@
 			</div>
 		</div>
 		<button class="collapsible">
-			<span><font size="6">PSICOV</font></span>
-			<span class="showHide"><font size="3">Protein Folding</font></span>
+			<span>
+				<font size="6">PSICOV</font>
+			</span>
+			<span class="showHide">
+				<font size="3">Protein Folding</font>
+			</span>
 			<img src="webpage/images/psicov.jpeg" alt="Logo" style="float:right" height="50"></a>
 		</button>
 		<div class="content">
@@ -193,15 +227,19 @@
 						</p>
 					</div>
 					<div class="infobox-2">
-						<img src="webpage/images/psicov.jpeg"  height="250px">
+						<img src="webpage/images/psicov.jpeg" height="250px">
 					</div>
 				</div>
 			</div>
 		</div>
 
 		<button class="collapsible">
-			<span><font size="6">Cosmic</font></span>
-			<span class="showHide"><font size="3">Astronomy Imaging</font></span>
+			<span>
+				<font size="6">Cosmic</font>
+			</span>
+			<span class="showHide">
+				<font size="3">Astronomy Imaging</font>
+			</span>
 			<img src="webpage/images/cosmic.jpeg" alt="Logo" style="float:right" height="50"></a>
 		</button>
 		<div class="content">
@@ -215,20 +253,26 @@
 							Task type: Dense<br>
 							License: CC BY 4.0<br>
 							Download links: <br>
-							<a href="https://pde-xd.s3.amazonaws.com/cosmic/deepCR.ACS-WFC.train.tar">Train+Validation data (6.5 GB)</a><br>
-							<a href="https://pde-xd.s3.amazonaws.com/cosmic/deepCR.ACS-WFC.test.tar">Test data (2.0 GB)</a>
+							<a href="https://pde-xd.s3.amazonaws.com/cosmic/deepCR.ACS-WFC.train.tar">Train+Validation
+								data (6.5 GB)</a><br>
+							<a href="https://pde-xd.s3.amazonaws.com/cosmic/deepCR.ACS-WFC.test.tar">Test data (2.0
+								GB)</a>
 						</p>
 					</div>
 					<div class="infobox-2">
-						<img src="webpage/images/cosmic.jpeg"  height="250px">
+						<img src="webpage/images/cosmic.jpeg" height="250px">
 					</div>
 				</div>
 			</div>
 		</div>
 
 		<button class="collapsible">
-			<span><font size="6">ECG</font></span>
-			<span class="showHide"><font size="3">Medical Diagnostics</font></span>
+			<span>
+				<font size="6">ECG</font>
+			</span>
+			<span class="showHide">
+				<font size="3">Medical Diagnostics</font>
+			</span>
 			<img src="webpage/images/ecg.png" alt="Logo" style="float:right" height="50"></a>
 		</button>
 		<div class="content">
@@ -246,15 +290,19 @@
 						</p>
 					</div>
 					<div class="infobox-2">
-						<img src="webpage/images/ecg.png"  height="250px">
+						<img src="webpage/images/ecg.png" height="250px">
 					</div>
 				</div>
 			</div>
 		</div>
 
 		<button class="collapsible">
-			<span><font size="6">Satellite</font></span>
-			<span class="showHide"><font size="3">Earth Monitoring</font></span>
+			<span>
+				<font size="6">Satellite</font>
+			</span>
+			<span class="showHide">
+				<font size="3">Earth Monitoring</font>
+			</span>
 			<img src="webpage/images/satellite.png" alt="Logo" style="float:right" height="50"></a>
 		</button>
 		<div class="content">
@@ -268,20 +316,25 @@
 							Task type: 1D Point<br>
 							License: GPL<br>
 							Download links: <br>
-							<a href="https://pde-xd.s3.amazonaws.com/satellite/satellite_train.npy">Train+Validation data </a><br>
+							<a href="https://pde-xd.s3.amazonaws.com/satellite/satellite_train.npy">Train+Validation
+								data </a><br>
 							<a href="https://pde-xd.s3.amazonaws.com/satellite/satellite_test.npy">Test data</a>
 						</p>
 					</div>
 					<div class="infobox-2">
-						<img src="webpage/images/satellite.png"  height="250px">
+						<img src="webpage/images/satellite.png" height="250px">
 					</div>
 				</div>
 			</div>
 		</div>
 
 		<button class="collapsible">
-			<span><font size="6">DeepSEA</font></span>
-			<span class="showHide"><font size="3">Genetic Prediction</font></span>
+			<span>
+				<font size="6">DeepSEA</font>
+			</span>
+			<span class="showHide">
+				<font size="3">Genetic Prediction</font>
+			</span>
 			<img src="webpage/images/deepsea.png" alt="Logo" style="float:right" height="50"></a>
 		</button>
 		<div class="content">
@@ -296,11 +349,11 @@
 							License: CC BY 4.0<br>
 							Download links: <br>
 							<a href="https://pde-xd.s3.amazonaws.com/deepsea/deepsea_filtered.npz">all data </a><br>
-						
+
 						</p>
 					</div>
 					<div class="infobox-2">
-						<img src="webpage/images/deepsea.png"  height="250px">
+						<img src="webpage/images/deepsea.png" height="250px">
 					</div>
 				</div>
 			</div>
@@ -310,18 +363,19 @@
 
 	<div class="title" style="position:relative;top:40px">
 		<h2>Citation</h2>
-        <span class="description">
-            Please cite the following if you use NAS-Bench-360: </br>
-        </span>
-        </br>
-        <span class="citation" style="text-align: justify">
-			<b><a href="https://arxiv.org/abs/2110.05668">NAS-Bench-360: Benchmarking Neural Architecture Search on Diverse Tasks</a></b></br>
+		<span class="description">
+			Please cite the following if you use NAS-Bench-360: </br>
+		</span>
+		</br>
+		<span class="citation" style="text-align: justify">
+			<b><a href="https://arxiv.org/abs/2110.05668">NAS-Bench-360: Benchmarking Neural Architecture Search on
+					Diverse Tasks</a></b></br>
 			Renbo Tu*, Nicholas Roberts*, Mikhail Khodak, Junhong Shen, Frederic Sala, Ameet Talwalkar </br>
-			
-			
 
-        </span>
-	<pre>
+
+
+		</span>
+		<pre>
 	@misc{tu2021benchmark,,
 		doi = {10.48550/ARXIV.2110.05668},
 		url = {https://arxiv.org/abs/2110.05668},
@@ -331,31 +385,32 @@
 		year = {2021},
 		}
 	</pre>
-			
-	<br/><br/>
-    </div>
+
+		<br /><br />
+	</div>
 
 
 	<div class="title" style="position:relative;top:40px">
 		<h2>License</h2>
-        <span class="description">
-            NAS-Bench-360 is released under the <a href="https://en.wikipedia.org/wiki/MIT_License">MIT</a> license. </br>
-        </span>
-    </div>
+		<span class="description">
+			NAS-Bench-360 is released under the <a href="https://en.wikipedia.org/wiki/MIT_License">MIT</a> license.
+			</br>
+		</span>
+	</div>
 
 	<script>
 		var coll = document.getElementsByClassName("collapsible");
 		var i;
-		
+
 		for (i = 0; i < coll.length; i++) {
-			coll[i].addEventListener("click", function() {
-                this.classList.toggle("active");
-                var content = this.nextElementSibling;
-                if (content.style.maxHeight){
-                    content.style.maxHeight = null;
-                } else {
-                    content.style.maxHeight = "800px";
-                } 
+			coll[i].addEventListener("click", function () {
+				this.classList.toggle("active");
+				var content = this.nextElementSibling;
+				if (content.style.maxHeight) {
+					content.style.maxHeight = null;
+				} else {
+					content.style.maxHeight = "800px";
+				}
 			});
 		}
 	</script>
