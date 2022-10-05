@@ -10,7 +10,7 @@ from tools.config_yaml import merge_cfg_from_file, update_cfg_from_cfg
 from tools.multadds_count import comp_multadds
 
 
-def generate_arch(task, net_type, threshold_arch):
+def generate_arch(task, net_type):
 
     update_cfg_from_cfg(search_cfg, cfg)
     if task == 'pde':
@@ -36,9 +36,9 @@ def generate_arch(task, net_type, threshold_arch):
     derivedNetwork = getattr(model_derived, '%s_Net' % net_type.upper())
     der_Net = lambda net_config: derivedNetwork(net_config, task=task,
                                                      config=config)
-    target_model = der_Net(threshold_arch)
-    target_flops = comp_multadds(target_model, input_size = input_shape)
-    print("Target Model Mult-Adds = %.2fMB" % target_flops)
+    #target_model = der_Net(threshold_arch)
+    #target_flops = comp_multadds(target_model, input_size = input_shape)
+    #print("Target Model Mult-Adds = %.2fMB" % target_flops)
 
     #target_params = utils.count_parameters_in_MB(target_model)
     target_params = 99999999
