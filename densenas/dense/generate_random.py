@@ -40,7 +40,8 @@ def generate_arch(task, net_type, threshold_arch):
     target_flops = comp_multadds(target_model, input_size = input_shape)
     print("Target Model Mult-Adds = %.2fMB" % target_flops)
 
-    target_params = utils.count_parameters_in_MB(target_model)
+    #target_params = utils.count_parameters_in_MB(target_model)
+    target_params = 99999999
     lower_than_target = False
 
     while not lower_than_target: 

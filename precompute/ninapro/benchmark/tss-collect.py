@@ -202,7 +202,8 @@ def correct_time_related_info(arch_index: int, arch_infos: Dict[Text, ArchResult
     eval_ori_test_time, eval_x_valid_time = float(np.mean(eval_ori_test_time)), float(
         np.mean(eval_x_valid_time)
     )
-    nums = {
+    nums = { 
+        "cifar10-valid-train": 25000,
         "ninapro-train": 3297,
         "ninapro-test": 659, 
     }
