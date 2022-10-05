@@ -5,6 +5,6 @@ nvidia-docker run -it --rm \
   --ulimit memlock=-1 \
   --ulimit stack=67108864 \
   -e LD_LIBRARY_PATH='/workspace/install/lib/' \
-  -v /home/automldec/github.com/rtu715/NAS-Bench-360:/NAS-Bench-360 \
+  -v /lvol/NAS-Bench-360:/NAS-Bench-360 \
   renbotu/nb360:precompute-ninapro /bin/bash
   

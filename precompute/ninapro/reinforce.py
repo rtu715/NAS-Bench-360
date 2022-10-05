@@ -156,7 +156,7 @@ def main(xargs, api):
         log_prob, action = select_action(policy)
         arch = policy.generate_arch(action)
         reward, _, _, current_total_cost = api.simulate_train_eval(
-            arch, xargs.dataset, iepoch=12, hp="200"
+            arch, xargs.dataset, iepoch=11, hp="12"
         )
         trace.append((reward, arch))
         total_costs.append(current_total_cost)
@@ -186,9 +186,9 @@ def main(xargs, api):
         )
     )
     info = api.query_info_str_by_arch(
-        best_arch, "200" if xargs.search_space == "tss" else "90"
+        best_arch, "12" if xargs.search_space == "tss" else "90"
     )
-    info_num = api.get_more_info(api.query_index_by_arch(best_arch), "ninapro", iepoch=None, hp="200")
+    info_num = api.get_more_info(api.query_index_by_arch(best_arch), "ninapro", iepoch=None, hp="12")
     acc = info_num['valtest-accuracy']
     logger.log("{:}".format(info))
     logger.log("-" * 100)

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#python ./exps/NATS-algos/reinforce.py       --dataset ninapro --search_space tss --learning_rate 0.01 --arch_nas_dataset ./output/NATS-Bench-topology/NATS-tss-v1_0-daa55-simple --time_budget 40 
+python ./ninapro/reinforce.py       --dataset ninapro --search_space tss --learning_rate 0.01 --arch_nas_dataset ./output/NATS-Bench-topology/NATS-tss-v1_0-2397f-simple --time_budget 40 
 
 #python ./exps/NATS-algos/regularized_ea.py  --dataset ninapro --search_space tss --ea_cycles 200 --ea_population 10 --ea_sample_size 3 --arch_nas_dataset ./output/NATS-Bench-topology/NATS-tss-v1_0-daa55-simple --time_budget 40
 
@@ -28,4 +28,4 @@
 #python ./exps/NATS-algos/hyperband.py --dataset cifar100 --search_space tss --arch_nas_dataset  ./NATS-tss-v1_0-3ffb9.pickle.pbz2
 
 
-python ./exps/NATS-algos/hyperband.py --dataset cifar10 --search_space tss --arch_nas_dataset  ./NATS-tss-v1_0-3ffb9.pickle.pbz2
+#python ./exps/NATS-algos/hyperband.py --dataset cifar10 --search_space tss --arch_nas_dataset  ./NATS-tss-v1_0-3ffb9.pickle.pbz2
