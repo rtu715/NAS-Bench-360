@@ -1,4 +1,4 @@
-description: cosmic_densenas_eval_2
+description: cosmic_densenas_rs_30
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
@@ -24,10 +24,11 @@ hyperparameters:
   num_examples: 4830
 
   net_type: res
+  net_config: random
   #net_config: "[[32, 56], 'basic_block', [], 0, 1]|
   #[[56, 80], 'basic_block', ['basic_block', 'basic_block'], 2, 1]"
-  net_config: "[[16, 32], 'basic_block', [], 0, 1]|
-  [[32, 56], 'basic_block', ['basic_block', 'basic_block', 'basic_block'], 3, 1] "
+  #net_config: "[[16, 32], 'basic_block', [], 0, 1]|
+  #[[32, 56], 'basic_block', ['basic_block', 'basic_block', 'basic_block'], 3, 1] "
 
   #1
   #net_config: "[[16, 32], 'basic_block', [], 0, 1]| 
@@ -57,11 +58,11 @@ min_checkpoint_period:
 
 records_per_epoch: 4830
 searcher:
-  name: single
-  metric: TPR
-  smaller_is_better: false
+  name: random
+  metric: 1-AUROC
   max_length:
-    epochs: 240
+    epochs: 10
+  max_trials: 30
 
 optimizations:
   aggregation_frequency:  1
