@@ -38,3 +38,6 @@ perceiver-io/logs/*
 
 # old files
 old
+
+#output
+precompute/*/output

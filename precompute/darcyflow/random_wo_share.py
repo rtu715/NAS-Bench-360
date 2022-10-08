@@ -53,7 +53,7 @@ def random_size_func(info):
     return random_architecture
 
 
-def main(xargs, api):
+def main(xargs, api, apu_full):
     torch.set_num_threads(4)
     prepare_seed(xargs.rand_seed)
     logger = prepare_logger(args)
@@ -72,7 +72,7 @@ def main(xargs, api):
     while len(total_time_cost) == 0 or total_time_cost[-1] < xargs.time_budget:
         arch = random_arch()
         accuracy, _, _, total_cost = api.simulate_train_eval(
-            arch, xargs.dataset, iepoch=12, hp="200"
+            arch, xargs.dataset, iepoch=11, hp="12"
         )
         total_time_cost.append(total_cost)
         history.append(arch)
@@ -88,10 +88,10 @@ def main(xargs, api):
         )
     )
 
-    info = api.query_info_str_by_arch(
+    info = api_full.query_info_str_by_arch(
         best_arch, "200" if xargs.search_space == "tss" else "90"
     )
-    info_num = api.get_more_info(api.query_index_by_arch(best_arch), "darcyflow", iepoch=None, hp="200")
+    info_num = api_full.get_more_info(api.query_index_by_arch(best_arch), "darcyflow", iepoch=None, hp="200")
     loss = info_num['valtest-loss']
     logger.log("{:}".format(info))
     logger.log("-" * 100)
@@ -136,9 +136,17 @@ if __name__ == "__main__":
         type=str,
         help="The path to load the architecture dataset (tiny-nas-benchmark).",
     )
+    parser.add_argument(
+        "--arch_nas_dataset_eval",
+        type=str,
+        help="The path to load the architecture dataset (tiny-nas-benchmark).",
+    )
     args = parser.parse_args()
 
-    api = create(args.arch_nas_dataset, args.search_space, fast_mode=True, verbose=False)
+
+    api = create(args.arch_nas_dataset, args.search_space, fast_mode=False, verbose=False)
+    api_full = create(args.arch_nas_dataset_eval, args.search_space, fast_mode=False, verbose=False)
+
     args.save_dir = os.path.join(
         "{:}-{:}".format(args.save_dir, args.search_space),
         "{:}-T{:}".format(args.dataset, args.time_budget),
@@ -153,7 +161,7 @@ if __name__ == "__main__":
         for i in range(args.loops_if_rand):
             print("{:} : {:03d}/{:03d}".format(time_string(), i, args.loops_if_rand))
             args.rand_seed = random.randint(1, 100000)
-            save_dir, all_archs, all_total_times, loss = main(args, api)
+            save_dir, all_archs, all_total_times, loss = main(args, api, api_full)
             loss_avg.update(loss)
             loss_arr.append(loss)
             all_info[i] = {"all_archs": all_archs, "all_total_times": all_total_times}

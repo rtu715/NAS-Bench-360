@@ -2,7 +2,7 @@ from deepCR import train
 import numpy as np
 import os
 
-base_dir = '.'
+base_dir = '../../autodeeplab/'
 
 train_dirs = np.load(os.path.join(base_dir,'train_dirs.npy'),allow_pickle =True)
 test_dirs = np.load(os.path.join(base_dir, 'test_dirs.npy'), allow_pickle=True)

@@ -136,7 +136,7 @@ def regularized_evolution(
         model = Model()
         model.arch = random_arch()
         model.accuracy, _, _, total_cost = api.simulate_train_eval(
-            model.arch, dataset, hp="200" if use_proxy else api.full_train_epochs
+            model.arch, dataset, iepoch=11, hp="12",
         )
         # Append the info
         population.append(model)
@@ -164,7 +164,7 @@ def regularized_evolution(
         child = Model()
         child.arch = mutate_arch(parent.arch)
         child.accuracy, _, _, total_cost = api.simulate_train_eval(
-            child.arch, dataset, iepoch=12, hp="200" if use_proxy else api.full_train_epochs
+            child.arch, dataset, iepoch=11, hp="12"
         )
         # Append the info
         population.append(child)
@@ -179,7 +179,7 @@ def regularized_evolution(
     return history, current_best_index, total_time_cost
 
 
-def main(xargs, api):
+def main(xargs, api, api_full):
     torch.set_num_threads(4)
     prepare_seed(xargs.rand_seed)
     logger = prepare_logger(args)
@@ -217,10 +217,10 @@ def main(xargs, api):
     best_arch = max(history, key=lambda x: x[0])[1]
     logger.log("{:} best arch is {:}".format(time_string(), best_arch))
 
-    info = api.query_info_str_by_arch(
+    info = api_full.query_info_str_by_arch(
         best_arch, "200" if xargs.search_space == "tss" else "90"
     )
-    info_num = api.get_more_info(api.query_index_by_arch(best_arch), "ninapro", iepoch=None, hp="200")
+    info_num = api_full.get_more_info(api.query_index_by_arch(best_arch), "ninapro", iepoch=None, hp="200")
     acc = info_num['valtest-accuracy']
     logger.log("{:}".format(info))
     logger.log("-" * 100)
@@ -275,9 +275,15 @@ if __name__ == "__main__":
         type=str,
         help="The path to load the architecture dataset (tiny-nas-benchmark).",
     )
+    parser.add_argument(
+        "--arch_nas_dataset_eval",
+        type=str,
+        help="The path to load the architecture dataset (tiny-nas-benchmark).",
+    )
     args = parser.parse_args()
 
-    api = create(args.arch_nas_dataset, args.search_space, fast_mode=True, verbose=False)
+    api = create(args.arch_nas_dataset, args.search_space, fast_mode=False, verbose=False)
+    api_full = create(args.arch_nas_dataset_eval, args.search_space, fast_mode=False, verbose=False)
 
     args.save_dir = os.path.join(
         "{:}-{:}".format(args.save_dir, args.search_space),
@@ -296,7 +302,7 @@ if __name__ == "__main__":
         for i in range(args.loops_if_rand):
             print("{:} : {:03d}/{:03d}".format(time_string(), i, args.loops_if_rand))
             args.rand_seed = random.randint(1, 100000)
-            save_dir, all_archs, all_total_times, acc = main(args, api)
+            save_dir, all_archs, all_total_times, acc = main(args, api, api_full)
             acc_meter.update(acc)
             acc_lst.append(acc)
             all_info[i] = {"all_archs": all_archs, "all_total_times": all_total_times}
@@ -308,4 +314,4 @@ if __name__ == "__main__":
         print(np.std(np.array(acc_lst)))
         torch.save(all_info, save_path)
     else:
-        main(args, api)
+        main(args, api, api_full)
