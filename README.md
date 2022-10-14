@@ -84,12 +84,13 @@ Performance of NAS and baselines across NAS-Bench-360. Methods are divided into 
 ## Citation
 If you find this project helpful, please consider citing our paper:
 ```bibtex
-@article{tu2022nb360,
-  title = {NAS-Bench-360: Benchmarking Neural Architecture Search on Diverse Tasks},  
-  author = {Tu, Renbo and Roberts, Nicholas and Khodak, Mikhail and Shen, Junhong and Sala, Frederic and Talwalkar, Ameet}, 
-  publisher = {arXiv},
-  year = {2022},
+@inproceedings{
+tu2022nasbench,
+title={{NAS}-Bench-360: Benchmarking Neural Architecture Search on Diverse Tasks},
+author={Renbo Tu and Nicholas Roberts and Mikhail Khodak and Junhong Shen and Frederic Sala and Ameet Talwalkar},
+booktitle={Thirty-sixth Conference on Neural Information Processing Systems Datasets and Benchmarks Track},
+year={2022},
+url={https://openreview.net/forum?id=xUXTbq6gWsB}
 }
-
 ```
 Thanks!
