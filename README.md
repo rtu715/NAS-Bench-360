@@ -3,8 +3,13 @@
 This codebase reproduces various empirical evaluations on [NAS-Bench-360](https://nb360.ml.cmu.edu/), a benchmark for evaluating neural architecture search on diverse tasks, that can be found in the associated [paper](https://arxiv.org/abs/2110.05668).
 
 ## Resources 
+<b> Oct 2022: Please use this link for all dataset and precompute downloads as we are transitioning our AWS resources to the Open Data Sponsorship program:
 
-Datasets in the benchmark with download links:
+[Shared Drive](https://drive.google.com/drive/folders/1OOp6UrCiP79mTIkCrUdjjHWDo8K0bJUw)  
+
+</b>
+
+Datasets in the benchmark with download links (<b> old links, use the shared drive above! </b>):
 - CIFAR-100 (Image classification)
 - [Spherical CIFAR-100 (Transformed image classification)](https://pde-xd.s3.amazonaws.com/spherical/s2_cifar100.gz) (272 MB)
 - [Ninapro DB5 (Hand-gesture classification)](https://pde-xd.s3.amazonaws.com/ninapro/ninapro_train.npy)(15 MB)
