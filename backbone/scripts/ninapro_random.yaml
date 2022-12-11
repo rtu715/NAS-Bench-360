@@ -2,9 +2,6 @@ description: ninapro_backbone_random
 
 environment:
   image: "renbotu/xd-nas:determined1.8"
-  registry_auth:
-    username: renbotu
-    password: 980715tutubo
 
 reproducibility:
   experiment_seed: 0
